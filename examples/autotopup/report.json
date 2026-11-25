@@ -2,10 +2,10 @@
   "passport": {
     "document": "autotopup.md",
     "sha256": "602ee3e1226fc2da5bd76f87c23515fb6c8b4eca685c1ffc28727b2596f7dd8a",
-    "date": "2026-11-25 20:04",
+    "date": "2026-11-26 01:38",
     "model": "gemini-3.5-flash",
     "provider": "openai_compat",
-    "agent_version": "0.1.0 (aa2564f)",
+    "agent_version": "0.1.0 (v1.1)",
     "llm_calls": 0,
     "seconds": 0.0,
     "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",
@@ -1249,35 +1249,40 @@
       "cached": true,
       "seconds": 0.0,
       "in_tokens": 2140,
-      "out_tokens": 1193
+      "out_tokens": 1193,
+      "orig_seconds": null
     },
     {
       "role": "Auditor",
       "cached": true,
       "seconds": 0.0,
       "in_tokens": 3956,
-      "out_tokens": 4198
+      "out_tokens": 4198,
+      "orig_seconds": null
     },
     {
       "role": "CrossChecker",
       "cached": true,
       "seconds": 0.0,
       "in_tokens": 5714,
-      "out_tokens": 3136
+      "out_tokens": 3136,
+      "orig_seconds": null
     },
     {
       "role": "Critic",
       "cached": true,
       "seconds": 0.0,
       "in_tokens": 5100,
-      "out_tokens": 1732
+      "out_tokens": 1732,
+      "orig_seconds": null
     },
     {
       "role": "Clarifier",
       "cached": true,
       "seconds": 0.0,
       "in_tokens": 4630,
-      "out_tokens": 2052
+      "out_tokens": 2052,
+      "orig_seconds": null
     }
   ],
   "req_checks": {
@@ -1286,17 +1291,15 @@
       "complete"
     ],
     "R-03": [
-      "complete",
-      "correct"
+      "correct",
+      "complete"
     ],
     "R-04": [
       "correct",
       "complete"
     ],
     "R-05": [
-      "unambiguous",
-      "complete",
-      "verifiable"
+      "unambiguous"
     ],
     "R-06": [
       "complete"
@@ -1308,26 +1311,23 @@
       "complete"
     ],
     "R-09": [
-      "complete",
-      "verifiable"
+      "complete"
     ],
     "R-10": [
-      "verifiable",
-      "unambiguous"
+      "verifiable"
     ],
     "R-11": [
       "complete"
     ],
     "R-12": [
-      "correct",
       "appropriate"
     ],
     "R-13": [
       "complete"
     ],
     "R-14": [
-      "complete",
-      "verifiable"
+      "appropriate",
+      "complete"
     ],
     "R-15": [],
     "R-16": [],
@@ -1349,32 +1349,32 @@
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-19",
+      "reason": "объединено с D-20",
       "item": "Формулировка содержит слова, которые нельзя проверить однозначно: «максимально» (превосходная степень), «быстро» (размытое наречие или прилагательное)."
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-04",
+      "reason": "объединено с D-25",
       "item": "У документа нет даты."
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-08",
+      "reason": "объединено с D-04",
       "item": "Требование хранить CVV в логах нарушает стандарты безопасности PCI DSS и создает критическую уязвимость."
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-05",
+      "reason": "объединено с D-23",
       "item": "Не определен таймаут ответа агрегатора (указано «уточняется»), а проведение платежа методом GET является неидемпотентным и ненадёжным."
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-13",
+      "reason": "объединено с D-03",
       "item": "Критерий приёмки №3 требует выполнения 4-го пополнения, что прямо противоречит ограничению ТР-03 (не более 3 пополнений в сутки)."
     },
     {
       "role": "Critic",
-      "reason": "объединено с F-22",
+      "reason": "объединено с D-22",
       "item": "Спецификация API метода GET /v1/balance не содержит описания формата и структуры ответа с величиной баланса номера и единицами измерения."
     }
   ]

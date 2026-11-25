@@ -2,6 +2,8 @@ import hashlib
 import io
 import logging
 import re
+import shutil
+import subprocess
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -84,6 +86,47 @@ def looks_binary(text: str) -> bool:
     return bad / len(sample) > 0.05
 
 
+GLUE_MAX = 0.15
+PUA_BULLETS = str.maketrans({"\uf0b7": "•", "\uf0a7": "•", "\uf076": "•", "\uf0d8": "•", "\uf0fc": "•"})
+CYR_WORD = re.compile(r"[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі]+")
+
+
+def glue_score(lines: list[tuple[str, int]]) -> float:
+    words = CYR_WORD.findall("\n".join(t for t, _ in lines))
+    total = sum(map(len, words))
+    if total < 200:
+        return 0.0
+    return sum(len(w) for w in words if len(w) >= 20) / total
+
+
+def pdf_lines(pages, mode: str = "plain") -> tuple[list[tuple[str, int]], int]:
+    out, failed = [], 0
+    for i, page in enumerate(pages, start=1):
+        try:
+            txt = page.extract_text(extraction_mode=mode) or ""
+        except Exception:
+            failed += 1
+            txt = ""
+        for ln in txt.splitlines():
+            out.append((ln.rstrip(), i))
+    return out, failed
+
+
+def pdftotext_lines(data: bytes) -> list[tuple[str, int]]:
+    exe = shutil.which("pdftotext")
+    if not exe:
+        return []
+    try:
+        res = subprocess.run([exe, "-layout", "-enc", "UTF-8", "-", "-"], input=data,
+                             capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if res.returncode != 0:
+        return []
+    text = res.stdout.decode("utf-8", errors="replace")
+    return [(ln.rstrip(), i) for i, page in enumerate(text.split("\f"), start=1) for ln in page.splitlines()]
+
+
 def read_pdf(data: bytes) -> tuple[list[tuple[str, int]], list[str]]:
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
@@ -109,16 +152,22 @@ def read_pdf(data: bytes) -> tuple[list[tuple[str, int]], list[str]]:
                         "Пересохраните PDF из исходного редактора или передайте .md/.docx.")
     if n == 0:
         raise ReadError("pdf_empty", "В PDF нет страниц.", "Проверьте, что файл экспортирован полностью.")
-    out = []
-    failed = 0
-    for i, page in enumerate(pages, start=1):
-        try:
-            txt = page.extract_text() or ""
-        except Exception:
-            failed += 1
-            txt = ""
-        for ln in txt.splitlines():
-            out.append((ln, i))
+    out, failed = pdf_lines(pages)
+    if glue_score(out) > GLUE_MAX:
+        best, how = out, ""
+        layout, _ = pdf_lines(pages, mode="layout")
+        if glue_score(layout) < glue_score(best):
+            best, how = layout, "layout"
+        poppler = pdftotext_lines(data)
+        if poppler and glue_score(poppler) < glue_score(best):
+            best, how = poppler, "pdftotext"
+        out = best
+        if glue_score(out) > GLUE_MAX:
+            warnings.append("В PDF слова слиплись при извлечении текста (обычно шрифт без кириллицы при экспорте). "
+                            "Цитаты и замечания могут быть неточными: передайте .docx или .md, "
+                            "или установите poppler (pdftotext), агент использует его сам.")
+        elif how:
+            warnings.append(f"Обычное извлечение текста PDF склеило слова; текст взят через {how}.")
     chars = sum(len(t.strip()) for t, _ in out)
     if failed == n:
         raise ReadError("pdf_broken", "Ни одну страницу PDF не удалось прочитать.",
@@ -229,7 +278,7 @@ def read_document(path: str) -> Document:
             warnings.append(f"Кодировка файла: {enc}.")
         raw = [(t, None) for t in text.splitlines()]
 
-    lines = [Line(no=i, text=t.rstrip(), page=pg) for i, (t, pg) in enumerate(raw, start=1)]
+    lines = [Line(no=i, text=t.translate(PUA_BULLETS).rstrip(), page=pg) for i, (t, pg) in enumerate(raw, start=1)]
     if sum(len(l.text.strip()) for l in lines) < 20:
         raise ReadError("no_text", "В документе почти нет текста.", "Проверьте, что передан правильный файл.")
     assign_sections(lines)

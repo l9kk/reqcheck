@@ -79,9 +79,32 @@ def extract_candidates(doc: Document) -> list[Candidate]:
             i += 1
             continue
         kind = "bullet" if BULLET_RE.match(t) else "para"
-        add(kind, l.no, l.no, t)
-        i += 1
+        j = i + 1
+        if doc.kind == "pdf" and not COLUMNS_RE.search(s):
+            while j < len(lines):
+                gap = j + 1 if not lines[j].text.strip() and j + 1 < len(lines) else j
+                nxt = lines[gap].text.strip()
+                if gap > j and not (nxt[:1].islower()):
+                    break
+                if not is_wrap(lines[j - 1].text, lines[gap].text):
+                    break
+                j = gap + 1
+        add(kind, l.no, lines[j - 1].no, " ".join(x.text.strip() for x in lines[i:j] if x.text.strip()))
+        i = j
     return out
+
+
+COLUMNS_RE = re.compile(r"\S\s{3,}\S")
+
+
+def is_wrap(prev: str, nxt: str) -> bool:
+    s = nxt.strip()
+    m = DOC_ID_RE.match(nxt)
+    if not s or COLUMNS_RE.search(s) or BULLET_RE.match(nxt) or (m and m.group(1)):
+        return False
+    if re.match(r"^\d+(?:\.\d+)*\.?\s", s) or prev.rstrip().endswith((":", ".", "!", "?", ";")):
+        return False
+    return s[0].islower() or s[0] in "«(\"-–—,0123456789"
 
 
 def render_candidates(cands: list[Candidate]) -> str:

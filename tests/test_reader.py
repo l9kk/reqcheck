@@ -98,14 +98,16 @@ class TestGoodInputs(unittest.TestCase):
 
     def test_pdf_fallback_font_glued_words(self):
         import shutil
+        import subprocess
         from unittest import mock
         path = FIX / "pdf_export" / "libreoffice_fallback_font.pdf"
         with mock.patch("reqcheck.reader.shutil.which", return_value=None):
             doc = read_document(str(path))
         self.assertTrue(any("слиплись" in w for w in doc.warnings), doc.warnings)
-        if shutil.which("pdftotext"):
+        exe = shutil.which("pdftotext")
+        if exe and "poppler" in subprocess.run([exe, "-v"], capture_output=True, text=True).stderr.lower():
             doc = read_document(str(path))
-            self.assertTrue(any("pdftotext" in w for w in doc.warnings), doc.warnings)
+            self.assertTrue(any("текст взят через pdftotext" in w for w in doc.warnings), doc.warnings)
             self.assertIn("Клиент настраивает автоматическое пополнение", doc.text)
 
     def test_docx(self):

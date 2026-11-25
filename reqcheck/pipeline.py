@@ -364,6 +364,8 @@ class Pipeline:
                                 options=[str(o) for o in (q.get("options") or [])][:4], default=str(q.get("default", "")),
                                 addressee=str(q.get("addressee", "")),
                                 finding_ids=[x for x in (q.get("finding_ids") or []) if x in ids]))
+        if not out:
+            out = self.fallback_questions(findings)
         self.step("Clarifier", f"вопросов: {len(out)}")
         return out[:14]
 

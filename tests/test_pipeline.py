@@ -108,5 +108,28 @@ class PipelineMockTest(unittest.TestCase):
         self.assertTrue(data["findings"])
 
 
+class InteractiveTest(unittest.TestCase):
+    def test_answers_written_without_model(self):
+        from reqcheck.interactive import run as irun
+        from reqcheck.llm import LLM
+        from reqcheck.pipeline import Pipeline
+        old = dict(os.environ)
+        os.environ.update({"LLM_PROVIDER": "mock"})
+        try:
+            rep = Pipeline(LLM(), log=lambda m: None).run(str(DOC))
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        self.assertTrue(rep.questions)
+        replies = iter(["", "s", "Порог по умолчанию 50 000 тенге", "q"])
+        said = []
+        with tempfile.TemporaryDirectory() as d:
+            path = irun(rep, None, Path(d) / "r.md", read=lambda _: next(replies), say=said.append)
+            text = path.read_text(encoding="utf-8")
+        self.assertIn(rep.questions[0].id, text)
+        self.assertIn("Порог по умолчанию 50 000 тенге", text)
+        self.assertNotIn(rep.questions[1].text, text)
+
+
 if __name__ == "__main__":
     unittest.main()

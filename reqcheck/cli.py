@@ -21,6 +21,8 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--output", default="report/report.md", help="путь к отчёту (.md); рядом пишутся .json")
     ap.add_argument("--no-cache", action="store_true", help="не использовать кэш ответов модели")
     ap.add_argument("--quiet", action="store_true", help="не печатать ход работы")
+    ap.add_argument("--interactive", action="store_true",
+                    help="демо: задать главные вопросы в терминале и показать новые формулировки")
     args = ap.parse_args(argv)
 
     try:
@@ -68,6 +70,9 @@ def main(argv=None) -> int:
           f"вопросов: {len(rep.questions)}. Вердикт: {rep.verdict.get('status')}.")
     for d in errors:
         print(f"Диагностика [{d.code}]: {d.message} {d.hint}")
+    if args.interactive and rep.requirements:
+        from .interactive import run as interactive_run
+        interactive_run(rep, pipe.llm, md_path)
     if errors and (not rep.requirements or any(d.code == "not_requirements" for d in errors)):
         return 2
     return 1 if crit else 0

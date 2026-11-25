@@ -189,3 +189,17 @@ def clarifier_prompt(cr: dict, numbered_doc: str, findings: str) -> tuple[str, s
 
 def dump(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=0)
+
+
+def rewriter_prompt(items: str) -> tuple[str, str]:
+    system = BASE + """
+
+Роль: Редактор требований. Аналитик ответил на уточняющие вопросы. Для каждого ответа перепиши
+затронутое требование так, чтобы оно стало однозначным, единичным и проверяемым, и дай 1-3 критерия
+приёмки в форме «Дано ... Когда ... Тогда ...» с конкретными значениями.
+Используй только ответ аналитика и текст документа. Не добавляй новых правил сверх ответа.
+
+Схема ответа:
+{"items": [{"q_id": "Q-01", "requirement": "новая формулировка", "acceptance": ["Дано ... Когда ... Тогда ..."]}]}"""
+    user = f"Вопросы, цитаты и ответы:\n{items}"
+    return system, user

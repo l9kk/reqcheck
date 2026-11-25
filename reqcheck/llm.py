@@ -59,7 +59,7 @@ class LLM:
         self.calls = 0
         self._client = None
         if self.provider == "mock":
-            self.model = self.model or "mock"
+            self.model = "mock"
         elif not self.model:
             self.model = os.getenv("GEMINI_MODEL", "").strip()
 

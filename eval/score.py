@@ -62,6 +62,7 @@ def score(report: dict, golden: list[dict]) -> dict:
     questions = report.get("questions") or []
 
     found_by = {d["id"]: [] for d in golden}
+    sev_of = {}
     asked_by = {d["id"]: [] for d in golden}
     unmatched = []
 
@@ -71,6 +72,7 @@ def score(report: dict, golden: list[dict]) -> dict:
         for d in golden:
             if covers(parts, f.get("quotes"), d):
                 found_by[d["id"]].append(f.get("id", "?"))
+                sev_of.setdefault(d["id"], []).append(f.get("severity", ""))
                 hit = True
         if not hit:
             unmatched.append({"id": f.get("id", "?"), "severity": f.get("severity", ""),
@@ -90,6 +92,9 @@ def score(report: dict, golden: list[dict]) -> dict:
         hits = [i for i in ids if i in found_ids]
         by_sev[sev] = {"found": len(hits), "total": len(ids), "recall": _ratio(len(hits), len(ids))}
 
+    crit_ids = [d["id"] for d in golden if d["severity"] == "критично"]
+    crit_as_crit = [i for i in crit_ids if "критично" in sev_of.get(i, [])]
+
     must = [d["id"] for d in golden if d.get("must_find")]
     must_missed = [i for i in must if i not in found_ids]
 
@@ -99,6 +104,8 @@ def score(report: dict, golden: list[dict]) -> dict:
         "found": len(found_ids),
         "recall": _ratio(len(found_ids), len(golden)),
         "by_severity": by_sev,
+        "critical_as_critical": len(crit_as_crit),
+        "critical_wrong_severity": [i for i in crit_ids if i in found_ids and i not in crit_as_crit],
         "must_total": len(must),
         "must_found": len(must) - len(must_missed),
         "must_recall": _ratio(len(must) - len(must_missed), len(must)),
@@ -128,6 +135,9 @@ def _summary_rows(r: dict) -> list[tuple[str, str]]:
     rows = [("Recall (all)", f"{r['found']}/{r['golden_total']} = {_pct(r['recall'])}")]
     for sev, s in r["by_severity"].items():
         rows.append((f"Recall {sev}", f"{s['found']}/{s['total']} = {_pct(s['recall'])}"))
+    crit_total = r["by_severity"]["критично"]["total"]
+    rows.append(("Critical found as critical", f"{r['critical_as_critical']}/{crit_total}"
+                 + (f" (lower severity: {', '.join(r['critical_wrong_severity'])})" if r["critical_wrong_severity"] else "")))
     rows.append(("Must-find recall", f"{r['must_found']}/{r['must_total']} = {_pct(r['must_recall'])}"))
     rows.append(("Must-find missed", ", ".join(r["must_missed"]) or "none"))
     rows.append(("Precision", f"{r['findings_matched']}/{r['findings_total']} = {_pct(r['precision'])}"))

@@ -138,7 +138,12 @@ class Pipeline:
     def _llm(self, role: str, system: str, user: str, rep: Report):
         try:
             self.step(role, "запрос к модели")
-            return self.llm.json(role, system, user)
+            data = self.llm.json(role, system, user)
+            if not isinstance(data, dict):
+                rep.diagnostics.append(Diagnostic("warning", "bad_shape", f"{role}: ответ модели не в ожидаемом формате.",
+                                                  "Шаг пропущен, остальные роли работают."))
+                return None
+            return data
         except LLMError as e:
             rep.diagnostics.append(Diagnostic("error", e.code, f"{role}: {e.message}", e.hint))
             if e.code in ("no_key", "auth", "quota_day", "bad_request", "no_model"):
@@ -260,7 +265,11 @@ class Pipeline:
         out = []
         if not isinstance(data, dict):
             return out
-        for d in data.get("findings", []) or []:
+        raw = list(data.get("findings", []) or [])
+        for st in data.get("steps", []) or []:
+            if isinstance(st, dict):
+                raw += [d for d in st.get("findings", []) or [] if isinstance(d, dict)]
+        for d in raw:
             f = self._mk(d, "set", "CrossChecker", [])
             if f:
                 out.append(f)

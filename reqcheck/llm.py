@@ -31,6 +31,19 @@ def parse_json(text: str):
         raise
 
 
+def unwrap(data):
+    if isinstance(data, list) and data and all(isinstance(x, dict) for x in data):
+        out = {}
+        for x in data:
+            for k, v in x.items():
+                if isinstance(v, list) and isinstance(out.get(k), list):
+                    out[k] = out[k] + v
+                else:
+                    out.setdefault(k, v)
+        return out
+    return data
+
+
 class LLM:
     def __init__(self, use_cache: bool = True, cache_dir: str = ".cache/llm", mock=None):
         self.provider = os.getenv("LLM_PROVIDER", "openai_compat").strip().lower()
@@ -75,7 +88,7 @@ class LLM:
             data = json.loads(path.read_text(encoding="utf-8"))
             self.trace.append({"role": role, "cached": True, "seconds": 0.0, "in_tokens": data.get("in_tokens", 0),
                                "out_tokens": data.get("out_tokens", 0)})
-            return data["result"]
+            return unwrap(data["result"])
         if self.provider == "mock":
             result = self.mock(role, system, user) if self.mock else {}
             usage = (len(system + user) // 4, 0)
@@ -87,7 +100,7 @@ class LLM:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1]},
                                        ensure_ascii=False), encoding="utf-8")
-        return result
+        return unwrap(result)
 
     def _call(self, role: str, system: str, user: str):
         from openai import APIConnectionError, APIStatusError, APITimeoutError, AuthenticationError, RateLimitError

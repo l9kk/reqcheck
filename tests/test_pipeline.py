@@ -8,6 +8,7 @@ from pathlib import Path
 from reqcheck.cli import main
 from reqcheck.ground import Grounder
 from reqcheck.lint import lint
+from reqcheck.llm import parse_json, unwrap
 from reqcheck.reader import read_document
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,6 +50,13 @@ class GroundTest(unittest.TestCase):
 
     def test_invented_quote_rejected(self):
         self.assertIsNone(self.g.locate("Система должна поддерживать биометрическую аутентификацию по лицу"))
+
+
+class LLMShapeTest(unittest.TestCase):
+    def test_list_wrapped_answer_is_unwrapped(self):
+        data = unwrap(parse_json('[{"findings": [{"a": 1}], "set_summary": []}, {"findings": [{"a": 2}]}]'))
+        self.assertEqual(data["findings"], [{"a": 1}, {"a": 2}])
+        self.assertEqual(unwrap({"x": 1}), {"x": 1})
 
 
 class LintTest(unittest.TestCase):

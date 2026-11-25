@@ -2,18 +2,18 @@
   "passport": {
     "document": "requirements.md",
     "sha256": "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381",
-    "date": "2026-11-25 19:20",
+    "date": "2026-11-25 20:04",
     "model": "gemini-3.5-flash",
     "provider": "openai_compat",
-    "agent_version": "0.1.0 (48bf181-dirty)",
-    "llm_calls": 1,
-    "seconds": 20.9,
+    "agent_version": "0.1.0 (aa2564f)",
+    "llm_calls": 0,
+    "seconds": 0.2,
     "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",
     "format": "text",
     "lines": 198,
     "doc_title": "Уведомление о расходах по карте",
     "guard_drops": 5,
-    "llm_cached": 5
+    "llm_cached": 6
   },
   "requirements": [
     {
@@ -1791,8 +1791,8 @@
     },
     {
       "role": "Clarifier",
-      "cached": false,
-      "seconds": 20.7,
+      "cached": true,
+      "seconds": 0.0,
       "in_tokens": 7881,
       "out_tokens": 2417
     }

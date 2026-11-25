@@ -2,18 +2,18 @@
   "passport": {
     "document": "autotopup.md",
     "sha256": "602ee3e1226fc2da5bd76f87c23515fb6c8b4eca685c1ffc28727b2596f7dd8a",
-    "date": "2026-11-25 19:19",
+    "date": "2026-11-25 20:04",
     "model": "gemini-3.5-flash",
     "provider": "openai_compat",
-    "agent_version": "0.1.0 (48bf181-dirty)",
-    "llm_calls": 1,
-    "seconds": 28.9,
+    "agent_version": "0.1.0 (aa2564f)",
+    "llm_calls": 0,
+    "seconds": 0.0,
     "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",
     "format": "text",
     "lines": 74,
     "doc_title": "ТЗ: Автопополнение баланса мобильного телефона",
     "guard_drops": 8,
-    "llm_cached": 4
+    "llm_cached": 5
   },
   "requirements": [
     {
@@ -1274,8 +1274,8 @@
     },
     {
       "role": "Clarifier",
-      "cached": false,
-      "seconds": 28.9,
+      "cached": true,
+      "seconds": 0.0,
       "in_tokens": 4630,
       "out_tokens": 2052
     }

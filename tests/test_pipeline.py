@@ -17,7 +17,7 @@ FIX = ROOT / "tests" / "fixtures"
 
 def run(path, out_dir, env=None):
     old = dict(os.environ)
-    os.environ.update({"LLM_PROVIDER": "mock", **(env or {})})
+    os.environ.update({"LLM_PROVIDER": "mock", "REQCHECK_PDF": "0", **(env or {})})
     try:
         code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet"])
     finally:

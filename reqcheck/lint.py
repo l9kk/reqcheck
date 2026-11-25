@@ -84,6 +84,13 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
                           f"Таблица «{' | '.join(header)}» пустая: ни одной заполненной строки.",
                           "Нет ответственных и согласования: документ нельзя считать утверждённым.",
                           "Заполнить таблицу или удалить её из шаблона."))
+        if len(header) >= 3 and rows and len(empty) < len(rows) and all(
+                not any(c.strip() for c in cells[1:]) for _, cells in rows):
+            out.append(_f("set", "set_complete", "важно", [g.quote_lines(rows[0][0], rows[-1][0])],
+                          f"Таблица «{' | '.join(header)}» заполнена только в первой колонке: "
+                          f"колонки «{', '.join(header[1:])}» пустые.",
+                          "Нет ответственных и согласования: документ нельзя считать утверждённым.",
+                          "Заполнить таблицу или удалить её из шаблона."))
         if len(header) != 2:
             continue
         for no, cells in rows:
@@ -102,11 +109,14 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
                               "Указать значение для всех окружений."))
 
     full = doc.text
-    if not re.search(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b", full) or not re.search(
-            r"(верси[яи]|version)\s*[:№]?\s*v?\d", full, re.I):
-        vl = next((l.no for l in doc.lines if re.search(r"верси|version", l.text, re.I)), doc.lines[0].no)
+    has_date = re.search(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b", full)
+    has_ver = re.search(r"(верси[яи]|version)\s*[:№]?\s*v?\d", full, re.I)
+    if not has_date or not has_ver:
+        what = "номера версии и даты" if not has_date and not has_ver else ("даты" if not has_date else "номера версии")
+        pat = r"дата|date" if has_ver else r"верси|version"
+        vl = next((l.no for l in doc.lines if re.search(pat, l.text, re.I)), doc.lines[0].no)
         out.append(_f("set", "srs_modifiable", "важно", [g.quote_lines(vl, vl)],
-                      "У документа нет номера версии и даты.",
+                      f"У документа нет {what}.",
                       "Нельзя понять, какую редакцию согласовали и по какой писать тесты.",
                       "Добавить версию, дату и историю изменений."))
 
@@ -119,6 +129,31 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
                       "Сравнение суммы покупок с порогом без явного пересчёта даст ошибку в 100 раз.",
                       "Хранить все суммы в одной единице (тиыны) и указать правило пересчёта.",
                       "Порог 50 000 ₸ и покупки на 5 000 000 тиын: push должен прийти ровно на пороге."))
+
+    secret = re.compile(r"\bcvv2?\b|\bcvc2?\b|\bpin\b|пин-код|номер[а-я]* карты|\bpan\b|парол|\botp\b|одноразов[а-я]* код", re.I)
+    for l in doc.lines:
+        if re.search(r"лог(ир|ах|и\b|ов|\b)|журнал|\blog", l.text, re.I) and secret.search(l.text) and not re.search(
+                r"не логир|не должн[а-я]* (попадать|записыва|логир)|маскир|запрещ", l.text, re.I):
+            out.append(_f("req", "appropriate", "критично", [g.quote_lines(l.no, l.no)],
+                          "Требование предписывает писать в логи чувствительные данные: "
+                          + ", ".join(f"«{m}»" for m in dict.fromkeys(x.group(0) for x in secret.finditer(l.text))) + ".",
+                          "Нарушение PCI DSS: CVV и PIN нельзя хранить после авторизации, номер карты только в маскированном "
+                          "виде. Утечка логов означает компрометацию карт.",
+                          "Номер карты маскировать (первые 6 и последние 4 цифры), CVV, PIN, пароли и коды не логировать никогда.",
+                          "Провести операцию и проверить, что в логах нет CVV и полного номера карты."))
+            break
+
+    for no, cells in [(no, cells) for _, rows in _tables(doc) for no, cells in rows]:
+        if any(c.strip().upper() == "GET" for c in cells):
+            row = " ".join(cells).lower()
+            if any(w in row for w in WRITE_WORDS + ("pay", "transfer", "confirm", "cancel", "платёж", "платеж",
+                                                     "оплат", "перевод", "списан", "сохран", "изменен", "удален")):
+                out.append(_f("req", "appropriate", "критично", [g.quote_lines(no, no)],
+                              "Метод GET используется для операции, которая меняет данные или списывает деньги.",
+                              "GET должен быть безопасным и идемпотентным: прокси и клиенты повторяют его, параметры "
+                              "попадают в логи и историю. Повтор запроса может провести операцию дважды.",
+                              "Использовать POST с телом запроса и ключом идемпотентности.",
+                              "Повторить тот же запрос дважды: операция должна выполниться один раз."))
 
     method_line = next((l for l in doc.lines if re.search(r"(rest type|method|метод)\W+.*\bget\b", l.text, re.I)), None)
     if method_line:

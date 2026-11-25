@@ -73,6 +73,43 @@ class LintTest(unittest.TestCase):
                 self.assertTrue(1 <= q.start <= q.end <= len(doc.lines))
 
 
+class GenericLintTest(unittest.TestCase):
+    TEXT = """# ТЗ: перевод между счетами
+
+Версия: 1.2
+
+ТР-1. Сервис пишет в журнал запрос целиком, включая PIN и CVV.
+ТР-2. При ошибке сервис повторяет перевод через некоторое время.
+ТР-3. Лимит перевода: уточняется.
+
+| Метод | URL | Назначение |
+| :--- | :--- | :--- |
+| GET | /v1/transfer?amount= | Перевод между счетами |
+| GET | /v1/accounts | Список счетов |
+
+| Роль | ФИО | Дата |
+| :--- | :--- | :--- |
+| Владелец | | |
+| ИБ | | |
+"""
+
+    def test_banking_rules_on_unseen_text(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(self.TEXT, encoding="utf-8")
+            doc = read_document(str(p))
+            probs = {f.quotes[0].start: f.problem for f in lint(doc, cr)}
+        self.assertIn("CVV", probs[5])
+        self.assertIn("PIN", probs[5])
+        self.assertIn("некоторое время", probs[6])
+        self.assertIn("уточняется", probs[7])
+        self.assertIn("GET", probs[11])
+        self.assertNotIn(12, probs)
+        self.assertTrue(any("только в первой колонке" in x for x in probs.values()))
+        self.assertTrue(any(x == "У документа нет даты." for x in probs.values()))
+
+
 class PipelineMockTest(unittest.TestCase):
     def test_full_report_sections(self):
         with tempfile.TemporaryDirectory() as d:

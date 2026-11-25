@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from fpdf.fonts import FontFace
 
 FONT = Path(__file__).resolve().parent.parent / "fonts" / "NotoSans-VF.ttf"
@@ -18,6 +19,9 @@ def _plain(s: str) -> str:
     s = re.sub(r"`([^`]*)`", r"\1", s)
     s = re.sub(r"(?<![*\w])\*(?!\*)([^*]+?)\*(?!\*)", r"\1", s)
     return _t(s)
+
+
+NL = {"new_x": XPos.LMARGIN, "new_y": YPos.NEXT}
 
 
 class PDF(FPDF):
@@ -59,7 +63,7 @@ def write_pdf(md_path: Path, pdf_path: Path) -> None:
             pdf.ln(3 if level > 1 else 0)
             pdf.set_font("Noto", "B", size)
             pdf.set_text_color(13, 80, 84) if level <= 2 else pdf.set_text_color(20, 32, 35)
-            pdf.multi_cell(w, size * 0.5, _plain(m.group(2)))
+            pdf.multi_cell(w, size * 0.5, _plain(m.group(2)), **NL)
             pdf.set_text_color(20, 32, 35)
             pdf.set_font("Noto", size=10)
             pdf.ln(1)
@@ -96,17 +100,22 @@ def write_pdf(md_path: Path, pdf_path: Path) -> None:
             pdf.set_font("Noto", "I", 9)
             pdf.set_text_color(70, 85, 88)
             pdf.set_x(pdf.l_margin + 4)
-            pdf.multi_cell(w - 4, 4.6, _plain(s.lstrip("> ").replace("**", "")))
+            pdf.multi_cell(w - 4, 4.6, _plain(s.lstrip("> ").replace("**", "")), **NL)
             pdf.set_text_color(20, 32, 35)
             pdf.set_font("Noto", size=10)
             i += 1
             continue
         bullet = re.match(r"^(?:[-*]|\d+\.)\s+(.*)", s)
+        if not bullet:
+            while i + 1 < len(lines) and lines[i + 1].strip() and not re.match(
+                    r"^(#{1,6}\s|\||>|```|[-*]\s|\d+\.\s)", lines[i + 1].strip()):
+                i += 1
+                s = s + " " + lines[i].strip()
         text = _plain(bullet.group(1) if bullet else s)
         if bullet:
             pdf.set_x(pdf.l_margin + 3)
-            pdf.multi_cell(w - 3, 5, ("- " if s[0] in "-*" else s.split()[0] + " ") + text, markdown=True)
+            pdf.multi_cell(w - 3, 5, ("- " if s[0] in "-*" else s.split()[0] + " ") + text, markdown=True, **NL)
         else:
-            pdf.multi_cell(w, 5, text, markdown=True)
+            pdf.multi_cell(w, 5, text, markdown=True, **NL)
         i += 1
     pdf.output(str(pdf_path))

@@ -22,7 +22,19 @@ def crit_name(crit: dict, cid: str) -> str:
     return f"{c['name']} ({c['std']})" if c else cid
 
 
-def finding_md(f: Finding, crit: dict) -> list[str]:
+LEVELS = {"error": "ошибка", "warning": "предупреждение", "info": "инфо"}
+
+
+def diag_md(d) -> str:
+    return f"- **{LEVELS.get(d.level, d.level)}** `{d.code}`: {d.message}" + (f" Что сделать: {d.hint}" if d.hint else "")
+
+
+def short_crit(crit: dict, cid: str) -> str:
+    c = crit.get(cid)
+    return c["name"] if c else cid
+
+
+def finding_md(f: Finding, crit: dict, asks: dict | None = None) -> list[str]:
     out = [f"**{f.id}** · {f.severity} · {crit_name(crit, f.criterion)}" + (f" · {', '.join(f.req_ids)}" if f.req_ids else "")]
     for q in f.quotes:
         out.append(f"> «{cell(q.text, 300)}» ({q.loc})")
@@ -33,6 +45,8 @@ def finding_md(f: Finding, crit: dict) -> list[str]:
         out.append(f"- Как исправить: {f.fix}")
     if f.test_hint:
         out.append(f"- Тесты: {f.test_hint}")
+    if asks and asks.get(f.id):
+        out.append(f"- Окончательное исправление зависит от ответа на {', '.join(asks[f.id])}.")
     out.append("")
     return out
 
@@ -49,13 +63,15 @@ def render(rep: Report, crit: dict) -> str:
             ("Модель", f"{p.get('model')} ({p.get('provider')})"), ("Версия агента", p.get("agent_version")),
             ("Стандарты", p.get("standards")),
             ("Запросов к модели", f"{p.get('llm_calls', 0)} (из кэша: {p.get('llm_cached', 0)})"),
-            ("Время прогона", f"{p.get('seconds')} с")]
+            ("Время прогона", f"{p.get('seconds')} с" + (" (все ответы модели взяты из кэша прошлого прогона)"
+                                                       if p.get("llm_cached") and not p.get("llm_calls") else "")
+             + (f"; без кэша модель отвечала {p['llm_seconds_uncached']} с" if p.get("llm_seconds_uncached") else ""))]
     L += [f"| {a} | {b} |" for a, b in rows] + [""]
 
     if any(d.level == "error" for d in rep.diagnostics) and not rep.requirements:
         L += ["## Диагностика", ""]
         for d in rep.diagnostics:
-            L.append(f"- **{d.level}** `{d.code}`: {d.message}" + (f" Что сделать: {d.hint}" if d.hint else ""))
+            L.append(diag_md(d))
         L += ["", "## Итог", "", f"**{rep.verdict.get('status', 'Нет')}.** {rep.verdict.get('text', '')}", ""]
         return "\n".join(L)
 
@@ -66,11 +82,18 @@ def render(rep: Report, crit: dict) -> str:
           f"- Нарушений: **{len(rep.findings)}** (критично: {counts['критично']}, важно: {counts['важно']}, мелочь: {counts['мелочь']}).",
           f"- Уточняющих вопросов к автору: **{len(rep.questions)}**.",
           f"- Вердикт: **{rep.verdict.get('status')}**. {rep.verdict.get('text', '')}", ""]
-    crit_f = [f for f in rep.findings if f.severity == "критично"]
-    if crit_f:
-        L += ["Критичные дефекты:", ""]
-        for f in crit_f:
-            L.append(f"- **{f.id}** ({crit_name(crit, f.criterion)}; {f.quotes[0].loc}): {f.problem}")
+    asks: dict[str, list[str]] = {}
+    for q in rep.questions:
+        for fid in q.finding_ids:
+            asks.setdefault(fid, []).append(q.id)
+    if rep.findings:
+        L += ["Все замечания (подробности в разделах 5 и 6, по ID):", "",
+              "| ID | Важность | Где | Свойство | Суть | Вопрос |", "| --- | --- | --- | --- | --- | --- |"]
+        for f in rep.findings:
+            where = f"строки {f.quotes[0].start}-{f.quotes[0].end}" if f.quotes and f.quotes[0].end != f.quotes[0].start \
+                else (f"строка {f.quotes[0].start}" if f.quotes else "-")
+            L.append(f"| {f.id} | {f.severity} | {where} | {short_crit(crit, f.criterion)} | {cell(f.problem, 140)} | "
+                     f"{', '.join(asks.get(f.id, [])) or '-'} |")
         L.append("")
 
     L += ["## 3. Уточняющие вопросы к автору", "",
@@ -105,8 +128,7 @@ def render(rep: Report, crit: dict) -> str:
         L += ["| Требование | " + " | ".join(SHORT[c] for c in SINGLE_ORDER) + " |",
               "| --- |" + " :---: |" * len(SINGLE_ORDER)]
         for r in rep.requirements:
-            fails = set(rep.req_checks.get(r.id, []))
-            fails |= {f.criterion for f in rep.findings if r.id in f.req_ids and f.scope == "req"}
+            fails = {f.criterion for f in rep.findings if r.id in f.req_ids and f.scope == "req"}
             label = f"{r.id}" + (f" ({r.doc_id})" if r.doc_id else "")
             L.append(f"| {label} | " + " | ".join("✗" if c in fails else "✓" for c in SINGLE_ORDER) + " |")
         L.append("")
@@ -119,12 +141,12 @@ def render(rep: Report, crit: dict) -> str:
             continue
         L += [f"### {r.id}" + (f" ({r.doc_id})" if r.doc_id else "") + f": {cell(r.short, 100)}", ""]
         for f in fs:
-            L += finding_md(f, crit)
+            L += finding_md(f, crit, asks)
     orphan = [f for f in req_f if not f.req_ids]
     if orphan:
         L += ["### Замечания к формулировкам вне выделенных требований", ""]
         for f in orphan:
-            L += finding_md(f, crit)
+            L += finding_md(f, crit, asks)
 
     L += ["## 6. Проверка набора требований", "",
           "Свойства набора по ISO/IEC/IEEE 29148:2018 п. 5.2.6 и спецификации по IEEE 830-1998 п. 4.3.", ""]
@@ -134,7 +156,7 @@ def render(rep: Report, crit: dict) -> str:
             L.append(f"| {crit_name(crit, s['criterion'])} | {STATUS.get(s['status'], s['status'])} | {cell(s['comment'], 300)} |")
         L.append("")
     for f in [f for f in rep.findings if f.scope == "set"]:
-        L += finding_md(f, crit)
+        L += finding_md(f, crit, asks)
 
     if rep.checklist:
         L += ["## 7. Чек-лист ревью из документа (заполнен агентом)", "", "| Проверка | Ответ | Обоснование |", "| --- | --- | --- |"]
@@ -171,6 +193,6 @@ def render(rep: Report, crit: dict) -> str:
     if rep.diagnostics:
         L += ["### Диагностика", ""]
         for d in rep.diagnostics:
-            L.append(f"- **{d.level}** `{d.code}`: {d.message}" + (f" Что сделать: {d.hint}" if d.hint else ""))
+            L.append(diag_md(d))
         L.append("")
     return "\n".join(L)

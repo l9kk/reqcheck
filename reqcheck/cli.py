@@ -41,7 +41,7 @@ def main(argv=None) -> int:
         rep = Report(passport={"document": Path(args.input).name, "model": llm.model, "provider": llm.provider})
         rep.diagnostics.append(Diagnostic("error", "internal", f"Внутренняя ошибка агента: {type(e).__name__}: {e}",
                                           "Сообщите разработчикам, приложив входной файл."))
-        rep.verdict = {"status": "Нет", "text": "Проверка прервана внутренней ошибкой.", "fix_first": []}
+        rep.verdict = {"status": "Не проверено", "text": "Проверка прервана внутренней ошибкой.", "fix_first": []}
         if os.getenv("REQCHECK_DEBUG"):
             raise
 

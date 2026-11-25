@@ -143,6 +143,36 @@ class PipelineMockTest(unittest.TestCase):
         self.assertIn(code, (0, 1))
         self.assertTrue(any(x["code"] == "no_key" for x in data["diagnostics"]))
         self.assertTrue(data["findings"])
+        if not any(f["severity"] == "критично" for f in data["findings"]):
+            self.assertEqual(data["verdict"]["status"], "Не проверено")
+
+    def test_broken_input_verdict_is_not_checked(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, data, md = run(FIX / "broken" / "scan.pdf", d)
+        self.assertEqual(data["verdict"]["status"], "Не проверено")
+        self.assertIn("**ошибка**", md)
+
+    def test_summary_has_triage_table_and_no_internal_ids(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, data, md = run(DOC, d)
+        summary = md.split("## 3.")[0]
+        for f in data["findings"]:
+            self.assertIn(f"| {f['id']} |", summary)
+        self.assertNotRegex(md, r"\bF-\d\d\b")
+
+
+class RankTest(unittest.TestCase):
+    def test_questions_on_critical_findings_come_first(self):
+        from reqcheck.model import Finding, Question
+        from reqcheck.pipeline import Pipeline
+        fs = [Finding("D-01", "req", [], "complete", "критично", [], "a"),
+              Finding("D-02", "req", [], "complete", "мелочь", [], "b")]
+        qs = [Question("Q-01", "minor?", [], "", [], "", "", ["D-02"]),
+              Question("Q-02", "none?", [], "", [], "", "", []),
+              Question("Q-03", "crit?", [], "", [], "", "", ["D-01"])]
+        ranked = Pipeline.rank_questions(qs, fs)
+        self.assertEqual([q.text for q in ranked], ["crit?", "minor?", "none?"])
+        self.assertEqual([q.id for q in ranked], ["Q-01", "Q-02", "Q-03"])
 
 
 class InteractiveTest(unittest.TestCase):

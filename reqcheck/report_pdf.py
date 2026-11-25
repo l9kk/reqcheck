@@ -84,8 +84,8 @@ def write_pdf(md_path: Path, pdf_path: Path) -> None:
             font = 7 if n >= 6 else 8.5
             pdf.set_font("Noto", size=font)
             lens = [max(len(r[k]) for r in rows) for k in range(n)]
-            tot = sum(min(x, 60) + 4 for x in lens)
-            widths = tuple(max(8, (min(x, 60) + 4) / tot * 100) for x in lens)
+            tot = sum(min(x, 60) + 6 for x in lens)
+            widths = tuple(max(8, (min(x, 60) + 6) / tot * 100) for x in lens)
             with pdf.table(col_widths=widths, line_height=font * 0.55, padding=1.2,
                            headings_style=FontFace(emphasis="BOLD", fill_color=(226, 240, 240)),
                            borders_layout="SINGLE_TOP_LINE" if n > 9 else "ALL") as t:

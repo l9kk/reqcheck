@@ -87,7 +87,7 @@ class LLM:
         if self.use_cache and self.provider != "mock" and path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
             self.trace.append({"role": role, "cached": True, "seconds": 0.0, "in_tokens": data.get("in_tokens", 0),
-                               "out_tokens": data.get("out_tokens", 0)})
+                               "out_tokens": data.get("out_tokens", 0), "orig_seconds": data.get("seconds")})
             return unwrap(data["result"])
         if self.provider == "mock":
             result = self.mock(role, system, user) if self.mock else {}
@@ -98,7 +98,7 @@ class LLM:
         self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})
         if self.use_cache and self.provider != "mock":
             self.cache_dir.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1]},
+            path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1], "seconds": secs},
                                        ensure_ascii=False), encoding="utf-8")
         return unwrap(result)
 

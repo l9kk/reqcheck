@@ -65,7 +65,7 @@ class Pipeline:
             doc = read_document(path)
         except ReadError as e:
             rep.diagnostics.append(Diagnostic("error", e.code, e.message, e.hint))
-            rep.verdict = {"status": "Нет", "text": "Проверка не выполнена: документ не удалось прочитать.", "fix_first": []}
+            rep.verdict = {"status": "Не проверено", "text": "Проверка не выполнена: документ не удалось прочитать.", "fix_first": []}
             return self._finish(rep, t0)
         passport["sha256"] = doc.sha256
         passport["format"] = doc.kind
@@ -81,7 +81,7 @@ class Pipeline:
             rep.diagnostics.append(Diagnostic("error", "not_requirements",
                                               f"Документ не похож на требования: почти нет признаков ТЗ (найдено {markers}).",
                                               "Проверьте, что передан нужный файл. Проверка не выполнялась."))
-            rep.verdict = {"status": "Нет", "text": "Документ не является документом с требованиями.", "fix_first": []}
+            rep.verdict = {"status": "Не проверено", "text": "Документ не является документом с требованиями.", "fix_first": []}
             return self._finish(rep, t0)
 
         cands = extract_candidates(doc)
@@ -115,13 +115,19 @@ class Pipeline:
             renum[f.id] = f"D-{i:02d}"
             f.id = renum[f.id]
         fix_first = [renum[x] for x in fix_first if x in renum]
+        for d in self.drops:
+            if d.get("into"):
+                d["reason"] = f"объединено с {renum.get(d.pop('into'), 'другим замечанием')}"
         rep.findings = findings
+        rep.req_checks = {r: [f.criterion for f in findings if r in f.req_ids and f.scope == "req"]
+                          for r in rep.req_checks}
 
         if self.llm is not None and findings:
             rep.questions = self.clarify(numbered, findings, rep)
         elif findings:
             rep.questions = self.fallback_questions(findings)
-        rep.verdict = self.verdict(findings, fix_first, reqs)
+        rep.questions = self.rank_questions(rep.questions, findings)
+        rep.verdict = self.verdict(findings, fix_first, reqs, model_used=self.llm is not None)
         if self.drops:
             passport["guard_drops"] = len(self.drops)
         rep.drops = self.drops
@@ -133,6 +139,9 @@ class Pipeline:
         rep.trace = tr
         rep.passport["llm_calls"] = sum(1 for t in tr if not t["cached"])
         rep.passport["llm_cached"] = sum(1 for t in tr if t["cached"])
+        orig = [t.get("orig_seconds") if t["cached"] else t["seconds"] for t in tr]
+        if tr and rep.passport["llm_cached"] and all(isinstance(x, (int, float)) for x in orig):
+            rep.passport["llm_seconds_uncached"] = round(sum(orig), 1)
         return rep
 
     def _llm(self, role: str, system: str, user: str, rep: Report):
@@ -333,7 +342,7 @@ class Pipeline:
                 for r in by_id[fid].req_ids:
                     if r not in tgt.req_ids:
                         tgt.req_ids.append(r)
-                self.drops.append({"role": "Critic", "reason": f"объединено с {d['into']}", "item": by_id[fid].problem[:160]})
+                self.drops.append({"role": "Critic", "reason": "", "into": d["into"], "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:
                 by_id[fid].severity = d["severity"]
         kept = [f for f in findings if f.id not in drop]
@@ -376,7 +385,16 @@ class Pipeline:
                                 blocks=f.impact, options=[], default=f.fix, addressee="аналитик", finding_ids=[f.id]))
         return out
 
-    def verdict(self, findings: list[Finding], fix_first: list[str], reqs: list[Requirement]) -> dict:
+    @staticmethod
+    def rank_questions(questions: list[Question], findings: list[Finding]) -> list[Question]:
+        sev = {f.id: SEV_RANK.get(f.severity, 3) for f in findings}
+        ranked = sorted(questions, key=lambda q: min((sev.get(x, 3) for x in q.finding_ids), default=3))
+        for i, q in enumerate(ranked, start=1):
+            q.id = f"Q-{i:02d}"
+        return ranked
+
+    def verdict(self, findings: list[Finding], fix_first: list[str], reqs: list[Requirement],
+                model_used: bool = True) -> dict:
         crit = [f for f in findings if f.severity == "критично"]
         major = [f for f in findings if f.severity == "важно"]
         if not fix_first:
@@ -387,6 +405,10 @@ class Pipeline:
             return {"status": "Нет", "fix_first": fix_first,
                     "text": f"Начинать разработку и тестирование нельзя: {len(crit)} критичных дефектов "
                             f"(противоречия, непроверяемые или неполные требования). Сначала исправить их и ответить на уточняющие вопросы."}
+        if not model_used:
+            return {"status": "Не проверено", "fix_first": fix_first,
+                    "text": f"Модель не использовалась, проверены только правила кода ({len(findings)} замечаний). "
+                            "Это не подтверждает готовность документа: задайте ключ LLM и повторите проверку."}
         if len(major) > 5:
             return {"status": "С оговорками", "fix_first": fix_first,
                     "text": f"Можно начинать с оговорками: критичных дефектов нет, но {len(major)} важных замечаний заставят команду додумывать."}

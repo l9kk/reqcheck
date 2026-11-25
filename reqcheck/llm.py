@@ -146,4 +146,7 @@ class LLM:
         if last == "rate_limit":
             raise LLMError("rate_limit", "Превышен лимит запросов к LLM, повторы не помогли.",
                            "Подождите минуту и повторите; повторный запуск возьмёт готовые ответы из кэша.")
+        if last.startswith("http_5"):
+            raise LLMError("overloaded", f"Сервер модели перегружен или недоступен ({last}).",
+                           "Это сбой на стороне провайдера: повторите позже или укажите другую модель в LLM_MODEL.")
         raise LLMError("network", f"LLM недоступна ({last}).", "Проверьте интернет и LLM_BASE_URL.")

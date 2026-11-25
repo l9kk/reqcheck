@@ -109,6 +109,16 @@ class GenericLintTest(unittest.TestCase):
         self.assertTrue(any("только в первой колонке" in x for x in probs.values()))
         self.assertTrue(any(x == "У документа нет даты." for x in probs.values()))
 
+    def test_security_rules_use_correct_criterion(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(self.TEXT, encoding="utf-8")
+            fs = {f.quotes[0].start: f for f in lint(read_document(str(p)), cr)}
+        for line in (5, 11):
+            self.assertEqual(fs[line].criterion, "correct")
+            self.assertEqual(fs[line].severity, "критично")
+
 
 class PipelineMockTest(unittest.TestCase):
     def test_full_report_sections(self):

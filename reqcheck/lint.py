@@ -134,7 +134,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
     for l in doc.lines:
         if re.search(r"лог(ир|ах|и\b|ов|\b)|журнал|\blog", l.text, re.I) and secret.search(l.text) and not re.search(
                 r"не логир|не должн[а-я]* (попадать|записыва|логир)|маскир|запрещ", l.text, re.I):
-            out.append(_f("req", "appropriate", "критично", [g.quote_lines(l.no, l.no)],
+            out.append(_f("req", "correct", "критично", [g.quote_lines(l.no, l.no)],
                           "Требование предписывает писать в логи чувствительные данные: "
                           + ", ".join(f"«{m}»" for m in dict.fromkeys(x.group(0) for x in secret.finditer(l.text))) + ".",
                           "Нарушение PCI DSS: CVV и PIN нельзя хранить после авторизации, номер карты только в маскированном "
@@ -148,7 +148,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
             row = " ".join(cells).lower()
             if any(w in row for w in WRITE_WORDS + ("pay", "transfer", "confirm", "cancel", "платёж", "платеж",
                                                      "оплат", "перевод", "списан", "сохран", "изменен", "удален")):
-                out.append(_f("req", "appropriate", "критично", [g.quote_lines(no, no)],
+                out.append(_f("req", "correct", "критично", [g.quote_lines(no, no)],
                               "Метод GET используется для операции, которая меняет данные или списывает деньги.",
                               "GET должен быть безопасным и идемпотентным: прокси и клиенты повторяют его, параметры "
                               "попадают в логи и историю. Повтор запроса может провести операцию дважды.",
@@ -161,7 +161,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
                      and any(w in l.text.lower() for w in WRITE_WORDS)]
         if url_lines:
             u = url_lines[0]
-            out.append(_f("req", "appropriate", "критично", [g.quote_lines(method_line.no, method_line.no),
+            out.append(_f("req", "correct", "критично", [g.quote_lines(method_line.no, method_line.no),
                                                                g.quote_lines(u.no, u.no)],
                           "Метод GET используется для операции записи (сохранение настройки), параметры передаются в строке запроса.",
                           "GET должен быть безопасным и идемпотентным: прокси и браузеры кэшируют и повторяют его, параметры попадают в логи.",

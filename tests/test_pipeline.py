@@ -51,6 +51,32 @@ class GroundTest(unittest.TestCase):
     def test_invented_quote_rejected(self):
         self.assertIsNone(self.g.locate("Система должна поддерживать биометрическую аутентификацию по лицу"))
 
+    def test_quote_with_inline_list_numbering(self):
+        q = self.g.locate("1. Проверить пользовательскую сессию. 2. Проверить принадлежность карты клиенту. "
+                          "3. Проверить сумму и переключатель.")
+        self.assertEqual((q.start, q.end), (117, 119))
+
+    def test_quote_across_code_fences(self):
+        q = self.g.locate('200. Successful — Created {"result":"OK","amount":"50000","enabled":"1"} или '
+                          '{"result":"ERROR","message":"Проверьте сумму"}')
+        self.assertEqual((q.start, q.end), (165, 171))
+
+    def test_quote_longer_than_six_lines(self):
+        q = self.g.locate("200. Ответ в случае успешного выполнения метода. 400. Ответ в случае, если параметры "
+                          'запроса заполнены неверно. 200. Successful — Created {"result":"OK","amount":"50000",'
+                          '"enabled":"1"} или {"result":"ERROR","message":"Проверьте сумму"} 401. Ответ в случае, '
+                          "если запрос выполнен без необходимой авторизации.")
+        self.assertEqual((q.start, q.end), (162, 174))
+
+    def test_short_quote_only_as_whole_line(self):
+        self.assertEqual(self.g.locate("404").start, 190)
+        self.assertIsNone(self.g.locate("405"))
+        self.assertIsNone(self.g.locate("200"))
+
+    def test_reordered_list_quote_rejected(self):
+        self.assertIsNone(self.g.locate("1. Проверить сумму и переключатель. 2. Проверить пользовательскую сессию. "
+                                        "3. Заменить настройку и удалить карту клиента."))
+
 
 class LLMShapeTest(unittest.TestCase):
     def test_list_wrapped_answer_is_unwrapped(self):

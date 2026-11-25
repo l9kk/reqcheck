@@ -1,0 +1,184 @@
+import re
+
+from .ground import Grounder
+from .model import Finding
+from .reader import Document
+
+WRITE_WORDS = ("save", "create", "update", "delete", "remove", "set", "add", "edit", "post", "change")
+DESCRIBED_CODE_RE = re.compile(r"^\s*(?:\*\*|#{2,6}\s*)?([1-5]\d\d)\.(?:\*\*)?\s+\S")
+CODE_RE = re.compile(r"(?<![\d.,])([1-5]\d\d)(?![\d.,])")
+
+
+def _f(scope, criterion, severity, quotes, problem, impact="", fix="", test_hint=""):
+    return Finding(id="", scope=scope, req_ids=[], criterion=criterion, severity=severity, quotes=quotes,
+                   problem=problem, impact=impact, fix=fix, test_hint=test_hint, role="linter")
+
+
+def _tables(doc: Document):
+    """Yield (header_cells, [(line_no, cells)]) for markdown tables."""
+    lines = doc.lines
+    i = 0
+    while i < len(lines) - 1:
+        s = lines[i].text.strip()
+        nxt = lines[i + 1].text.strip()
+        if s.startswith("|") and re.match(r"^\|?\s*:?-{3,}", nxt):
+            header = [c.strip().strip("*").strip() for c in s.strip("|").split("|")]
+            rows = []
+            j = i + 2
+            while j < len(lines) and lines[j].text.strip().startswith("|"):
+                cells = [c.strip() for c in lines[j].text.strip().strip("|").split("|")]
+                rows.append((lines[j].no, cells))
+                j += 1
+            yield header, rows
+            i = j
+        else:
+            i += 1
+
+
+def lint(doc: Document, criteria: dict) -> list[Finding]:
+    g = Grounder(doc)
+    out: list[Finding] = []
+    lang = criteria["language"]
+    text_lines = [l for l in doc.lines if l.text.strip() and not l.text.strip().startswith(("#", "```", "{", "|"))]
+
+    groups = [("superlatives", "превосходная степень"), ("subjective", "субъективная оценка"),
+              ("vague_adverbs", "размытое наречие или прилагательное"), ("open_ended", "открытый перечень"),
+              ("loopholes", "лазейка, необязательность")]
+    for l in text_lines:
+        low = l.text.lower()
+        hits = []
+        for key, label in groups:
+            for w in lang[key]:
+                if re.search(r"(?<![а-яёa-z])" + re.escape(w.lower()), low):
+                    hits.append(f"«{w}» ({label})")
+        if hits:
+            out.append(_f("req", "unambiguous", "важно", [g.quote_lines(l.no, l.no)],
+                          "Формулировка содержит слова, которые нельзя проверить однозначно: " + ", ".join(hits) + ".",
+                          "Разработчик и тестировщик поймут условие по-разному.",
+                          "Заменить на измеримое условие с числом, единицей и способом проверки."))
+
+    ph_lines = {}
+    for l in doc.lines:
+        for p in lang["placeholders"]:
+            if p.lower() in l.text.lower():
+                ph_lines.setdefault(p, []).append(l.no)
+    for p, nos in ph_lines.items():
+        runs = []
+        for n in nos:
+            if runs and n - runs[-1][1] <= 1:
+                runs[-1][1] = n
+            else:
+                runs.append([n, n])
+        for a, b in runs:
+            q = g.quote_lines(a, b) if b - a < 3 else g.quote_lines(a, a)
+            span = f" (строки {a}-{b})" if b > a else ""
+            out.append(_f("set", "conforming", "важно", [q],
+                          f"Шаблонная заглушка «{p}» не заменена содержанием{span}.",
+                          "Раздел фактически пустой: по нему нельзя принять решение или написать тест.",
+                          "Заполнить раздел или явно указать «Не требуется» с причиной."))
+
+    for header, rows in _tables(doc):
+        empty = [no for no, cells in rows if not any(c.strip() for c in cells)]
+        if rows and len(empty) == len(rows):
+            out.append(_f("set", "set_complete", "важно", [g.quote_lines(rows[0][0] - 2, rows[0][0] - 2)],
+                          f"Таблица «{' | '.join(header)}» пустая: ни одной заполненной строки.",
+                          "Нет ответственных и согласования: документ нельзя считать утверждённым.",
+                          "Заполнить таблицу или удалить её из шаблона."))
+        if len(header) != 2:
+            continue
+        for no, cells in rows:
+            if len(cells) != 2:
+                continue
+            name, value = cells[0].strip("* "), cells[1].strip()
+            if value in ("—", "-", "–", ""):
+                out.append(_f("set", "set_complete", "важно", [g.quote_lines(no, no)],
+                              f"Поле «{name}» не заполнено (прочерк или пусто).",
+                              "Без этого значения работу нельзя реализовать и проверить полностью.",
+                              "Указать значение или причину отсутствия."))
+            elif re.search(r":\s*[—–-]\s*$|:\s*[—–-]\s*[.;]", value):
+                out.append(_f("set", "set_complete", "важно", [g.quote_lines(no, no)],
+                              f"Поле «{name}» заполнено частично: «{value}».",
+                              "Часть окружений или значений не определена.",
+                              "Указать значение для всех окружений."))
+
+    full = doc.text
+    if not re.search(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b", full) or not re.search(
+            r"(верси[яи]|version)\s*[:№]?\s*v?\d", full, re.I):
+        vl = next((l.no for l in doc.lines if re.search(r"верси|version", l.text, re.I)), doc.lines[0].no)
+        out.append(_f("set", "srs_modifiable", "важно", [g.quote_lines(vl, vl)],
+                      "У документа нет номера версии и даты.",
+                      "Нельзя понять, какую редакцию согласовали и по какой писать тесты.",
+                      "Добавить версию, дату и историю изменений."))
+
+    tiyn = [l.no for l in doc.lines if re.search(r"тиын", l.text, re.I)]
+    tenge = [l.no for l in doc.lines if re.search(r"тенге|₸|\bkzt\b", l.text, re.I)]
+    same = [n for n in tiyn if n in tenge]
+    if same:
+        out.append(_f("set", "set_consistent", "важно", [g.quote_lines(same[0], same[0])],
+                      "В одном требовании суммы хранятся в разных единицах: тиыны и тенге.",
+                      "Сравнение суммы покупок с порогом без явного пересчёта даст ошибку в 100 раз.",
+                      "Хранить все суммы в одной единице (тиыны) и указать правило пересчёта.",
+                      "Порог 50 000 ₸ и покупки на 5 000 000 тиын: push должен прийти ровно на пороге."))
+
+    method_line = next((l for l in doc.lines if re.search(r"(rest type|method|метод)\W+.*\bget\b", l.text, re.I)), None)
+    if method_line:
+        url_lines = [l for l in doc.lines if re.search(r"/[a-z]+/\w+", l.text, re.I)
+                     and any(w in l.text.lower() for w in WRITE_WORDS)]
+        if url_lines:
+            u = url_lines[0]
+            out.append(_f("req", "appropriate", "критично", [g.quote_lines(method_line.no, method_line.no),
+                                                               g.quote_lines(u.no, u.no)],
+                          "Метод GET используется для операции записи (сохранение настройки), параметры передаются в строке запроса.",
+                          "GET должен быть безопасным и идемпотентным: прокси и браузеры кэшируют и повторяют его, параметры попадают в логи.",
+                          "Использовать POST или PUT с телом запроса для сохранения.",
+                          "Повторный GET из кэша не должен менять настройку."))
+
+    ct = next((l for l in doc.lines if re.search(r"content-type", l.text, re.I) and "json" in l.text.lower()), None)
+    nobody = next((l for l in doc.lines if re.search(r"тело не используется|body is not used|без тела", l.text, re.I)), None)
+    if ct and nobody:
+        out.append(_f("set", "set_consistent", "важно", [g.quote_lines(ct.no, ct.no), g.quote_lines(nobody.no, nobody.no)],
+                      "Указан Content-Type application/json, но тело запроса не используется.",
+                      "Непонятно, что должен отправлять клиент и что проверять в тесте.",
+                      "Убрать Content-Type для запроса без тела или описать тело."))
+
+    described = {}
+    for l in doc.lines:
+        m = DESCRIBED_CODE_RE.match(l.text)
+        if m:
+            described.setdefault(m.group(1), l.no)
+    if described:
+        mentioned = {}
+        for l in doc.lines:
+            if l.text.strip().startswith(("{", "`")):
+                continue
+            if not re.search(r"результат|возвращ|ответ|status|код|успеш", l.text, re.I) and not re.match(r"^\s*\*\*\d{3}\*\*\s*$", l.text):
+                continue
+            for c in CODE_RE.findall(l.text):
+                if c not in described:
+                    mentioned.setdefault(c, l.no)
+        for c, no in mentioned.items():
+            out.append(_f("set", "set_complete", "важно", [g.quote_lines(no, no)],
+                          f"Код ответа {c} упоминается, но не описан в списке статусов.",
+                          "Клиент и тестировщик не знают, когда возвращается этот код и что в теле ответа.",
+                          f"Добавить {c} в список статусов с условием и примером ответа или убрать упоминание.",
+                          f"Тест-кейс на условие, при котором сервис отвечает {c}."))
+
+    params: dict[str, list[tuple[str, int, str]]] = {}
+    for header, rows in _tables(doc):
+        low = [h.lower() for h in header]
+        if "parameter" in low and "format" in low:
+            pi, fi = low.index("parameter"), low.index("format")
+            title = next((doc.lines[k].text.strip("# ").strip() for k in range(rows[0][0] - 3, 0, -1)
+                          if doc.lines[k - 1].text.startswith("#")), "") if rows else ""
+            for no, cells in rows:
+                if len(cells) > max(pi, fi):
+                    name = cells[pi].strip("` ")
+                    params.setdefault(name, []).append((cells[fi].strip().lower(), no, title))
+    for name, uses in params.items():
+        fmts = {u[0] for u in uses}
+        if len(uses) > 1 and len(fmts) > 1:
+            out.append(_f("set", "set_consistent", "важно", [g.quote_lines(u[1], u[1]) for u in uses[:2]],
+                          f"Параметр {name} имеет разный тип в разных таблицах: {', '.join(sorted(fmts))}.",
+                          "Клиент и сервер разойдутся в сериализации; автотесты контракта упадут.",
+                          f"Определить один тип для {name} в запросе и ответе."))
+    return out

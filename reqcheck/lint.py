@@ -8,7 +8,7 @@ WRITE_WORDS = ("save", "create", "update", "delete", "remove", "set", "add", "ed
 DESCRIBED_CODE_RE = re.compile(r"^\s*(?:\*\*|#{2,6}\s*)?([1-5]\d\d)\.(?:\*\*)?\s+\S")
 CODE_RE = re.compile(r"(?<![\d.,])([1-5]\d\d)(?![\d.,])")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)")
-TEST_SEC_RE = re.compile(r"тест|при[её]м(?:к|о-сдат)", re.I)
+TEST_SEC_RE = re.compile(r"(?<![а-яё])тест(?!ируем)|при[её]м(?:к|о-сдат)", re.I)
 
 
 def _f(scope, criterion, severity, quotes, problem, impact="", fix="", test_hint=""):

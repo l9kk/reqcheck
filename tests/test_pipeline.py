@@ -145,6 +145,26 @@ class GenericLintTest(unittest.TestCase):
             self.assertEqual(fs[line].criterion, "correct")
             self.assertEqual(fs[line].severity, "критично")
 
+    def test_placeholder_or_empty_test_section_is_critical(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        text = ("# ТЗ: тестовый перевод\nВерсия 1.0 от 26.11.2026\n## Цели\nЛимит: уточняется.\n\n## Тестирование\n\n"
+                "заполняются тестировщиками\n\n## Приёмка\n\n## Ограничения\nСумма до 100 ₸.\n")
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(text, encoding="utf-8")
+            fs = {f.quotes[0].start: f for f in lint(read_document(str(p)), cr)}
+        self.assertEqual(fs[4].severity, "важно")
+        self.assertEqual(fs[8].severity, "критично")
+        self.assertEqual(fs[10].severity, "критично")
+        self.assertIn("пустой", fs[10].problem)
+        self.assertNotIn(1, fs)
+        self.assertNotIn(6, fs)
+
+    def test_placeholder_in_task_testing_section_is_critical(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        fs = [f for f in lint(read_document(str(DOC)), cr) if f.quotes[0].start == 57]
+        self.assertEqual([f.severity for f in fs], ["критично"])
+
 
 class PipelineMockTest(unittest.TestCase):
     def test_full_report_sections(self):

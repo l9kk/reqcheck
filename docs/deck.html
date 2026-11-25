@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>reqcheck: агент ревью требований</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  :root {
+    --ink: #1a1f24;
+    --accent: #0b6e6e;
+    --line: #d3d9de;
+    --soft: #f3f6f6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ffffff; color: var(--ink); }
+  body {
+    font-family: "Noto Sans", "Open Sans", "Liberation Sans", Arial, sans-serif;
+    font-size: 22px;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    padding: 64px 80px 72px;
+    overflow: hidden;
+    background: #ffffff;
+    page-break-after: always;
+    break-after: page;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @media screen {
+    body { background: #ffffff; padding: 24px 0; }
+    .slide { margin: 0 auto 24px; border: 1px solid var(--line); }
+  }
+  h1, h2 { margin: 0; font-weight: 600; letter-spacing: 0; }
+  h2 {
+    font-size: 38px;
+    line-height: 1.2;
+    padding-bottom: 18px;
+    margin-bottom: 32px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+  p { margin: 0 0 16px; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .accent { color: var(--accent); }
+  code, .mono { font-family: "Noto Sans Mono", "Source Code Pro", "Liberation Mono", monospace; font-size: 0.9em; }
+  .foot {
+    position: absolute; left: 80px; right: 80px; bottom: 28px;
+    display: flex; justify-content: space-between;
+    font-size: 15px; border-top: 1px solid var(--line); padding-top: 10px;
+  }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain li { padding-left: 22px; position: relative; margin-bottom: 12px; }
+  ul.plain li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 8px; height: 8px; background: var(--accent); }
+
+  /* slide 1 */
+  .s1 h1 { font-size: 64px; line-height: 1.1; margin-top: 56px; }
+  .s1 .sub { font-size: 30px; margin-top: 14px; }
+  .s1 .rule { width: 96px; height: 4px; background: var(--accent); margin: 44px 0 36px; }
+  .s1 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; max-width: 1080px; }
+  .s1 .label { font-weight: 600; color: var(--accent); margin-bottom: 8px; font-size: 22px; }
+  .s1 .grid p { font-size: 24px; }
+
+  /* slide 2 */
+  .diagram { width: 1120px; height: 300px; display: block; }
+  .diagram text { font-family: "Noto Sans", "Liberation Sans", sans-serif; fill: var(--ink); }
+  .s2 .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 28px; font-size: 20px; }
+  .s2 .notes b { display: block; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+
+  /* slide 3 */
+  .s3 .lead { font-size: 21px; margin: -8px 0 24px; }
+  .s3 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .card { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 22px 26px; font-size: 20px; line-height: 1.4; }
+  .card .head { font-weight: 600; font-size: 21px; margin-bottom: 12px; }
+  .card blockquote { margin: 0 0 10px; padding: 8px 14px; background: var(--soft); border-left: 3px solid var(--accent); }
+  .card .where { display: block; font-size: 15px; margin-top: 3px; }
+  .card p { margin: 0 0 10px; }
+  .card ol { margin: 4px 0 10px; padding-left: 0; list-style: none; }
+  .card ol li { margin-bottom: 6px; }
+
+  /* slide 4 */
+  table { border-collapse: collapse; width: 100%; font-size: 20px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; font-size: 17px; border-bottom: 2px solid var(--ink); }
+  td.n, th.n { text-align: right; }
+  tr.main td { font-weight: 600; }
+  .s4 .small { font-size: 15px; font-weight: 400; display: block; }
+  .s4 .notes { margin-top: 26px; font-size: 18px; }
+  .s4 .notes li { margin-bottom: 8px; }
+
+  /* slide 5 */
+  .s5 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 44px 56px; margin-top: 8px; }
+  .s5 .block { border-left: 3px solid var(--accent); padding: 4px 0 4px 20px; }
+  .s5 .block b { display: block; font-weight: 600; font-size: 26px; margin-bottom: 6px; }
+  .s5 .block p { font-size: 22px; margin: 0; }
+
+  /* slide 6 */
+  pre.cmd {
+    margin: 0 0 28px; padding: 24px 28px; background: var(--soft); border-left: 3px solid var(--accent);
+    font-family: "Noto Sans Mono", "Source Code Pro", "Liberation Mono", monospace; font-size: 24px; line-height: 1.75;
+    white-space: pre;
+  }
+  pre.cmd .pr { color: var(--accent); }
+  .s6 .repo { font-size: 34px; font-weight: 600; color: var(--accent); margin-top: 20px; }
+  .s6 p { font-size: 22px; max-width: 1000px; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide s1">
+  <h1>reqcheck</h1>
+  <div class="sub">Агент ревью требований: дефекты в ТЗ до начала разработки</div>
+  <div class="rule"></div>
+  <div class="grid">
+    <div>
+      <div class="label">Задача</div>
+      <p>Противоречия, неоднозначности, непроверяемые формулировки и пропуски в ТЗ. Ручное ревью занимает часы и зависит от того, кто его делает.</p>
+    </div>
+    <div>
+      <div class="label">Решение</div>
+      <p>Одна команда: на входе ТЗ, на выходе отчёт с дословными цитатами, номерами строк и вопросами автору.</p>
+    </div>
+  </div>
+  <div class="foot"><span>BCC-HUB x MNU FinTech Hackathon</span><span>1</span></div>
+</section>
+
+<!-- 2 -->
+<section class="slide s2">
+  <h2>Как работает агент</h2>
+  <svg class="diagram" viewBox="0 0 1120 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Конвейер ролей агента">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#1a1f24"/>
+      </marker>
+    </defs>
+    <g fill="none" stroke="#1a1f24" stroke-width="1.6" marker-end="url(#ar)">
+      <line x1="132" y1="150" x2="164" y2="150"/>
+      <path d="M302,150 C332,150 332,52 366,52"/>
+      <line x1="302" y1="150" x2="366" y2="150"/>
+      <path d="M302,150 C332,150 332,248 366,248"/>
+      <path d="M564,52 C596,52 596,150 626,150"/>
+      <line x1="564" y1="150" x2="626" y2="150"/>
+      <path d="M564,248 C596,248 596,150 626,150"/>
+      <line x1="760" y1="150" x2="794" y2="150"/>
+      <line x1="928" y1="150" x2="962" y2="150"/>
+    </g>
+    <!-- guard outlines -->
+    <g fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4">
+      <rect x="161" y="111" width="146" height="78"/>
+      <rect x="363" y="111" width="206" height="78"/>
+      <rect x="363" y="209" width="206" height="78"/>
+      <rect x="791" y="111" width="142" height="78"/>
+    </g>
+    <!-- code boxes -->
+    <g fill="#ffffff" stroke="#1a1f24" stroke-width="1.6">
+      <rect x="0" y="118" width="132" height="64"/>
+      <rect x="368" y="20" width="196" height="64"/>
+      <rect x="966" y="118" width="132" height="64"/>
+    </g>
+    <!-- model boxes -->
+    <g fill="#ffffff" stroke="#0b6e6e" stroke-width="2.2">
+      <rect x="168" y="118" width="134" height="64"/>
+      <rect x="368" y="118" width="196" height="64"/>
+      <rect x="368" y="216" width="196" height="64"/>
+      <rect x="630" y="118" width="130" height="64"/>
+      <rect x="798" y="118" width="130" height="64"/>
+    </g>
+    <g font-size="18" font-weight="600" text-anchor="middle">
+      <text x="66" y="146">Reader</text>
+      <text x="235" y="146">Segmenter</text>
+      <text x="466" y="48">Linter</text>
+      <text x="466" y="146">Auditor</text>
+      <text x="466" y="244">CrossChecker</text>
+      <text x="695" y="146">Critic</text>
+      <text x="863" y="146">Clarifier</text>
+      <text x="1032" y="146">Reporter</text>
+    </g>
+    <g font-size="14" text-anchor="middle">
+      <text x="66" y="168">код</text>
+      <text x="235" y="168">код + модель</text>
+      <text x="466" y="70">код, 29148 5.2.7</text>
+      <text x="466" y="168">модель, 29148 5.2.5</text>
+      <text x="466" y="266">модель, 5.2.6 + IEEE 830</text>
+      <text x="695" y="168">модель</text>
+      <text x="863" y="168">модель</text>
+      <text x="1032" y="168">код</text>
+    </g>
+    <!-- legend -->
+    <g font-size="14">
+      <rect x="660" y="236" width="22" height="14" fill="#fff" stroke="#1a1f24" stroke-width="1.6"/>
+      <text x="690" y="248">код</text>
+      <rect x="740" y="236" width="22" height="14" fill="#fff" stroke="#0b6e6e" stroke-width="2.2"/>
+      <text x="770" y="248">модель</text>
+      <rect x="850" y="236" width="22" height="14" fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="880" y="248">Guard сверяет цитаты с текстом</text>
+    </g>
+  </svg>
+  <div class="notes">
+    <div><b>Стандарты как данные</b>ISO/IEC/IEEE 29148 и IEEE 830 лежат в <code>criteria.toml</code>. Из него собираются промпты.</div>
+    <div><b>Guard цитат</b>Замечание без цитаты из документа отбрасывается кодом. В прогоне на выданном ТЗ отброшено <span class="num">2</span>.</div>
+    <div><b>Экономно</b>До <span class="num">7</span> запросов к модели на прогон, ответы кэшируются.</div>
+  </div>
+  <div class="foot"><span>reqcheck</span><span>2</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide s3">
+  <h2>Что получает QA-лид</h2>
+  <p class="lead">Отчёт по выданному ТЗ: <span class="num">32</span> требования, <span class="num">35</span> нарушений, из них <span class="num">7</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».</p>
+  <div class="cols">
+    <div class="card">
+      <div class="head">D-02 · критично · Согласованность набора</div>
+      <blockquote>«На карту приходится максимум один такой push за календарный месяц.»<span class="where">строка <span class="num">39</span></span></blockquote>
+      <blockquote>«Если она ниже нового порога, следующее достижение вызывает push независимо от истории предыдущей настройки.»<span class="where">строка <span class="num">40</span></span></blockquote>
+      <p>Прямое противоречие между Ф-3 и Ф-4.</p>
+    </div>
+    <div class="card">
+      <div class="head">Q-02 · кому: бизнес</div>
+      <p>Отправляется ли повторный push в одном календарном месяце, если клиент увеличил порог и снова достиг его после ранее отправленного push?</p>
+      <ol>
+        <li>(а) Да, при смене порога лимит <span class="num">1</span> push в месяц сбрасывается</li>
+        <li>(б) Нет, правило <span class="num">1</span> push в месяц строго имеет приоритет</li>
+      </ol>
+      <p>Блокирует: тест-кейсы повторного вызова push. Закрывает D-02, D-03, D-13.</p>
+    </div>
+  </div>
+  <div class="foot"><span>reqcheck · выдержка из report/report.md</span><span>3</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide s4">
+  <h2>Точность на двух ТЗ</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Документ и прогон</th>
+        <th class="n">Полнота (авто)</th>
+        <th class="n">Полнота (ручная проверка)</th>
+        <th class="n">Критичные</th>
+        <th class="n">Обязательные</th>
+        <th class="n">Точность</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Выданное ТЗ, только правила кода<span class="small">без модели</span></td>
+        <td class="n"><span class="num">11/40 (28%)</span></td>
+        <td class="n">-</td>
+        <td class="n">-</td>
+        <td class="n"><span class="num">9/13</span></td>
+        <td class="n"><span class="num">93%</span></td>
+      </tr>
+      <tr class="main">
+        <td>Выданное ТЗ, полный агент<span class="small">gemini-3.5-flash, <span class="num">40</span> эталонных дефектов</span></td>
+        <td class="n"><span class="num">28/40 (70%)</span></td>
+        <td class="n"><span class="num">24/40 (60%)</span></td>
+        <td class="n"><span class="num">6/6</span><span class="small"><span class="num">5</span> с верной важностью</span></td>
+        <td class="n"><span class="num">13/13</span></td>
+        <td class="n"><span class="num">94%</span></td>
+      </tr>
+      <tr class="main">
+        <td>Второе ТЗ (autotopup), полный агент<span class="small">эталон составлен до прогона, <span class="num">18</span> дефектов</span></td>
+        <td class="n"><span class="num">16/18 (89%)</span></td>
+        <td class="n"><span class="num">14/18 (78%)</span></td>
+        <td class="n"><span class="num">4/4</span></td>
+        <td class="n"><span class="num">8/8</span></td>
+        <td class="n"><span class="num">81%</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <ul class="plain notes">
+    <li>Эталоны составлены вручную. Каждое авто-совпадение проверено руками, ложные не засчитаны.</li>
+    <li>Второй прогон не полностью слепой: общие правила кода дописаны после эталона (<code>eval/manual_check.md</code>).</li>
+  </ul>
+  <div class="foot"><span>reqcheck · eval/score.py, eval/manual_check.md</span><span>4</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide s5">
+  <h2>Не падает на плохих входах</h2>
+  <div class="grid">
+    <div class="block"><b>Форматы</b><p>PDF, DOCX, MD, TXT (UTF-8 и cp1251). Если в PDF слипаются слова, текст берётся через pdftotext.</p></div>
+    <div class="block"><b>Битые файлы</b><p><span class="num">13</span> видов: пустые, сканы, с паролем, не ТЗ. Вместо падения отчёт с разделом «Диагностика».</p></div>
+    <div class="block"><b>Коды выхода</b><p><span class="num">0</span> нет критичных, <span class="num">1</span> есть критичные, <span class="num">2</span> документ не удалось проверить.</p></div>
+    <div class="block"><b>Без ключа и из кэша</b><p>Без ключа работают правила кода, отчёт пишет, что модель не вызывалась. Повтор: <span class="num">0</span> запросов, <span class="num">0.2</span> с.</p></div>
+  </div>
+  <div class="foot"><span>reqcheck · examples/broken/, tests/fixtures/broken/</span><span>5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide s6">
+  <h2>Как запустить</h2>
+<pre class="cmd"><span class="pr">$</span> git clone https://github.com/l9kk/reqcheck &amp;&amp; cd reqcheck
+<span class="pr">$</span> pip install -r requirements.txt
+<span class="pr">$</span> python -m reqcheck input/requirements.md -o report/report.md</pre>
+  <p>Python <span class="num">3.11</span>+. Ключ Gemini в <code>.env</code> (<code>LLM_API_KEY</code>), без ключа работают правила кода. На выходе <code>report.md</code>, <code>report.json</code>, <code>report.pdf</code>.</p>
+  <div class="repo">github.com/l9kk/reqcheck</div>
+  <div class="foot"><span>reqcheck</span><span>6</span></div>
+</section>
+
+</body>
+</html>

@@ -113,6 +113,31 @@ class LLMShapeTest(unittest.TestCase):
         self.assertIn("20h21m", ctx.exception.hint)
         self.assertEqual(Fake.calls, 1)
 
+    def test_depleted_credits_fail_fast(self):
+        from types import SimpleNamespace
+        from openai import APIStatusError
+        from reqcheck.llm import LLM, LLMError
+
+        err = APIStatusError.__new__(APIStatusError)
+        Exception.__init__(err, "Error code: 402")
+        err.status_code = 402
+        err.response = SimpleNamespace(text='[{"error": {"code": 402, "message": "prepayment credits are depleted"}}]')
+        err.body = None
+        calls = []
+
+        class Fake:
+            def create(self, **kw):
+                calls.append(1)
+                raise err
+
+        c = LLM(use_cache=False)
+        c.model = "m"
+        c._client = type("C", (), {"chat": type("Ch", (), {"completions": Fake()})()})()
+        with self.assertRaises(LLMError) as ctx:
+            c._call("Critic", "s", "u")
+        self.assertEqual(ctx.exception.code, "billing")
+        self.assertEqual(len(calls), 1)
+
 
 class LintTest(unittest.TestCase):
     def test_finds_rule_defects_with_grounded_quotes(self):

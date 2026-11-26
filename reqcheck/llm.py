@@ -148,6 +148,9 @@ class LLM:
             except (APITimeoutError, APIConnectionError):
                 last = "network"
             except APIStatusError as e:
+                if e.status_code == 402:
+                    raise LLMError("billing", "Провайдер отклонил запрос: закончились оплаченные кредиты проекта (402).",
+                                   "Пополните баланс проекта в AI Studio или укажите ключ бесплатного проекта.")
                 if e.status_code in (400, 404):
                     raise LLMError("bad_request", f"Провайдер отклонил запрос ({e.status_code}): {str(e)[:200]}",
                                    "Проверьте LLM_MODEL и LLM_BASE_URL в .env.")

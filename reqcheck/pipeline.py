@@ -155,7 +155,7 @@ class Pipeline:
             return data
         except LLMError as e:
             rep.diagnostics.append(Diagnostic("error", e.code, f"{role}: {e.message}", e.hint))
-            if e.code in ("no_key", "auth", "quota_day", "bad_request", "no_model"):
+            if e.code in ("no_key", "auth", "quota_day", "billing", "bad_request", "no_model"):
                 self.llm = None
             return None
 

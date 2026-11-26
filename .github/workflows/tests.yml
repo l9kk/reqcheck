@@ -14,5 +14,4 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m unittest tests.test_reader tests.test_pipeline eval.test_score
         env:
-          LLM_PROVIDER: mock
           PYTHONUTF8: "1"

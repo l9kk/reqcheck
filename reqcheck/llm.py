@@ -109,12 +109,8 @@ class LLM:
         self.cache_dir = Path(cache_dir)
         self.trace: list[dict] = []
         self._client = None
-        if self.provider == "mock":
-            self.model = "mock"
 
     def check(self) -> None:
-        if self.provider == "mock":
-            return
         if not self.api_key and "localhost" not in self.base_url and "127.0.0.1" not in self.base_url:
             raise LLMError("no_key", *self.texts["no_key"])
         if not self.model:
@@ -135,19 +131,16 @@ class LLM:
         key = hashlib.sha256(f"{self.provider}|{self.model}|{system}|{user}".encode()).hexdigest()[:32]
         path = self.cache_dir / f"{role}-{key}.json"
         t0 = time.time()
-        if self.use_cache and self.provider != "mock" and path.exists():
+        if self.use_cache and path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
             self.trace.append({"role": role, "cached": True, "seconds": 0.0, "in_tokens": data.get("in_tokens", 0),
                                "out_tokens": data.get("out_tokens", 0), "orig_seconds": data.get("seconds")})
             return unwrap(data["result"])
-        if self.provider == "mock":
-            result, usage = {}, (len(system + user) // 4, 0)
-        else:
-            self.check()
-            result, usage = self._call(role, system, user)
+        self.check()
+        result, usage = self._call(role, system, user)
         secs = round(time.time() - t0, 1)
         self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})
-        if self.use_cache and self.provider != "mock":
+        if self.use_cache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1], "seconds": secs},
                                        ensure_ascii=False), encoding="utf-8")

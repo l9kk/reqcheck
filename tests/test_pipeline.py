@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import tempfile
@@ -11,17 +12,19 @@ from reqcheck.ground import Grounder
 from reqcheck.lint import lint
 from reqcheck.llm import parse_json, unwrap
 from reqcheck.reader import read_document
+from tests.fake_llm import FakeLLM
 
 ROOT = Path(__file__).resolve().parent.parent
 DOC = ROOT / "input" / "requirements.md"
 FIX = ROOT / "tests" / "fixtures"
 
 
-def run(path, out_dir, env=None):
+def run(path, out_dir, env=None, fake=True):
     old = dict(os.environ)
-    os.environ.update({"LLM_PROVIDER": "mock", "REQCHECK_PDF": "0", **(env or {})})
+    os.environ.update({"REQCHECK_PDF": "0", **(env or {})})
     try:
-        code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet"])
+        with mock.patch("reqcheck.cli.LLM", FakeLLM) if fake else contextlib.nullcontext():
+            code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet", "--no-cache"])
     finally:
         os.environ.clear()
         os.environ.update(old)
@@ -105,7 +108,8 @@ class LLMShapeTest(unittest.TestCase):
                 Fake.calls += 1
                 raise err
 
-        c = LLM(use_cache=False)
+        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "openai_compat"}):
+            c = LLM(use_cache=False)
         c.model = "m"
         c._client = type("C", (), {"chat": type("Ch", (), {"completions": Fake()})()})()
         with self.assertRaises(LLMError) as ctx:
@@ -131,7 +135,8 @@ class LLMShapeTest(unittest.TestCase):
                 calls.append(1)
                 raise err
 
-        c = LLM(use_cache=False)
+        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "openai_compat"}):
+            c = LLM(use_cache=False)
         c.model = "m"
         c._client = type("C", (), {"chat": type("Ch", (), {"completions": Fake()})()})()
         with self.assertRaises(LLMError) as ctx:
@@ -200,7 +205,7 @@ class LLMShapeTest(unittest.TestCase):
         from reqcheck.llm import LLM, LLMError
 
         env = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5", "ANTHROPIC_API_KEY": "", "LLM_API_KEY": "",
-               "GEMINI_API_KEY": "", "ANTHROPIC_BASE_URL": ""}
+               "ANTHROPIC_BASE_URL": ""}
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(LLMError) as ctx:
                 LLM().check()
@@ -334,7 +339,7 @@ class PipelineMockTest(unittest.TestCase):
 
     def test_no_key_degrades_gracefully(self):
         with tempfile.TemporaryDirectory() as d:
-            code, data, md = run(DOC, d, {"LLM_PROVIDER": "openai_compat", "LLM_API_KEY": "", "GEMINI_API_KEY": ""})
+            code, data, md = run(DOC, d, {"LLM_PROVIDER": "openai_compat", "LLM_API_KEY": ""}, fake=False)
         self.assertIn(code, (0, 1))
         self.assertTrue(any(x["code"] == "no_key" for x in data["diagnostics"]))
         self.assertTrue(data["findings"])
@@ -409,15 +414,8 @@ class MergeTextTest(unittest.TestCase):
 class InteractiveTest(unittest.TestCase):
     def test_answers_written_without_model(self):
         from reqcheck.interactive import run as irun
-        from reqcheck.llm import LLM
         from reqcheck.pipeline import Pipeline
-        old = dict(os.environ)
-        os.environ.update({"LLM_PROVIDER": "mock"})
-        try:
-            rep = Pipeline(LLM(), log=lambda m: None).run(str(DOC))
-        finally:
-            os.environ.clear()
-            os.environ.update(old)
+        rep = Pipeline(FakeLLM(), log=lambda m: None).run(str(DOC))
         self.assertTrue(rep.questions)
         replies = iter(["", "s", "Порог по умолчанию 50 000 тенге", "q"])
         said = []

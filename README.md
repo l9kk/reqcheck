@@ -108,7 +108,7 @@ flowchart LR
 python -m unittest tests.test_reader tests.test_pipeline eval.test_score
 ```
 
-Тесты не требуют ключа (режим `LLM_PROVIDER=mock`). Набор повреждённых файлов: `tests/fixtures/broken/`.
+Тесты не требуют ключа: модель в них подменяет `tests/fake_llm.py`. Набор повреждённых файлов: `tests/fixtures/broken/`.
 
 ## Оценка качества
 

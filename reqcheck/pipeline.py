@@ -218,13 +218,13 @@ class Pipeline:
                 out.append(gq)
         return out
 
-    def _mk(self, d: dict, scope: str, role: str, req_ids: list[str], hint=None) -> Finding | None:
+    def _mk(self, d: dict, scope: str, role: str, req_ids: list[str], hint=None, ground=None) -> Finding | None:
         crit = str(d.get("criterion", "")).strip()
         if crit not in self.crit:
             self.drops.append({"role": role, "reason": f"неизвестный критерий {crit}", "item": str(d.get("problem", ""))[:160]})
             return None
         raw = d.get("quotes") or ([d.get("quote")] if d.get("quote") else [])
-        quotes = self._ground_quotes(raw, hint)
+        quotes = (ground or self._ground_quotes)(raw, hint)
         if not quotes:
             self.drops.append({"role": role, "reason": "цитата не найдена в документе", "item": str(raw)[:200]})
             return None

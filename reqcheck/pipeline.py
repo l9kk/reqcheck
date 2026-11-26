@@ -51,6 +51,7 @@ class Pipeline:
         self.crit = all_criteria(self.cr)
         self.drops: list[dict] = []
         self.merged: dict[str, list[str]] = {}
+        self.merge_into: dict[str, str] = {}
 
     def step(self, name: str, msg: str):
         self.log(f"[{name}] {msg}")
@@ -317,7 +318,14 @@ class Pipeline:
         return out
 
     def add_merged_text(self, findings: list[Finding], renum: dict[str, str]):
-        extra = {renum[k]: v for k, v in self.merged.items() if k in renum}
+        extra: dict[str, list[str]] = {}
+        for k, v in self.merged.items():
+            seen = {k}
+            while k not in renum and k in self.merge_into and self.merge_into[k] not in seen:
+                k = self.merge_into[k]
+                seen.add(k)
+            if k in renum:
+                extra.setdefault(renum[k], []).extend(v)
         for f in findings:
             for text in extra.get(f.id, []):
                 if text and text not in f.problem:
@@ -352,6 +360,7 @@ class Pipeline:
                     if r not in tgt.req_ids:
                         tgt.req_ids.append(r)
                 self.merged.setdefault(d["into"], []).extend([by_id[fid].problem] + self.merged.pop(fid, []))
+                self.merge_into[fid] = d["into"]
                 self.drops.append({"role": "Critic", "reason": "", "into": d["into"], "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:
                 by_id[fid].severity = d["severity"]

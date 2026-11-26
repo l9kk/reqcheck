@@ -304,6 +304,22 @@ class MergeTextTest(unittest.TestCase):
         self.assertIn("сохранение и чтение порога", kept[0].problem)
         self.assertEqual(kept[1].problem, "Другое.")
 
+    def test_merge_into_already_merged_finding_keeps_text(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        fs = [Finding(f"F-0{i}", "req", [], "complete", "важно", [Quote("x", i, i)], t)
+              for i, t in [(1, "Текст A."), (2, "Текст B."), (3, "Текст C.")]]
+        p._llm = lambda *a: {"decisions": [{"id": "F-02", "action": "merge", "into": "F-03"},
+                                           {"id": "F-01", "action": "merge", "into": "F-02"}]}
+        kept, _ = p.critic("", fs, None)
+        self.assertEqual([f.id for f in kept], ["F-03"])
+        kept[0].id = "D-01"
+        p.add_merged_text(kept, {"F-03": "D-01"})
+        self.assertIn("Текст A.", kept[0].problem)
+        self.assertIn("Текст B.", kept[0].problem)
+
 
 class InteractiveTest(unittest.TestCase):
     def test_answers_written_without_model(self):

@@ -163,7 +163,8 @@ class LLMShapeTest(unittest.TestCase):
                 return SimpleNamespace(stop_reason="end_turn", usage=SimpleNamespace(input_tokens=11, output_tokens=7),
                                        content=[SimpleNamespace(type="thinking"), SimpleNamespace(type="text", text=outcome)])
 
-        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5"}):
+        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5",
+                                         "ANTHROPIC_API_KEY": "test"}):
             c = LLM(use_cache=False)
         c.max_retries = 0
         c._client = SimpleNamespace(messages=SimpleNamespace(stream=lambda **kw: Stream(kw)))

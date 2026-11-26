@@ -143,6 +143,7 @@ class LLM:
         if self.provider == "mock":
             result, usage = {}, (len(system + user) // 4, 0)
         else:
+            self.check()
             result, usage = self._call(role, system, user)
         secs = round(time.time() - t0, 1)
         self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})

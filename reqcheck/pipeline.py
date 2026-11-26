@@ -45,7 +45,7 @@ def all_criteria(cr: dict) -> dict:
 class Pipeline:
     def __init__(self, llm: LLM, log=print):
         self.llm = llm
-        self.llm_obj = llm
+        self.use_model = True
         self.log = log
         self.cr = load_criteria()
         self.crit = all_criteria(self.cr)
@@ -88,11 +88,6 @@ class Pipeline:
 
         cands = extract_candidates(doc)
         self.step("Segmenter", f"фрагментов: {len(cands)}")
-        try:
-            self.llm.check()
-        except LLMError as e:
-            rep.diagnostics.append(Diagnostic("error", e.code, e.message, e.hint))
-            self.llm = None
         reqs = self.segment(cands, rep)
         rep.requirements = reqs
         self.step("Segmenter", f"требований: {len(reqs)}")
@@ -100,7 +95,7 @@ class Pipeline:
         findings = lint(doc, self.cr)
         self.step("Linter", f"замечаний по правилам: {len(findings)}")
 
-        if self.llm is not None and reqs:
+        if self.use_model and reqs:
             findings += self.audit(numbered, reqs, rep)
             findings += self.cross(numbered, reqs, findings, rep)
         self.attach_reqs(findings, reqs)
@@ -109,7 +104,7 @@ class Pipeline:
             f.id = f"F-{i:02d}"
 
         fix_first = []
-        if self.llm is not None and findings:
+        if self.use_model and findings:
             findings, fix_first = self.critic(numbered, findings, rep)
         findings.sort(key=lambda f: (SEV_RANK.get(f.severity, 3), f.quotes[0].start if f.quotes else 0))
         renum = {}
@@ -124,13 +119,13 @@ class Pipeline:
         rep.req_checks = {r: [f.criterion for f in findings if r in f.req_ids and f.scope == "req"]
                           for r in rep.req_checks}
 
-        if self.llm is not None and findings:
+        if self.use_model and findings:
             rep.questions = self.clarify(numbered, findings, rep)
         elif findings:
             rep.questions = self.fallback_questions(findings)
         rep.questions = self.rank_questions(rep.questions, findings)
         self.add_merged_text(findings, renum)
-        rep.verdict = self.verdict(findings, fix_first, reqs, model_used=self.llm is not None)
+        rep.verdict = self.verdict(findings, fix_first, reqs, model_used=self.use_model)
         if self.drops:
             passport["guard_drops"] = len(self.drops)
         rep.drops = self.drops
@@ -138,7 +133,7 @@ class Pipeline:
 
     def _finish(self, rep: Report, t0: float) -> Report:
         rep.passport["seconds"] = round(time.time() - t0, 1)
-        tr = self.llm_obj.trace
+        tr = self.llm.trace
         rep.trace = tr
         rep.passport["llm_calls"] = sum(1 for t in tr if not t["cached"])
         rep.passport["llm_cached"] = sum(1 for t in tr if t["cached"])
@@ -159,13 +154,13 @@ class Pipeline:
         except LLMError as e:
             rep.diagnostics.append(Diagnostic("error", e.code, f"{role}: {e.message}", e.hint))
             if e.code in ("no_key", "auth", "quota_day", "billing", "bad_request", "no_model"):
-                self.llm = None
+                self.use_model = False
             return None
 
     def segment(self, cands: list[Candidate], rep: Report) -> list[Requirement]:
         by_id = {c.id: c for c in cands}
         data = None
-        if self.llm is not None:
+        if self.use_model:
             system, user = roles.segmenter_prompt(self.cr, render_candidates(cands))
             data = self._llm("Segmenter", system, user, rep)
         items = []
@@ -185,7 +180,7 @@ class Pipeline:
                 used.update(ids)
                 items.append((ids, r.get("type", ""), str(r.get("doc_id", "") or ""), str(r.get("short", "") or "")))
         else:
-            if self.llm is not None or not rep.diagnostics:
+            if self.use_model or not rep.diagnostics:
                 rep.diagnostics.append(Diagnostic("warning", "segment_fallback",
                                                   "Требования выделены эвристикой без модели.", ""))
             for c in cands:
@@ -252,7 +247,7 @@ class Pipeline:
             system, user = roles.auditor_prompt(self.cr, numbered, self.req_table(batch))
             data = self._llm("Auditor", system, user, rep)
             if not isinstance(data, dict):
-                if self.llm is None:
+                if not self.use_model:
                     break
                 continue
             for res in data.get("results", []) or []:

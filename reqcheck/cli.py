@@ -72,7 +72,7 @@ def main(argv=None) -> int:
         print(f"Диагностика [{d.code}]: {d.message} {d.hint}")
     if args.interactive and rep.requirements:
         from .interactive import run as interactive_run
-        interactive_run(rep, pipe.llm, md_path)
+        interactive_run(rep, pipe.llm if pipe.use_model else None, md_path)
     if errors and (not rep.requirements or any(d.code == "not_requirements" for d in errors)):
         return 2
     return 1 if crit else 0

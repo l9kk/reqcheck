@@ -26,6 +26,8 @@ def main(argv=None) -> int:
     ap.add_argument("--no-pdf", action="store_true", help="не создавать report.pdf")
     ap.add_argument("--interactive", action="store_true",
                     help="демо: задать главные вопросы в терминале и показать новые формулировки")
+    ap.add_argument("--answers", metavar="FILE",
+                    help="ответы на вопросы из TOML (Q-01 = \"a\" | \"свой текст\" | \"default\"), без терминала")
     args = ap.parse_args(argv)
 
     load_dotenv(Path.cwd() / ".env")
@@ -67,9 +69,16 @@ def main(argv=None) -> int:
           f"вопросов: {len(rep.questions)}. Вердикт: {rep.verdict.get('status')}.")
     for d in errors:
         print(f"Диагностика [{d.code}]: {d.message} {d.hint}")
-    if args.interactive and rep.requirements:
-        from .interactive import run as interactive_run
-        interactive_run(rep, pipe.llm if pipe.use_model else None, md_path)
+    if (args.interactive or args.answers) and rep.requirements:
+        from .interactive import load_answers, run as interactive_run
+        preset = None
+        if args.answers:
+            try:
+                preset = load_answers(args.answers, rep)
+            except ValueError as e:
+                print(f"Ответы: {e}", file=sys.stderr)
+                return 2
+        interactive_run(rep, pipe.llm if pipe.use_model else None, md_path, answers=preset, pipe=pipe)
     if errors and (not rep.requirements or any(d.code == "not_requirements" for d in errors)):
         return 2
     return 1 if crit else 0

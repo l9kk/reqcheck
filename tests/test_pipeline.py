@@ -84,6 +84,35 @@ class LLMShapeTest(unittest.TestCase):
         self.assertEqual(data["findings"], [{"a": 1}, {"a": 2}])
         self.assertEqual(unwrap({"x": 1}), {"x": 1})
 
+    def test_daily_quota_detected_from_response_body(self):
+        from types import SimpleNamespace
+        from openai import RateLimitError
+        from reqcheck.llm import LLM, LLMError
+
+        body = ('[{"error": {"code": 429, "message": "Quota exceeded. Generate content requests per day limit '
+                'exceeded on Free Tier.\\nPlease retry in 20h21m1.49s.", "details": [{"quotaId": '
+                '"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}}]')
+        err = RateLimitError.__new__(RateLimitError)
+        Exception.__init__(err, "Error code: 429")
+        err.response = SimpleNamespace(text=body)
+        err.body = None
+
+        class Fake:
+            calls = 0
+
+            def create(self, **kw):
+                Fake.calls += 1
+                raise err
+
+        c = LLM(use_cache=False)
+        c.model = "m"
+        c._client = type("C", (), {"chat": type("Ch", (), {"completions": Fake()})()})()
+        with self.assertRaises(LLMError) as ctx:
+            c._call("Critic", "s", "u")
+        self.assertEqual(ctx.exception.code, "quota_day")
+        self.assertIn("20h21m", ctx.exception.hint)
+        self.assertEqual(Fake.calls, 1)
+
 
 class LintTest(unittest.TestCase):
     def test_finds_rule_defects_with_grounded_quotes(self):

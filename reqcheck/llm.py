@@ -44,6 +44,18 @@ def unwrap(data):
     return data
 
 
+def error_text(e: Exception) -> str:
+    parts = [str(e)]
+    try:
+        parts.append(str(getattr(e, "response", None).text))
+    except Exception:
+        pass
+    body = getattr(e, "body", None)
+    if body:
+        parts.append(json.dumps(body, ensure_ascii=False))
+    return " ".join(parts)
+
+
 class LLM:
     def __init__(self, use_cache: bool = True, cache_dir: str = ".cache/llm", mock=None):
         self.provider = os.getenv("LLM_PROVIDER", "openai_compat").strip().lower()
@@ -127,10 +139,12 @@ class LLM:
                 raise LLMError("auth", "Ключ LLM отклонён провайдером (401/403).", "Проверьте LLM_API_KEY в .env.")
             except RateLimitError as e:
                 last = "rate_limit"
-                msg = str(e).lower()
-                if "per day" in msg or "perday" in msg or "daily" in msg:
+                msg = error_text(e)
+                if "per day" in msg.lower() or "perday" in msg.lower() or "daily" in msg.lower():
+                    wait = re.search(r"retry in (\d+h)?(\d+m)?", msg)
+                    when = f" Провайдер просит повторить через {wait.group(0)[9:]}." if wait and wait.group(0)[9:] else ""
                     raise LLMError("quota_day", "Исчерпана дневная квота бесплатного тарифа LLM.",
-                                   "Повторите завтра, используйте другой ключ/проект или модель с большим лимитом.")
+                                   "Повторите после сброса квоты или укажите модель с большим лимитом." + when)
             except (APITimeoutError, APIConnectionError):
                 last = "network"
             except APIStatusError as e:

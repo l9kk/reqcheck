@@ -53,6 +53,16 @@ def req_table(pipe, rep, rewritten: dict, neigh: list[str]) -> str:
     return "\n".join(rows)
 
 
+def patched_doc(pipe, rep, rewritten: dict) -> str:
+    swap = {}
+    for r in rep.requirements:
+        if r.id in rewritten:
+            swap[r.quote.start] = f"[{r.id}, ПЕРЕПИСАНО по {', '.join(rewritten[r.id]['qs'])}] {rewritten[r.id]['text']}"
+            for n in range(r.quote.start + 1, r.quote.end + 1):
+                swap[n] = f"[заменено переписанным {r.id}]"
+    return "\n".join(f"{l.no:>4}| {swap.get(l.no, l.text)}" for l in pipe.doc.lines)
+
+
 def grounder(pipe, rewritten: dict):
     texts = {rid: norm(v["text"]) for rid, v in rewritten.items()}
 
@@ -87,7 +97,7 @@ def recheck(pipe, rep, items: list[dict], say=print) -> dict | None:
     calls0, drops0 = len(pipe.llm.trace), len(pipe.drops)
     say(f"\nПерепроверка: переписано требований {len(rewritten)}, соседей {len(neigh)}.")
     table = req_table(pipe, rep, rewritten, neigh)
-    numbered = pipe.doc.numbered()
+    numbered = patched_doc(pipe, rep, rewritten)
     ground = grounder(pipe, rewritten)
 
     sys_a, usr_a = roles.auditor_prompt(pipe.cr, numbered, table)
@@ -186,6 +196,8 @@ def render_delta(d: dict) -> str:
     md += [f"Итог: закрыто {len(d['closed'])}, осталось {len(d['remains'])}, новых {len(d['new'])}.", ""]
     for title, key in (("Закрыто ответами", "closed"), ("Осталось", "remains"), ("Появилось новое", "new")):
         md += [f"### {title} ({len(d[key])})", ""]
-        md += [_line(f, w) for f, w in d[key]] or ["- нет"]
+        rows = [_line(f, w) + ("" if key != "new" or set(f.req_ids) & set(d["rewritten"]) else " (сосед, текст не менялся)")
+                for f, w in d[key]]
+        md += rows or ["- нет"]
         md.append("")
     return "\n".join(md)

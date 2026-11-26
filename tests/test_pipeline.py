@@ -51,6 +51,32 @@ class GroundTest(unittest.TestCase):
     def test_invented_quote_rejected(self):
         self.assertIsNone(self.g.locate("Система должна поддерживать биометрическую аутентификацию по лицу"))
 
+    def test_quote_with_inline_list_numbering(self):
+        q = self.g.locate("1. Проверить пользовательскую сессию. 2. Проверить принадлежность карты клиенту. "
+                          "3. Проверить сумму и переключатель.")
+        self.assertEqual((q.start, q.end), (117, 119))
+
+    def test_quote_across_code_fences(self):
+        q = self.g.locate('200. Successful — Created {"result":"OK","amount":"50000","enabled":"1"} или '
+                          '{"result":"ERROR","message":"Проверьте сумму"}')
+        self.assertEqual((q.start, q.end), (165, 171))
+
+    def test_quote_longer_than_six_lines(self):
+        q = self.g.locate("200. Ответ в случае успешного выполнения метода. 400. Ответ в случае, если параметры "
+                          'запроса заполнены неверно. 200. Successful — Created {"result":"OK","amount":"50000",'
+                          '"enabled":"1"} или {"result":"ERROR","message":"Проверьте сумму"} 401. Ответ в случае, '
+                          "если запрос выполнен без необходимой авторизации.")
+        self.assertEqual((q.start, q.end), (162, 174))
+
+    def test_short_quote_only_as_whole_line(self):
+        self.assertEqual(self.g.locate("404").start, 190)
+        self.assertIsNone(self.g.locate("405"))
+        self.assertIsNone(self.g.locate("200"))
+
+    def test_reordered_list_quote_rejected(self):
+        self.assertIsNone(self.g.locate("1. Проверить сумму и переключатель. 2. Проверить пользовательскую сессию. "
+                                        "3. Заменить настройку и удалить карту клиента."))
+
 
 class LLMShapeTest(unittest.TestCase):
     def test_list_wrapped_answer_is_unwrapped(self):
@@ -108,6 +134,36 @@ class GenericLintTest(unittest.TestCase):
         self.assertNotIn(12, probs)
         self.assertTrue(any("только в первой колонке" in x for x in probs.values()))
         self.assertTrue(any(x == "У документа нет даты." for x in probs.values()))
+
+    def test_security_rules_use_correct_criterion(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(self.TEXT, encoding="utf-8")
+            fs = {f.quotes[0].start: f for f in lint(read_document(str(p)), cr)}
+        for line in (5, 11):
+            self.assertEqual(fs[line].criterion, "correct")
+            self.assertEqual(fs[line].severity, "критично")
+
+    def test_placeholder_or_empty_test_section_is_critical(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        text = ("# ТЗ: тестовый перевод\nВерсия 1.0 от 26.11.2026\n## Цели\nЛимит: уточняется.\n\n## Тестирование\n\n"
+                "заполняются тестировщиками\n\n## Приёмка\n\n## Ограничения\nСумма до 100 ₸.\n")
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(text, encoding="utf-8")
+            fs = {f.quotes[0].start: f for f in lint(read_document(str(p)), cr)}
+        self.assertEqual(fs[4].severity, "важно")
+        self.assertEqual(fs[8].severity, "критично")
+        self.assertEqual(fs[10].severity, "критично")
+        self.assertIn("пустой", fs[10].problem)
+        self.assertNotIn(1, fs)
+        self.assertNotIn(6, fs)
+
+    def test_placeholder_in_task_testing_section_is_critical(self):
+        cr = tomllib.load(open(ROOT / "criteria.toml", "rb"))
+        fs = [f for f in lint(read_document(str(DOC)), cr) if f.quotes[0].start == 57]
+        self.assertEqual([f.severity for f in fs], ["критично"])
 
 
 class PipelineMockTest(unittest.TestCase):

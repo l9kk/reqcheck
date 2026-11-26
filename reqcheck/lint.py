@@ -7,11 +7,18 @@ from .reader import Document
 WRITE_WORDS = ("save", "create", "update", "delete", "remove", "set", "add", "edit", "post", "change")
 DESCRIBED_CODE_RE = re.compile(r"^\s*(?:\*\*|#{2,6}\s*)?([1-5]\d\d)\.(?:\*\*)?\s+\S")
 CODE_RE = re.compile(r"(?<![\d.,])([1-5]\d\d)(?![\d.,])")
+HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)")
+TEST_SEC_RE = re.compile(r"(?<![а-яё])тест(?!ируем)|при[её]м(?:к|о-сдат)", re.I)
 
 
 def _f(scope, criterion, severity, quotes, problem, impact="", fix="", test_hint=""):
     return Finding(id="", scope=scope, req_ids=[], criterion=criterion, severity=severity, quotes=quotes,
                    problem=problem, impact=impact, fix=fix, test_hint=test_hint, role="linter")
+
+
+def _test_section(doc: Document, line) -> bool:
+    title = next((l.text.lstrip("#").strip() for l in doc.lines if l.text.startswith("# ")), None)
+    return any(TEST_SEC_RE.search(p) for p in line.section.split(" / ") if p != title)
 
 
 def _tables(doc: Document):
@@ -72,10 +79,34 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
         for a, b in runs:
             q = g.quote_lines(a, b) if b - a < 3 else g.quote_lines(a, a)
             span = f" (строки {a}-{b})" if b > a else ""
+            if any(_test_section(doc, doc.lines[n - 1]) for n in range(a, b + 1)):
+                out.append(_f("set", "set_validatable", "критично", [q],
+                              f"Раздел тестирования не заполнен: шаблонная заглушка «{p}»{span}.",
+                              "Тест-кейсы и проверку приёмки написать нельзя: неизвестно, что и как проверять.",
+                              "Заполнить раздел: что проверяется, тестовые данные, ожидаемые результаты, "
+                              "кто и на каком стенде проверяет."))
+                continue
             out.append(_f("set", "conforming", "важно", [q],
                           f"Шаблонная заглушка «{p}» не заменена содержанием{span}.",
                           "Раздел фактически пустой: по нему нельзя принять решение или написать тест.",
                           "Заполнить раздел или явно указать «Не требуется» с причиной."))
+
+    for k, l in enumerate(doc.lines):
+        m = HEADING_RE.match(l.text)
+        if not m or not TEST_SEC_RE.search(m.group(2)):
+            continue
+        body = []
+        for nxt in doc.lines[k + 1:]:
+            h = HEADING_RE.match(nxt.text)
+            if h and len(h.group(1)) <= len(m.group(1)):
+                break
+            if nxt.text.strip() and not h:
+                body.append(nxt)
+        if not body:
+            out.append(_f("set", "set_validatable", "критично", [g.quote_lines(l.no, l.no)],
+                          f"Раздел «{m.group(2).strip()}» пустой.",
+                          "Тест-кейсы и проверку приёмки написать нельзя: неизвестно, что и как проверять.",
+                          "Заполнить раздел: что проверяется, тестовые данные, ожидаемые результаты."))
 
     for header, rows in _tables(doc):
         empty = [no for no, cells in rows if not any(c.strip() for c in cells)]
@@ -134,7 +165,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
     for l in doc.lines:
         if re.search(r"лог(ир|ах|и\b|ов|\b)|журнал|\blog", l.text, re.I) and secret.search(l.text) and not re.search(
                 r"не логир|не должн[а-я]* (попадать|записыва|логир)|маскир|запрещ", l.text, re.I):
-            out.append(_f("req", "appropriate", "критично", [g.quote_lines(l.no, l.no)],
+            out.append(_f("req", "correct", "критично", [g.quote_lines(l.no, l.no)],
                           "Требование предписывает писать в логи чувствительные данные: "
                           + ", ".join(f"«{m}»" for m in dict.fromkeys(x.group(0) for x in secret.finditer(l.text))) + ".",
                           "Нарушение PCI DSS: CVV и PIN нельзя хранить после авторизации, номер карты только в маскированном "
@@ -148,7 +179,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
             row = " ".join(cells).lower()
             if any(w in row for w in WRITE_WORDS + ("pay", "transfer", "confirm", "cancel", "платёж", "платеж",
                                                      "оплат", "перевод", "списан", "сохран", "изменен", "удален")):
-                out.append(_f("req", "appropriate", "критично", [g.quote_lines(no, no)],
+                out.append(_f("req", "correct", "критично", [g.quote_lines(no, no)],
                               "Метод GET используется для операции, которая меняет данные или списывает деньги.",
                               "GET должен быть безопасным и идемпотентным: прокси и клиенты повторяют его, параметры "
                               "попадают в логи и историю. Повтор запроса может провести операцию дважды.",
@@ -161,7 +192,7 @@ def lint(doc: Document, criteria: dict) -> list[Finding]:
                      and any(w in l.text.lower() for w in WRITE_WORDS)]
         if url_lines:
             u = url_lines[0]
-            out.append(_f("req", "appropriate", "критично", [g.quote_lines(method_line.no, method_line.no),
+            out.append(_f("req", "correct", "критично", [g.quote_lines(method_line.no, method_line.no),
                                                                g.quote_lines(u.no, u.no)],
                           "Метод GET используется для операции записи (сохранение настройки), параметры передаются в строке запроса.",
                           "GET должен быть безопасным и идемпотентным: прокси и браузеры кэшируют и повторяют его, параметры попадают в логи.",

@@ -369,6 +369,26 @@ class RankTest(unittest.TestCase):
         self.assertEqual([q.id for q in ranked], ["Q-01", "Q-02", "Q-03"])
 
 
+class EdgePassTest(unittest.TestCase):
+    def test_edge_findings_are_grounded_and_checklist_is_data(self):
+        from reqcheck.llm import LLM
+        from reqcheck.pipeline import Pipeline, load_criteria
+        from reqcheck.report_md import Report
+        self.assertGreaterEqual(len(load_criteria()["edge"]), 10)
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        p.doc = read_document(str(DOC))
+        p.g = Grounder(p.doc)
+        good = "На карту приходится максимум один такой push за календарный месяц"
+        p._llm = lambda *a: {"findings": [
+            {"edge": "E01", "criterion": "bogus", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена."},
+            {"edge": "E02", "severity": "важно", "quotes": ["Выдуманная цитата которой нет в документе вообще"], "problem": "Повторная доставка события."},
+            "junk"]}
+        out = p.edge("", [], [], Report(passport={}))
+        self.assertEqual(len(out), 1)
+        self.assertEqual((out[0].role, out[0].criterion), ("EdgeCaser", "set_complete"))
+        self.assertEqual(len(p.drops), 1)
+
+
 class MergeTextTest(unittest.TestCase):
     def test_merged_finding_keeps_its_text_after_clarifier(self):
         from reqcheck.llm import LLM

@@ -465,5 +465,49 @@ class DedupeTest(unittest.TestCase):
         self.assertEqual([d["reason"] for d in p.drops], ["дубликат"])
 
 
+class ShapeRetryTest(unittest.TestCase):
+    def _run(self, bad_times):
+        from reqcheck.pipeline import Pipeline
+
+        class Bad(FakeLLM):
+            users = []
+
+            def json(self, role, system, user):
+                if role == "Critic":
+                    Bad.users.append(user)
+                    if len(Bad.users) <= bad_times:
+                        self.trace.append({"role": role, "cached": False, "seconds": 0.0, "in_tokens": 0, "out_tokens": 0})
+                        return {"decisions": "keep all"}
+                return super().json(role, system, user)
+
+        rep = Pipeline(Bad(), log=lambda m: None).run(str(DOC))
+        return rep, Bad.users
+
+    def test_bad_shape_is_retried_once_with_note(self):
+        rep, users = self._run(1)
+        self.assertEqual(len(users), 2)
+        self.assertNotIn("decisions", users[0].split("</document>")[-1])
+        self.assertIn("decisions", users[1].split("</document>")[-1])
+        self.assertFalse([d for d in rep.diagnostics if d.code == "bad_shape"])
+
+    def test_still_bad_shape_reports_diagnostic(self):
+        rep, users = self._run(5)
+        self.assertEqual(len(users), 2)
+        self.assertTrue([d for d in rep.diagnostics if d.code == "bad_shape" and "Critic" in d.message])
+        self.assertTrue(rep.findings)
+
+    def test_shape_rules(self):
+        from reqcheck.roles import SHAPES, shape_error
+        self.assertEqual(shape_error("Auditor", {"results": []}), "")
+        self.assertIn("results", shape_error("Auditor", {"findings": []}))
+        self.assertIn("объект", shape_error("Critic", ["x"]))
+        self.assertEqual(shape_error("CrossChecker", {"findings": [{}]}), "")
+        self.assertIn("checklist", shape_error("CrossChecker", {"steps": [], "checklist": "нет"}))
+        self.assertIn("questions", shape_error("Clarifier", {"questions": ["a"]}))
+        self.assertEqual(shape_error("Critic", {"decisions": [], "fix_first": ["F-01"]}), "")
+        for role in ("Segmenter", "Auditor", "CrossChecker", "EdgeCaser", "Critic", "Clarifier", "Rewriter"):
+            self.assertIn(role, SHAPES)
+
+
 if __name__ == "__main__":
     unittest.main()

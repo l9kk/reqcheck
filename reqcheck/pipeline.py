@@ -147,8 +147,13 @@ class Pipeline:
         try:
             self.step(role, "запрос к модели")
             data = self.llm.json(role, system, user)
-            if not isinstance(data, dict):
-                rep.diagnostics.append(Diagnostic("warning", "bad_shape", f"{role}: ответ модели не в ожидаемом формате.",
+            err = roles.shape_error(role, data)
+            if err:
+                self.step(role, f"формат ответа: {err}, повторяю")
+                data = self.llm.json(role, system, user + roles.shape_note(err))
+                err = roles.shape_error(role, data)
+            if err:
+                rep.diagnostics.append(Diagnostic("warning", "bad_shape", f"{role}: ответ модели не в ожидаемом формате ({err}).",
                                                   "Шаг пропущен, остальные роли работают."))
                 return None
             return data

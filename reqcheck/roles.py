@@ -238,3 +238,36 @@ def rewriter_prompt(items: str) -> tuple[str, str]:
 {"items": [{"q_id": "Q-01", "requirement": "новая формулировка", "acceptance": ["Дано ... Когда ... Тогда ..."]}]}"""
     user = f"Вопросы, цитаты и ответы:\n{items}"
     return system, user
+
+
+SHAPES = {
+    "Segmenter": {"requirements": list},
+    "Auditor": {"results": list},
+    "CrossChecker": {"steps|findings": list, "?set_summary": list, "?checklist": list},
+    "EdgeCaser": {"findings": list},
+    "Critic": {"decisions": list, "?fix_first": list},
+    "Clarifier": {"questions": list},
+    "Rewriter": {"items": list},
+}
+
+
+def shape_error(role: str, data) -> str:
+    if not isinstance(data, dict):
+        return "ответ должен быть JSON-объектом"
+    for spec, typ in SHAPES.get(role, {}).items():
+        keys = spec.lstrip("?").split("|")
+        present = [k for k in keys if data.get(k) is not None]
+        if not present:
+            if not spec.startswith("?"):
+                return f"нет ключа \"{keys[0]}\""
+            continue
+        for k in present:
+            if not isinstance(data[k], typ):
+                return f"ключ \"{k}\" должен быть списком"
+            if k != "fix_first" and any(not isinstance(x, dict) for x in data[k]):
+                return f"элементы \"{k}\" должны быть объектами"
+    return ""
+
+
+def shape_note(err: str) -> str:
+    return f"\n\nПредыдущий ответ не прошёл проверку формата: {err}. Верни JSON строго по схеме из инструкции."

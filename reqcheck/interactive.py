@@ -54,6 +54,9 @@ def rewrite(answers: list[dict], rep: Report, llm, say=print) -> list[dict]:
         system, user = roles.rewriter_prompt("\n".join(lines))
         try:
             data = llm.json("Rewriter", system, user)
+            err = roles.shape_error("Rewriter", data)
+            if err:
+                data = llm.json("Rewriter", system, user + roles.shape_note(err))
         except LLMError as e:
             say(f"Модель не ответила ({e.code}): показываю ответы без новых формулировок.")
             data = None

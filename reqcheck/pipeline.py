@@ -201,7 +201,7 @@ class Pipeline:
 
     def _is_meta(self, c: Candidate) -> bool:
         low = (c.section + " " + c.context).lower()
-        return any(w in low for w in ("общие сведения", "ревью", "согласу", "общие параметры")) or "да / нет" in c.text.lower()
+        return any(w in low for w in ("общие сведения", "ревью", "согласу")) or "да / нет" in c.text.lower()
 
     def req_table(self, reqs: list[Requirement]) -> str:
         return "\n".join(f"{r.id} [{r.type or '-'}; {r.doc_id or 'без id'}; строки {r.quote.start}-{r.quote.end}; "

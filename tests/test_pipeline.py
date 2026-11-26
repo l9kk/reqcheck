@@ -5,6 +5,7 @@ import os
 import tempfile
 import tomllib
 import unittest
+from dataclasses import asdict
 from pathlib import Path
 from unittest import mock
 
@@ -649,6 +650,39 @@ class RulesOnlyOutputTest(unittest.TestCase):
             self.assertNotEqual(md, "old")
             self.assertEqual(data["passport"]["llm_calls"], 0)
             self.assertFalse((Path(d) / "r.rules-only.json").exists())
+
+
+class CachedReplayTest(unittest.TestCase):
+    CLEAR = ("LLM_PROVIDER", "LLM_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "LLM_API_KEY", "LLM_BASE_URL")
+
+    def _run(self, cache_dir, env, send):
+        from reqcheck.llm import LLM
+        from reqcheck.pipeline import Pipeline
+        clean = {k: v for k, v in os.environ.items() if k not in self.CLEAR}
+        with mock.patch.dict(os.environ, {**clean, **env}, clear=True), \
+                mock.patch.object(LLM, "_send_anthropic", send):
+            return Pipeline(LLM(use_cache=True, cache_dir=cache_dir), log=lambda m: None).run(str(DOC))
+
+    def test_replay_from_cache_without_any_key(self):
+        fake = FakeLLM()
+
+        def record(self, role, system, user, bad):
+            return json.dumps(getattr(fake, role.lower())(user), ensure_ascii=False), (100, 10)
+
+        def offline(self, role, system, user, bad):
+            raise AssertionError(f"network call for {role}")
+
+        with tempfile.TemporaryDirectory() as d:
+            first = self._run(d, {"ANTHROPIC_API_KEY": "test"}, record)
+            second = self._run(d, {}, offline)
+        self.assertGreater(first.passport["llm_calls"], 0)
+        self.assertEqual(first.passport["provider"], "anthropic")
+        self.assertEqual(second.passport["llm_calls"], 0)
+        self.assertEqual(second.passport["llm_cached"], first.passport["llm_calls"])
+        self.assertEqual(second.diagnostics, [])
+        self.assertEqual([asdict(f) for f in second.findings], [asdict(f) for f in first.findings])
+        self.assertEqual([asdict(q) for q in second.questions], [asdict(q) for q in first.questions])
+        self.assertEqual(second.verdict, first.verdict)
 
 
 if __name__ == "__main__":

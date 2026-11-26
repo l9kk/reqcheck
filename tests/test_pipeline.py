@@ -285,6 +285,26 @@ class RankTest(unittest.TestCase):
         self.assertEqual([q.id for q in ranked], ["Q-01", "Q-02", "Q-03"])
 
 
+class MergeTextTest(unittest.TestCase):
+    def test_merged_finding_keeps_its_text_after_clarifier(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        fs = [Finding("F-01", "req", [], "correct", "критично", [Quote("GET", 104, 104)], "GET для записи."),
+              Finding("F-02", "req", [], "consistent", "критично", [Quote("Сохранение", 103, 103)],
+                      "Описание метода: сохранение и чтение порога."),
+              Finding("F-03", "req", [], "complete", "важно", [Quote("x", 5, 5)], "Другое.")]
+        p._llm = lambda *a: {"decisions": [{"id": "F-02", "action": "merge", "into": "F-01"}]}
+        kept, _ = p.critic("", fs, None)
+        self.assertEqual([f.id for f in kept], ["F-01", "F-03"])
+        self.assertEqual(kept[0].problem, "GET для записи.")
+        kept[0].id, kept[1].id = "D-01", "D-02"
+        p.add_merged_text(kept, {"F-01": "D-01", "F-03": "D-02"})
+        self.assertIn("сохранение и чтение порога", kept[0].problem)
+        self.assertEqual(kept[1].problem, "Другое.")
+
+
 class InteractiveTest(unittest.TestCase):
     def test_answers_written_without_model(self):
         from reqcheck.interactive import run as irun

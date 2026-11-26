@@ -50,6 +50,7 @@ class Pipeline:
         self.cr = load_criteria()
         self.crit = all_criteria(self.cr)
         self.drops: list[dict] = []
+        self.merged: dict[str, list[str]] = {}
 
     def step(self, name: str, msg: str):
         self.log(f"[{name}] {msg}")
@@ -127,6 +128,7 @@ class Pipeline:
         elif findings:
             rep.questions = self.fallback_questions(findings)
         rep.questions = self.rank_questions(rep.questions, findings)
+        self.add_merged_text(findings, renum)
         rep.verdict = self.verdict(findings, fix_first, reqs, model_used=self.llm is not None)
         if self.drops:
             passport["guard_drops"] = len(self.drops)
@@ -314,6 +316,13 @@ class Pipeline:
             out.append(f)
         return out
 
+    def add_merged_text(self, findings: list[Finding], renum: dict[str, str]):
+        extra = {renum[k]: v for k, v in self.merged.items() if k in renum}
+        for f in findings:
+            for text in extra.get(f.id, []):
+                if text and text not in f.problem:
+                    f.problem = f"{f.problem} Также: {text}"
+
     def finding_table(self, findings: list[Finding]) -> str:
         return "\n".join(f"{f.id} [{f.role}; {f.criterion}; {f.severity}; {', '.join(q.loc for q in f.quotes)}] "
                          f"{f.problem} | цитата: «{clean(f.quotes[0].text)[:200]}»" for f in findings)
@@ -342,6 +351,7 @@ class Pipeline:
                 for r in by_id[fid].req_ids:
                     if r not in tgt.req_ids:
                         tgt.req_ids.append(r)
+                self.merged.setdefault(d["into"], []).extend([by_id[fid].problem] + self.merged.pop(fid, []))
                 self.drops.append({"role": "Critic", "reason": "", "into": d["into"], "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:
                 by_id[fid].severity = d["severity"]

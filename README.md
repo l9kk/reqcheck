@@ -105,7 +105,7 @@ flowchart LR
 ## Тесты
 
 ```bash
-python -m unittest tests.test_reader tests.test_pipeline eval.test_score
+python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score
 ```
 
 Тесты не требуют ключа: модель в них подменяет `tests/fake_llm.py`. Набор повреждённых файлов: `tests/fixtures/broken/`.

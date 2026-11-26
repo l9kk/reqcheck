@@ -1,4 +1,5 @@
 import contextlib
+import io
 import json
 import os
 import tempfile
@@ -620,6 +621,34 @@ class ModelLostTest(unittest.TestCase):
         called, _ = self._roles_called("CrossChecker")
         self.assertNotIn("EdgeCaser", called)
         self.assertNotIn("Critic", called)
+
+
+class RulesOnlyOutputTest(unittest.TestCase):
+    NO_KEY = {"LLM_PROVIDER": "openai_compat", "LLM_API_KEY": ""}
+
+    def test_rules_only_run_keeps_model_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, model, model_md = run(DOC, d)
+            self.assertGreater(model["passport"]["llm_calls"], 0)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                _, kept, kept_md = run(DOC, d, self.NO_KEY, fake=False)
+            self.assertEqual(kept_md, model_md)
+            self.assertEqual(kept["passport"], model["passport"])
+            rules = json.loads((Path(d) / "r.rules-only.json").read_text(encoding="utf-8"))
+            self.assertEqual(rules["passport"]["llm_calls"], 0)
+            self.assertTrue((Path(d) / "r.rules-only.md").exists())
+            self.assertIn("r.rules-only.md", out.getvalue())
+
+    def test_rules_only_run_overwrites_rules_only_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            with contextlib.redirect_stdout(io.StringIO()):
+                run(DOC, d, self.NO_KEY, fake=False)
+                (Path(d) / "r.md").write_text("old", encoding="utf-8")
+                _, data, md = run(DOC, d, self.NO_KEY, fake=False)
+            self.assertNotEqual(md, "old")
+            self.assertEqual(data["passport"]["llm_calls"], 0)
+            self.assertFalse((Path(d) / "r.rules-only.json").exists())
 
 
 if __name__ == "__main__":

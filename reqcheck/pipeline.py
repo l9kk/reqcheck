@@ -320,11 +320,20 @@ class Pipeline:
                         ids.append(r.id)
             f.req_ids = ids
 
+    @staticmethod
+    def same_text(a: str, b: str) -> bool:
+        wa = {w for w in re.findall(r"\w+", a.lower()) if len(w) > 3}
+        wb = {w for w in re.findall(r"\w+", b.lower()) if len(w) > 3}
+        if not wa or not wb:
+            return a.strip().lower() == b.strip().lower()
+        return len(wa & wb) / len(wa | wb) >= 0.5
+
     def dedupe(self, findings: list[Finding]) -> list[Finding]:
         out: list[Finding] = []
         for f in findings:
             key = (f.criterion, tuple(sorted(q.start for q in f.quotes)))
-            if any((o.criterion, tuple(sorted(q.start for q in o.quotes))) == key for o in out):
+            if any((o.criterion, tuple(sorted(q.start for q in o.quotes))) == key and self.same_text(o.problem, f.problem)
+                   for o in out):
                 self.drops.append({"role": "Guard", "reason": "дубликат", "item": f.problem[:160]})
                 continue
             out.append(f)

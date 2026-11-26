@@ -447,5 +447,23 @@ class InteractiveTest(unittest.TestCase):
         self.assertNotIn(rep.questions[1].text, text)
 
 
+class DedupeTest(unittest.TestCase):
+    def test_same_lines_different_problems_are_kept(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        q = [Quote("Ф-2", 40, 40)]
+        fs = [Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Не описано, уменьшает ли возврат покупки накопленную сумму месяца."),
+              Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Покупка в январе проведена в феврале: отправляется ли push за январь?"),
+              Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Не описано, уменьшает ли возврат покупки накопленную сумму за месяц.")]
+        kept = p.dedupe(fs)
+        self.assertEqual([f.problem for f in kept], [fs[0].problem, fs[1].problem])
+        self.assertEqual([d["reason"] for d in p.drops], ["дубликат"])
+
+
 if __name__ == "__main__":
     unittest.main()

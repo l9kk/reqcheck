@@ -1,5 +1,3 @@
-import json
-
 BASE = """Ты - опытный аналитик требований и QA-лид в банке. Ты проводишь статическое ревью документа с требованиями
 до начала разработки по ISO/IEC/IEEE 29148:2018 и IEEE 830-1998.
 
@@ -195,10 +193,6 @@ def clarifier_prompt(cr: dict, numbered_doc: str, findings: str) -> tuple[str, s
   "default": "...", "addressee": "аналитик", "finding_ids": ["F-01"], "answered_in_doc": ""}]}"""
     user = f"<document>\n{numbered_doc}\n</document>\n\nЗамечания после проверки:\n{findings}"
     return system, user
-
-
-def dump(obj) -> str:
-    return json.dumps(obj, ensure_ascii=False, indent=0)
 
 
 def rewriter_prompt(items: str) -> tuple[str, str]:

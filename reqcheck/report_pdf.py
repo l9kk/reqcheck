@@ -113,8 +113,9 @@ def write_pdf(md_path: Path, pdf_path: Path) -> None:
                 s = s + " " + lines[i].strip()
         text = _plain(bullet.group(1) if bullet else s)
         if bullet:
-            pdf.set_x(pdf.l_margin + 3)
-            pdf.multi_cell(w - 3, 5, ("- " if s[0] in "-*" else s.split()[0] + " ") + text, markdown=True, **NL)
+            pad = 8 if ln.startswith("  ") else 3
+            pdf.set_x(pdf.l_margin + pad)
+            pdf.multi_cell(w - pad, 5, ("- " if s[0] in "-*" else s.split()[0] + " ") + text, markdown=True, **NL)
         else:
             pdf.multi_cell(w, 5, text, markdown=True, **NL)
         i += 1

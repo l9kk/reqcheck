@@ -23,6 +23,7 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--output", default="report/report.md", help="путь к отчёту (.md); рядом пишутся .json")
     ap.add_argument("--no-cache", action="store_true", help="не использовать кэш ответов модели")
     ap.add_argument("--quiet", action="store_true", help="не печатать ход работы")
+    ap.add_argument("--no-pdf", action="store_true", help="не создавать report.pdf")
     ap.add_argument("--interactive", action="store_true",
                     help="демо: задать главные вопросы в терминале и показать новые формулировки")
     args = ap.parse_args(argv)
@@ -51,7 +52,7 @@ def main(argv=None) -> int:
     md_path.write_text(render(rep, all_criteria(load_criteria())), encoding="utf-8")
     out.with_suffix(".json").write_text(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     written = [md_path, out.with_suffix(".json")]
-    if out.suffix.lower() == ".pdf" or os.getenv("REQCHECK_PDF", "1") == "1":
+    if out.suffix.lower() == ".pdf" or not args.no_pdf:
         try:
             from .report_pdf import write_pdf
             write_pdf(md_path, out.with_suffix(".pdf"))

@@ -21,10 +21,10 @@ FIX = ROOT / "tests" / "fixtures"
 
 def run(path, out_dir, env=None, fake=True):
     old = dict(os.environ)
-    os.environ.update({"REQCHECK_PDF": "0", **(env or {})})
+    os.environ.update(env or {})
     try:
         with mock.patch("reqcheck.cli.LLM", FakeLLM) if fake else contextlib.nullcontext():
-            code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet", "--no-cache"])
+            code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet", "--no-cache", "--no-pdf"])
     finally:
         os.environ.clear()
         os.environ.update(old)

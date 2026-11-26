@@ -206,6 +206,23 @@ class LLMShapeTest(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "no_key")
 
 
+    def test_merged_rule_finding_adds_no_boilerplate(self):
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+
+        fs = [Finding("F-01", "req", [], "complete", "важно", [Quote("a", 5, 5)], "Не указан таймаут оплаты."),
+              Finding("F-02", "req", [], "verifiable", "важно", [Quote("a", 5, 5)], "Формулировка содержит слова.",
+                      role="linter")]
+        from reqcheck.llm import LLM
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        p._llm = lambda *a: {"decisions": [{"id": "F-02", "action": "merge", "into": "F-01"}]}
+        kept, _ = p.critic("", fs, None)
+        self.assertEqual([f.id for f in kept], ["F-01"])
+        kept[0].id = "D-01"
+        p.add_merged_text(kept, {"F-01": "D-01"})
+        self.assertNotIn("Также", kept[0].problem)
+
+
 class LintTest(unittest.TestCase):
     def test_finds_rule_defects_with_grounded_quotes(self):
         doc = read_document(str(DOC))

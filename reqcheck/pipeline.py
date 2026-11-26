@@ -359,7 +359,8 @@ class Pipeline:
                 for r in by_id[fid].req_ids:
                     if r not in tgt.req_ids:
                         tgt.req_ids.append(r)
-                self.merged.setdefault(d["into"], []).extend([by_id[fid].problem] + self.merged.pop(fid, []))
+                own = [] if by_id[fid].role == "linter" else [by_id[fid].problem]
+                self.merged.setdefault(d["into"], []).extend(own + self.merged.pop(fid, []))
                 self.merge_into[fid] = d["into"]
                 self.drops.append({"role": "Critic", "reason": "", "into": d["into"], "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:

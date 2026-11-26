@@ -1,6 +1,7 @@
 import re
 
 from . import roles
+from .pipeline import AUDIT_BATCH
 from .ground import norm
 from .model import Finding, Quote
 from .segment import clean
@@ -44,7 +45,7 @@ def req_table(pipe, rep, rewritten: dict, neigh: list[str]) -> str:
         r = by_id[rid]
         if rid in rewritten:
             rows.append(f"{rid} [{r.type or '-'}; {r.doc_id or 'без id'}; {r.section}] "
-                        f"[ПЕРЕПИСАНО по {', '.join(rewritten[rid]['qs'])}]: {rewritten[rid]['text']}")
+                        f"[ПЕРЕПИСАНО по {', '.join(rewritten[rid]['qs'])}]: {' '.join(rewritten[rid]['text'].split())}")
         else:
             rows.append(f"{rid} [{r.type or '-'}; {r.doc_id or 'без id'}; строки {r.quote.start}-{r.quote.end}; "
                         f"{r.section}]: {clean(r.quote.text)[:600]}")
@@ -98,10 +99,16 @@ def recheck(pipe, rep, items: list[dict], say=print) -> dict | None:
     numbered = patched_doc(pipe, rep, rewritten)
     ground = grounder(pipe, rewritten)
 
-    sys_a, usr_a = roles.auditor_prompt(pipe.cr, numbered, table)
-    data = pipe._llm("Auditor", sys_a + roles.RECHECK_NOTE, usr_a, rep)
-    results = {r.get("req_id"): r for r in (data or {}).get("results", []) or [] if isinstance(r, dict)}
-    if not isinstance(data, dict) or not all(rid in results for rid in rewritten):
+    rows = table.split("\n")
+    results: dict = {}
+    for b0 in range(0, len(rows), AUDIT_BATCH):
+        sys_a, usr_a = roles.auditor_prompt(pipe.cr, numbered, "\n".join(rows[b0:b0 + AUDIT_BATCH]))
+        data = pipe._llm("Auditor", sys_a + roles.RECHECK_NOTE, usr_a, rep)
+        for r in (data or {}).get("results", []) or []:
+            if isinstance(r, dict):
+                results[r.get("req_id")] = r
+    unchecked = {rid for rid in rewritten if rid not in results}
+    if len(unchecked) == len(rewritten):
         say("Перепроверка не выполнена: аудитор не вернул разбор переписанных требований. Закрытыми ничего не считаем.")
         return None
     new: list[Finding] = []
@@ -131,10 +138,10 @@ def recheck(pipe, rep, items: list[dict], say=print) -> dict | None:
     linked_ids = {x for v in items for x in v["q"].finding_ids}
     in_scope = set(rewritten) | set(neigh)
     old = [f for f in rep.findings if f.id in linked_ids or (set(f.req_ids) & in_scope)]
-    return judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok)
+    return judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked)
 
 
-def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok) -> dict:
+def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked=frozenset()) -> dict:
     rw = "\n".join(f"{rid}: {v['text']}" for rid, v in rewritten.items())
     sys_j, usr_j = roles.delta_prompt(rw, "\n".join(fmt_old(f, f.id in linked_ids) for f in old),
                                       "\n".join(f"{f.id} [{f.criterion}; {f.severity}; {', '.join(f.req_ids)}] {f.problem}"
@@ -145,17 +152,18 @@ def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok) 
     judged = bool(olds)
     by_old = {f.id: f for f in old}
     rw_ids = set(rewritten)
+    can_close = rw_ids - set(unchecked)
     closed, remains = [], []
     for f in old:
         if f.id not in linked_ids:
             continue
         j = olds.get(f.id, {})
-        if judged and j.get("status") == "closed" and set(f.req_ids) & rw_ids:
+        if judged and j.get("status") == "closed" and set(f.req_ids) & can_close:
             closed.append((f, str(j.get("reason", ""))))
         else:
             why = str(j.get("reason", "")) if judged else "оценка модели недоступна, закрытым не считаем"
             if judged and j.get("status") == "closed":
-                why = "требование не переписано, закрытым не считаем"
+                why = "требование не переписано или не перепроверено, закрытым не считаем"
             remains.append((f, why))
     fresh, repeat_nb, other_nb = [], 0, 0
     for f in new:

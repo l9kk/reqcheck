@@ -211,7 +211,7 @@
 <!-- 3 -->
 <section class="slide s3">
   <h2>Что получает QA-лид</h2>
-  <p class="lead">Отчёт по выданному ТЗ: <span class="num">32</span> требования, <span class="num">35</span> нарушений, из них <span class="num">7</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».</p>
+  <p class="lead">Отчёт по выданному ТЗ: <span class="num">32</span> требования, <span class="num">34</span> нарушения, из них <span class="num">7</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».</p>
   <div class="cols">
     <div class="card">
       <div class="head">D-02 · критично · Согласованность набора</div>
@@ -220,13 +220,13 @@
       <p>Прямое противоречие между Ф-3 и Ф-4.</p>
     </div>
     <div class="card">
-      <div class="head">Q-02 · кому: бизнес</div>
-      <p>Отправляется ли повторный push в одном календарном месяце, если клиент увеличил порог и снова достиг его после ранее отправленного push?</p>
+      <div class="head">Q-01 · кому: бизнес</div>
+      <p>Ф-3 и Ф-4: отправлять ли повторный push в текущем месяце при увеличении порога, если клиент уже получал push на прежнем пороге?</p>
       <ol>
-        <li>(а) Да, при смене порога лимит <span class="num">1</span> push в месяц сбрасывается</li>
-        <li>(б) Нет, правило <span class="num">1</span> push в месяц строго имеет приоритет</li>
+        <li>(а) Отправлять push при достижении нового порога, так как настройка сбросила условие</li>
+        <li>(б) Не отправлять, строго соблюдая ограничение <span class="num">1</span> push в календарный месяц на карту</li>
       </ol>
-      <p>Блокирует: тест-кейсы повторного вызова push. Закрывает D-02, D-03, D-13.</p>
+      <p>Блокирует: логику отправки push и тест-кейсы на изменение порога в текущем месяце. Закрывает D-02.</p>
     </div>
   </div>
   <div class="foot"><span>reqcheck · выдержка из report/report.md</span><span>3</span></div>
@@ -257,19 +257,19 @@
       </tr>
       <tr class="main">
         <td>Выданное ТЗ, полный агент<span class="small">gemini-3.5-flash, <span class="num">40</span> эталонных дефектов</span></td>
-        <td class="n"><span class="num">28/40 (70%)</span></td>
-        <td class="n"><span class="num">24/40 (60%)</span></td>
+        <td class="n"><span class="num">27/40 (68%)</span></td>
+        <td class="n"><span class="num">23/40 (58%)</span></td>
         <td class="n"><span class="num">6/6</span><span class="small"><span class="num">5</span> с верной важностью</span></td>
         <td class="n"><span class="num">13/13</span></td>
-        <td class="n"><span class="num">94%</span></td>
+        <td class="n"><span class="num">97%</span></td>
       </tr>
       <tr class="main">
         <td>Второе ТЗ (autotopup), полный агент<span class="small">эталон составлен до прогона, <span class="num">18</span> дефектов</span></td>
-        <td class="n"><span class="num">16/18 (89%)</span></td>
+        <td class="n"><span class="num">15/18 (83%)</span></td>
         <td class="n"><span class="num">14/18 (78%)</span></td>
         <td class="n"><span class="num">4/4</span></td>
         <td class="n"><span class="num">8/8</span></td>
-        <td class="n"><span class="num">81%</span></td>
+        <td class="n"><span class="num">71%</span></td>
       </tr>
     </tbody>
   </table>

@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from .llm import LLM
 from .pipeline import Pipeline, all_criteria, load_criteria
 from .report_md import render
@@ -25,11 +27,7 @@ def main(argv=None) -> int:
                     help="демо: задать главные вопросы в терминале и показать новые формулировки")
     args = ap.parse_args(argv)
 
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(Path.cwd() / ".env")
-    except Exception:
-        pass
+    load_dotenv(Path.cwd() / ".env")
 
     llm = LLM(use_cache=not args.no_cache)
     log = (lambda m: None) if args.quiet else (lambda m: print(m, flush=True))
@@ -58,8 +56,6 @@ def main(argv=None) -> int:
             from .report_pdf import write_pdf
             write_pdf(md_path, out.with_suffix(".pdf"))
             written.append(out.with_suffix(".pdf"))
-        except ImportError:
-            pass
         except Exception as e:
             print(f"PDF не создан: {type(e).__name__}: {e}", file=sys.stderr)
 

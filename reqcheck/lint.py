@@ -122,14 +122,14 @@ def rule_table_gaps(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
         if rows and len(empty) == len(rows):
             out.append(_f("set", "set_complete", "важно", [g.quote_lines(rows[0][0] - 2, rows[0][0] - 2)],
                           f"Таблица «{' | '.join(header)}» пустая: ни одной заполненной строки.",
-                          "Нет ответственных и согласования: документ нельзя считать утверждённым.",
+                          "Данные таблицы не заданы: по ней нельзя реализовать, проверить или согласовать документ.",
                           "Заполнить таблицу или удалить её из шаблона."))
         if len(header) >= 3 and rows and len(empty) < len(rows) and all(
                 not any(c.strip() for c in cells[1:]) for _, cells in rows):
             out.append(_f("set", "set_complete", "важно", [g.quote_lines(rows[0][0], rows[-1][0])],
                           f"Таблица «{' | '.join(header)}» заполнена только в первой колонке: "
                           f"колонки «{', '.join(header[1:])}» пустые.",
-                          "Нет ответственных и согласования: документ нельзя считать утверждённым.",
+                          "Данные таблицы не заданы: по ней нельзя реализовать, проверить или согласовать документ.",
                           "Заполнить таблицу или удалить её из шаблона."))
         if len(header) != 2:
             continue

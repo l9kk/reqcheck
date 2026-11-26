@@ -61,3 +61,6 @@ class FakeLLM:
                "addressee": "аналитик", "finding_ids": [fid], "answered_in_doc": ""}
               for n, (fid, problem, quote) in enumerate(FINDING_RE.findall(user)[:4], start=1)]
         return {"questions": qs}
+
+    def edgecaser(self, user: str) -> dict:
+        return {"findings": []}

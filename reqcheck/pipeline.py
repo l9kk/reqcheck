@@ -103,6 +103,7 @@ class Pipeline:
         if self.llm is not None and reqs:
             findings += self.audit(numbered, reqs, rep)
             findings += self.cross(numbered, reqs, findings, rep)
+            findings += self.edge(numbered, reqs, findings, rep)
         self.attach_reqs(findings, reqs)
         findings = self.dedupe(findings)
         for i, f in enumerate(findings, start=1):
@@ -294,6 +295,23 @@ class Pipeline:
                 rep.checklist.append(ChecklistRow(item=str(c["item"]), value=str(c.get("value", "")),
                                                   evidence=str(c.get("evidence", ""))))
         self.step("CrossChecker", f"замечаний: {len(out)}")
+        return out
+
+    def edge(self, numbered: str, reqs: list[Requirement], known: list[Finding], rep: Report) -> list[Finding]:
+        known_s = "\n".join(f"- {f.problem} ({f.quotes[0].loc})" for f in known) or "- нет"
+        system, user = roles.edge_prompt(self.cr, numbered, self.req_table(reqs), known_s)
+        data = self._llm("EdgeCaser", system, user, rep)
+        out = []
+        if not isinstance(data, dict):
+            return out
+        for d in data.get("findings", []) or []:
+            if not isinstance(d, dict):
+                continue
+            d = {**d, "criterion": "set_complete"}
+            f = self._mk(d, "set", "EdgeCaser", [])
+            if f:
+                out.append(f)
+        self.step("EdgeCaser", f"замечаний: {len(out)}")
         return out
 
     def attach_reqs(self, findings: list[Finding], reqs: list[Requirement]) -> None:

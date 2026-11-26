@@ -191,7 +191,7 @@ class LLMShapeTest(unittest.TestCase):
         c, seen = self._anthropic(err)
         c.max_retries = 3
         with self.assertRaises(LLMError) as ctx:
-            c._call_anthropic("Critic", "s", "u")
+            c._call("Critic", "s", "u")
         self.assertEqual(ctx.exception.code, "billing")
         self.assertEqual(len(seen), 1)
 

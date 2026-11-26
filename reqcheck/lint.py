@@ -218,11 +218,12 @@ def rule_get_method_line(doc: Document, lang: dict, g: Grounder) -> list[Finding
     if not url_lines:
         return []
     u = url_lines[0]
+    url = re.search(r"/[a-z]+/\w+", u.text, re.I).group(0)
     return [_f("req", "correct", "критично", [g.quote_lines(method_line.no, method_line.no), g.quote_lines(u.no, u.no)],
-               "Метод GET используется для операции записи (сохранение настройки), параметры передаются в строке запроса.",
+               f"Метод GET используется для операции записи: адрес «{url}» меняет данные.",
                "GET должен быть безопасным и идемпотентным: прокси и браузеры кэшируют и повторяют его, параметры попадают в логи.",
-               "Использовать POST или PUT с телом запроса для сохранения.",
-               "Повторный GET из кэша не должен менять настройку.")]
+               "Использовать POST или PUT с телом запроса.",
+               "Повторный GET из кэша не должен менять данные.")]
 
 
 def rule_content_type_without_body(doc: Document, lang: dict, g: Grounder) -> list[Finding]:

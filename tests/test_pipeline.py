@@ -596,5 +596,31 @@ class AssumptionTagTest(unittest.TestCase):
             self.assertIn("[предложение, согласовать]", system)
 
 
+class ModelLostTest(unittest.TestCase):
+    def _roles_called(self, failing):
+        from reqcheck.llm import LLMError
+        from reqcheck.pipeline import Pipeline
+
+        class Lost(FakeLLM):
+            def json(self, role, system, user):
+                if role == failing:
+                    raise LLMError("auth", "Ключ отклонён.", "")
+                return super().json(role, system, user)
+
+        llm = Lost()
+        rep = Pipeline(llm, log=lambda m: None).run(str(DOC))
+        return [t["role"] for t in llm.trace], rep
+
+    def test_no_roles_after_model_lost_in_auditor(self):
+        called, rep = self._roles_called("Auditor")
+        self.assertEqual(called, ["Segmenter"])
+        self.assertTrue(rep.findings)
+
+    def test_edgecaser_skipped_after_model_lost_in_crosschecker(self):
+        called, _ = self._roles_called("CrossChecker")
+        self.assertNotIn("EdgeCaser", called)
+        self.assertNotIn("Critic", called)
+
+
 if __name__ == "__main__":
     unittest.main()

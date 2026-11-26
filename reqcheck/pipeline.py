@@ -115,8 +115,10 @@ class Pipeline:
 
         if self.use_model and reqs:
             findings += self.audit(numbered, reqs, rep)
-            findings += self.cross(numbered, reqs, findings, rep)
-            findings += self.edge(numbered, reqs, findings, rep)
+            if self.use_model:
+                findings += self.cross(numbered, reqs, findings, rep)
+            if self.use_model:
+                findings += self.edge(numbered, reqs, findings, rep)
         self.attach_reqs(findings, reqs)
         findings = self.dedupe(findings)
         for i, f in enumerate(findings, start=1):

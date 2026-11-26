@@ -4,6 +4,7 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from reqcheck.cli import main
 from reqcheck.ground import Grounder
@@ -137,6 +138,72 @@ class LLMShapeTest(unittest.TestCase):
             c._call("Critic", "s", "u")
         self.assertEqual(ctx.exception.code, "billing")
         self.assertEqual(len(calls), 1)
+
+
+    def _anthropic(self, outcome):
+        from types import SimpleNamespace
+        from reqcheck.llm import LLM
+
+        seen = []
+
+        class Stream:
+            def __init__(self, kw):
+                self.kw = kw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def get_final_message(self):
+                seen.append(self.kw)
+                if isinstance(outcome, Exception):
+                    raise outcome
+                return SimpleNamespace(stop_reason="end_turn", usage=SimpleNamespace(input_tokens=11, output_tokens=7),
+                                       content=[SimpleNamespace(type="thinking"), SimpleNamespace(type="text", text=outcome)])
+
+        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5"}):
+            c = LLM(use_cache=False)
+        c.max_retries = 0
+        c._client = SimpleNamespace(messages=SimpleNamespace(stream=lambda **kw: Stream(kw)))
+        return c, seen
+
+    def test_anthropic_provider_sends_system_and_parses_text(self):
+        c, seen = self._anthropic('```json\n{"findings": []}\n```')
+        self.assertEqual(c.json("Critic", "SYS", "USER"), {"findings": []})
+        kw = seen[0]
+        self.assertEqual((kw["model"], kw["system"]), ("claude-sonnet-5-5", "SYS"))
+        self.assertEqual(kw["messages"], [{"role": "user", "content": "USER"}])
+        self.assertNotIn("temperature", kw)
+        self.assertEqual(c.trace[-1]["in_tokens"], 11)
+
+    def test_anthropic_no_credit_fails_fast(self):
+        from types import SimpleNamespace
+        import anthropic
+        from reqcheck.llm import LLMError
+
+        err = anthropic.BadRequestError.__new__(anthropic.BadRequestError)
+        Exception.__init__(err, "Error code: 400")
+        err.status_code = 400
+        err.response = SimpleNamespace(text='{"error": {"message": "Your credit balance is too low to access the Anthropic API."}}')
+        err.body = None
+        c, seen = self._anthropic(err)
+        c.max_retries = 3
+        with self.assertRaises(LLMError) as ctx:
+            c._call_anthropic("Critic", "s", "u")
+        self.assertEqual(ctx.exception.code, "billing")
+        self.assertEqual(len(seen), 1)
+
+    def test_anthropic_needs_key_for_remote_api(self):
+        from reqcheck.llm import LLM, LLMError
+
+        env = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5", "ANTHROPIC_API_KEY": "", "LLM_API_KEY": "",
+               "GEMINI_API_KEY": "", "ANTHROPIC_BASE_URL": ""}
+        with mock.patch.dict(os.environ, env):
+            with self.assertRaises(LLMError) as ctx:
+                LLM().check()
+        self.assertEqual(ctx.exception.code, "no_key")
 
 
 class LintTest(unittest.TestCase):

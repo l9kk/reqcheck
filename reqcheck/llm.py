@@ -62,6 +62,10 @@ class LLM:
         self.model = os.getenv("LLM_MODEL", "").strip()
         self.base_url = os.getenv("LLM_BASE_URL", GEMINI_URL).strip() or GEMINI_URL
         self.api_key = os.getenv("LLM_API_KEY", "").strip() or os.getenv("GEMINI_API_KEY", "").strip()
+        if self.provider == "anthropic":
+            self.api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+            self.base_url = os.getenv("ANTHROPIC_BASE_URL", "").strip() or "https://api.anthropic.com"
+        self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", "64000"))
         self.timeout = float(os.getenv("LLM_TIMEOUT", "180"))
         self.max_retries = int(os.getenv("LLM_MAX_RETRIES", "4"))
         self.use_cache = use_cache
@@ -78,6 +82,10 @@ class LLM:
     def check(self) -> None:
         if self.provider == "mock":
             return
+        if self.provider == "anthropic" and not self.api_key and "localhost" not in self.base_url \
+                and "127.0.0.1" not in self.base_url:
+            raise LLMError("no_key", "Не задан ключ Anthropic (ANTHROPIC_API_KEY в файле .env).",
+                           "Создайте ключ на platform.claude.com/settings/keys и вставьте его в .env.")
         if not self.api_key and "localhost" not in self.base_url and "127.0.0.1" not in self.base_url:
             raise LLMError("no_key", "Не задан ключ LLM (LLM_API_KEY в файле .env).",
                            "Скопируйте .env.example в .env и вставьте ключ из aistudio.google.com.")
@@ -105,7 +113,7 @@ class LLM:
             result = self.mock(role, system, user) if self.mock else {}
             usage = (len(system + user) // 4, 0)
         else:
-            result, usage = self._call(role, system, user)
+            result, usage = (self._call_anthropic if self.provider == "anthropic" else self._call)(role, system, user)
         secs = round(time.time() - t0, 1)
         self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})
         if self.use_cache and self.provider != "mock":
@@ -113,6 +121,60 @@ class LLM:
             path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1], "seconds": secs},
                                        ensure_ascii=False), encoding="utf-8")
         return unwrap(result)
+
+    def _call_anthropic(self, role: str, system: str, user: str):
+        import anthropic
+
+        if self._client is None:
+            self._client = anthropic.Anthropic(api_key=self.api_key or "local", base_url=self.base_url,
+                                               timeout=max(self.timeout, 600), max_retries=0)
+        delay = 8.0
+        last = ""
+        for attempt in range(self.max_retries + 1):
+            try:
+                self.calls += 1
+                with self._client.messages.stream(model=self.model, max_tokens=self.max_tokens, system=system,
+                                                  messages=[{"role": "user", "content": user}]) as stream:
+                    msg = stream.get_final_message()
+                if msg.stop_reason == "refusal":
+                    raise LLMError("refusal", f"Модель отказалась отвечать (роль {role}).",
+                                   "Проверьте документ или выберите другую модель.")
+                text = "".join(b.text for b in msg.content if b.type == "text")
+                usage = (getattr(msg.usage, "input_tokens", 0) or 0, getattr(msg.usage, "output_tokens", 0) or 0)
+                try:
+                    return parse_json(text), usage
+                except (json.JSONDecodeError, ValueError):
+                    last = "invalid_json"
+            except (anthropic.AuthenticationError, anthropic.PermissionDeniedError):
+                raise LLMError("auth", "Ключ Anthropic отклонён (401/403).", "Проверьте ANTHROPIC_API_KEY в .env.")
+            except anthropic.RateLimitError:
+                last = "rate_limit"
+            except (anthropic.APITimeoutError, anthropic.APIConnectionError):
+                last = "network"
+            except anthropic.APIStatusError as e:
+                msg_text = error_text(e).lower()
+                if "credit balance" in msg_text:
+                    raise LLMError("billing", "Anthropic отклонил запрос: на балансе нет кредитов.",
+                                   "Пополните баланс в platform.claude.com (Billing).")
+                if e.status_code in (400, 404):
+                    raise LLMError("bad_request", f"Провайдер отклонил запрос ({e.status_code}): {str(e)[:200]}",
+                                   "Проверьте LLM_MODEL в .env.")
+                last = f"http_{e.status_code}"
+            if attempt < self.max_retries:
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
+        self._fail(last, role)
+
+    def _fail(self, last: str, role: str):
+        if last == "invalid_json":
+            raise LLMError("invalid_json", f"Модель вернула невалидный JSON (роль {role}).", "Повторите запуск.")
+        if last == "rate_limit":
+            raise LLMError("rate_limit", "Превышен лимит запросов к LLM, повторы не помогли.",
+                           "Подождите минуту и повторите; повторный запуск возьмёт готовые ответы из кэша.")
+        if last.startswith("http_5"):
+            raise LLMError("overloaded", f"Сервер модели перегружен или недоступен ({last}).",
+                           "Это сбой на стороне провайдера: повторите позже или укажите другую модель в LLM_MODEL.")
+        raise LLMError("network", f"LLM недоступна ({last}).", "Проверьте интернет и LLM_BASE_URL.")
 
     def _call(self, role: str, system: str, user: str):
         from openai import APIConnectionError, APIStatusError, APITimeoutError, AuthenticationError, RateLimitError
@@ -158,12 +220,4 @@ class LLM:
             if attempt < self.max_retries:
                 time.sleep(delay)
                 delay = min(delay * 2, 60)
-        if last == "invalid_json":
-            raise LLMError("invalid_json", f"Модель вернула невалидный JSON (роль {role}).", "Повторите запуск.")
-        if last == "rate_limit":
-            raise LLMError("rate_limit", "Превышен лимит запросов к LLM, повторы не помогли.",
-                           "Подождите минуту и повторите; повторный запуск возьмёт готовые ответы из кэша.")
-        if last.startswith("http_5"):
-            raise LLMError("overloaded", f"Сервер модели перегружен или недоступен ({last}).",
-                           "Это сбой на стороне провайдера: повторите позже или укажите другую модель в LLM_MODEL.")
-        raise LLMError("network", f"LLM недоступна ({last}).", "Проверьте интернет и LLM_BASE_URL.")
+        self._fail(last, role)

@@ -18,6 +18,24 @@ AUDIT_BATCH = 22
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
 REQ_MARKERS = re.compile(r"должн|требовани|обязан|систем|сервис|пользовател|клиент|приложени|\bapi\b|shall|must|"
                          r"requirement|функциональн|интеграц|запрос|ответ", re.I)
+ASSUME_TAG = "[предложение, согласовать]"
+NUM_RE = re.compile(r"(?<!\w)(?<![^\W\d_]-)(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+(?:[.,]\d+)?)(?!\d)")
+
+
+def numbers(text: str) -> set[str]:
+    out = set()
+    for m in NUM_RE.findall(text):
+        n = re.sub(r"[ \u00a0\u202f]", "", m).replace(",", ".")
+        whole, _, frac = n.partition(".")
+        out.add((whole.lstrip("0") or "0") + ("." + frac if frac else ""))
+    return out
+
+
+def tag_assumptions(findings: list[Finding], doc_text: str) -> None:
+    known = numbers(doc_text)
+    for f in findings:
+        if f.fix and ASSUME_TAG not in f.fix and numbers(f.fix) - known:
+            f.fix = f"{f.fix.rstrip()} {ASSUME_TAG}"
 
 
 def load_criteria() -> dict:
@@ -107,6 +125,7 @@ class Pipeline:
         fix_first = []
         if self.use_model and findings:
             findings, fix_first = self.critic(numbered, findings, rep)
+        tag_assumptions(findings, doc.text)
         findings.sort(key=lambda f: (SEV_RANK.get(f.severity, 3), f.quotes[0].start if f.quotes else 0))
         renum = {}
         for i, f in enumerate(findings, start=1):

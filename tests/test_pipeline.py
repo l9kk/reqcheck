@@ -551,5 +551,50 @@ class EdgeChecklistTest(unittest.TestCase):
         self.assertEqual(len(p.dedupe(out)), 3)
 
 
+class AssumptionTagTest(unittest.TestCase):
+    def test_invented_numbers_in_fix_are_tagged_once(self):
+        from reqcheck.model import Finding
+        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        doc = "Порог от 1 000 до 1 000 000 ₸. Ф-2: месяц по Алматы. Ответ 400."
+        fixes = ["Порог от 1000 до 1 000 000 ₸, ответ 400 по Ф-2.",
+                 "Таймаут 30 секунд, затем 3 повтора.",
+                 f"Хранить 90 дней {ASSUME_TAG}.",
+                 "Указать часовой пояс.",
+                 ""]
+        fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix=x) for x in fixes]
+        tag_assumptions(fs, doc)
+        tag_assumptions(fs, doc)
+        self.assertEqual(fs[0].fix, fixes[0])
+        self.assertEqual(fs[1].fix, f"Таймаут 30 секунд, затем 3 повтора. {ASSUME_TAG}")
+        self.assertEqual(fs[2].fix, fixes[2])
+        self.assertEqual(fs[3].fix, fixes[3])
+        self.assertEqual(fs[4].fix, "")
+
+    def test_pipeline_tags_fix_after_critic(self):
+        from reqcheck.pipeline import ASSUME_TAG, Pipeline
+
+        class Invent(FakeLLM):
+            def auditor(self, user):
+                data = super().auditor(user)
+                for r in data["results"]:
+                    for f in r["findings"]:
+                        f["fix"] = "Ответ за 777 мс."
+                return data
+
+        rep = Pipeline(Invent(), log=lambda m: None).run(str(DOC))
+        fixes = [f.fix for f in rep.findings if f.role == "Auditor"]
+        self.assertTrue(fixes)
+        self.assertEqual(fixes, [f"Ответ за 777 мс. {ASSUME_TAG}"] * len(fixes))
+
+    def test_prompts_ask_to_tag_invented_values(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        cr = load_criteria()
+        prompts = [roles.auditor_prompt(cr, "d", "r"), roles.cross_prompt(cr, "d", "r", "k", False),
+                   roles.edge_prompt(cr, "d", "r", "k"), roles.critic_prompt(cr, "d", "f")]
+        for system, _ in prompts:
+            self.assertIn("[предложение, согласовать]", system)
+
+
 if __name__ == "__main__":
     unittest.main()

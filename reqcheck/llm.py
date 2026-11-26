@@ -77,11 +77,24 @@ TEXTS = {
     },
 }
 
+DEFAULT_MODEL = {"anthropic": "claude-opus-5-5", "openai_compat": "gemini-3.5-flash"}
+
+
+def pick_provider() -> str:
+    name = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if name:
+        return name
+    if os.getenv("ANTHROPIC_API_KEY", "").strip():
+        return "anthropic"
+    if os.getenv("LLM_API_KEY", "").strip():
+        return "openai_compat"
+    return "anthropic"
+
 
 class LLM:
     def __init__(self, use_cache: bool = True, cache_dir: str = ".cache/llm"):
-        self.provider = os.getenv("LLM_PROVIDER", "openai_compat").strip().lower()
-        self.model = os.getenv("LLM_MODEL", "").strip()
+        self.provider = pick_provider()
+        self.model = os.getenv("LLM_MODEL", "").strip() or DEFAULT_MODEL.get(self.provider, "")
         if self.provider == "anthropic":
             self.api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
             self.base_url = os.getenv("ANTHROPIC_BASE_URL", "").strip() or "https://api.anthropic.com"

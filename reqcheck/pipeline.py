@@ -304,12 +304,15 @@ class Pipeline:
         out = []
         if not isinstance(data, dict):
             return out
+        edge_ids = {e["id"] for e in self.cr["edge"]}
         for d in data.get("findings", []) or []:
             if not isinstance(d, dict):
                 continue
             d = {**d, "criterion": "set_complete"}
             f = self._mk(d, "set", "EdgeCaser", [])
             if f:
+                eid = str(d.get("edge", "")).strip()
+                f.edge = eid if eid in edge_ids else ""
                 out.append(f)
         self.step("EdgeCaser", f"замечаний: {len(out)}")
         return out
@@ -338,7 +341,7 @@ class Pipeline:
         for f in findings:
             key = (f.criterion, tuple(sorted(q.start for q in f.quotes)))
             if any((o.criterion, tuple(sorted(q.start for q in o.quotes))) == key and self.same_text(o.problem, f.problem)
-                   for o in out):
+                   and not (o.edge and f.edge and o.edge != f.edge) for o in out):
                 self.drops.append({"role": "Guard", "reason": "дубликат", "item": f.problem[:160]})
                 continue
             out.append(f)

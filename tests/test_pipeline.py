@@ -509,5 +509,47 @@ class ShapeRetryTest(unittest.TestCase):
             self.assertIn(role, SHAPES)
 
 
+class EdgeChecklistTest(unittest.TestCase):
+    def _pipe(self, answer):
+        from reqcheck.pipeline import Pipeline
+
+        class Edge(FakeLLM):
+            def edgecaser(self, user):
+                return answer
+
+        p = Pipeline(Edge(), log=lambda *a: None)
+        p.doc = read_document(str(DOC))
+        p.g = Grounder(p.doc)
+        return p
+
+    def test_edge_prompt_lists_every_checklist_id(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        cr = load_criteria()
+        system, user = roles.edge_prompt(cr, "x", "y", "z")
+        for e in cr["edge"]:
+            self.assertIn(e["id"], system)
+        self.assertIn("x", user)
+
+    def test_non_dict_answer_yields_nothing(self):
+        from reqcheck.report_md import Report
+        for answer in (["junk"], "junk", None, {"findings": "нет"}):
+            with self.subTest(answer=answer):
+                rep = Report(passport={})
+                self.assertEqual(self._pipe(answer).edge("", [], [], rep), [])
+                self.assertTrue([d for d in rep.diagnostics if d.code == "bad_shape"])
+
+    def test_checklist_id_is_kept_and_distinct_items_survive_dedupe(self):
+        from reqcheck.report_md import Report
+        good = "На карту приходится максимум один такой push за календарный месяц"
+        p = self._pipe({"findings": [
+            {"edge": "E01", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена для покупки в полночь."},
+            {"edge": "E08", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена для покупки в полночь при смене порога."},
+            {"edge": "E99", "severity": "важно", "quotes": [good], "problem": "Неизвестный пункт чек-листа про лимит."}]})
+        out = p.edge("", [], [], Report(passport={}))
+        self.assertEqual([f.edge for f in out], ["E01", "E08", ""])
+        self.assertEqual(len(p.dedupe(out)), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

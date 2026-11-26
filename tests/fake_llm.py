@@ -64,3 +64,15 @@ class FakeLLM:
 
     def edgecaser(self, user: str) -> dict:
         return {"findings": []}
+
+    def rewriter(self, user: str) -> dict:
+        items = []
+        for qid, body in re.findall(r"^(Q-\d+)\. (.*?)(?=^Q-\d+\. |\Z)", user, re.M | re.S):
+            reqs = re.findall(r"^\s+(R-\d+): ", body, re.M)
+            items.append({"q_id": qid, "rewrites": [{"req_id": r, "requirement": f"Уточнено по {qid}: правило {r}.",
+                                                     "acceptance": []} for r in reqs[:1]]})
+        return {"items": items}
+
+    def delta(self, user: str) -> dict:
+        old = re.findall(r"^(D-\d+) \[[^\]]*связано с ответом", user, re.M)
+        return {"old": [{"id": i, "status": "closed", "reason": "Снято."} for i in old], "new": []}

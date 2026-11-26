@@ -4,6 +4,7 @@ from pathlib import Path
 from . import roles
 from .llm import LLMError
 from .model import Report
+from .segment import clean
 
 TOP = 5
 
@@ -69,15 +70,20 @@ def ask(rep: Report, read=input, say=print) -> list[dict]:
 
 
 def rewrite(answers: list[dict], rep: Report, llm, say=print) -> list[dict]:
+    from .loop import linked_reqs
     by_id = {f.id: f for f in rep.findings}
-    out = {a["q"].id: {"q": a["q"], "answer": a["answer"], "requirement": "", "acceptance": []} for a in answers}
+    by_req = {r.id: r for r in rep.requirements}
+    out = {a["q"].id: {"q": a["q"], "answer": a["answer"], "requirement": "", "acceptance": [], "rewrites": []}
+           for a in answers}
     if llm is not None and answers:
         lines = []
         for a in answers:
             q = a["q"]
             quotes = "; ".join(f"«{x.text}» ({x.loc})" for x in q.quotes[:2])
             probs = "; ".join(by_id[i].problem for i in q.finding_ids if i in by_id)
-            lines.append(f"{q.id}. Вопрос: {q.text}\n  Цитаты: {quotes}\n  Замечания: {probs or '-'}\n  Ответ: {a['answer']}")
+            reqs = "\n".join(f"    {rid}: {clean(by_req[rid].quote.text)[:600]}" for rid in linked_reqs(rep, q))
+            lines.append(f"{q.id}. Вопрос: {q.text}\n  Цитаты: {quotes}\n  Замечания: {probs or '-'}\n"
+                         f"  Ответ: {a['answer']}\n  Требования:\n{reqs or '    -'}")
         system, user = roles.rewriter_prompt("\n".join(lines))
         try:
             data = llm.json("Rewriter", system, user)
@@ -86,9 +92,16 @@ def rewrite(answers: list[dict], rep: Report, llm, say=print) -> list[dict]:
             data = None
         if isinstance(data, dict):
             for it in data.get("items", []) or []:
-                if isinstance(it, dict) and it.get("q_id") in out:
-                    out[it["q_id"]]["requirement"] = str(it.get("requirement", "")).strip()
-                    out[it["q_id"]]["acceptance"] = [str(x) for x in it.get("acceptance", []) or []][:3]
+                if not (isinstance(it, dict) and it.get("q_id") in out):
+                    continue
+                v = out[it["q_id"]]
+                allowed = set(linked_reqs(rep, v["q"]))
+                for w in it.get("rewrites", []) or []:
+                    if isinstance(w, dict) and w.get("req_id") in allowed and str(w.get("requirement", "")).strip():
+                        v["rewrites"].append({"req_id": w["req_id"], "requirement": str(w["requirement"]).strip(),
+                                              "acceptance": [str(x) for x in w.get("acceptance", []) or []][:3]})
+                v["requirement"] = " ".join(f"{w['req_id']}: {w['requirement']}" for w in v["rewrites"])
+                v["acceptance"] = [x for w in v["rewrites"] for x in w["acceptance"]]
     for v in out.values():
         if not v["requirement"]:
             v["requirement"] = f"{v['answer']} (формулировку нужно внести в требование вручную)"
@@ -103,11 +116,15 @@ def render(items: list[dict], doc_name: str) -> str:
         md += [f"## {q.id}. {q.text}", "", f"Ответ: {v['answer']}", ""]
         for qt in q.quotes[:2]:
             md.append(f"> «{qt.text}» ({qt.loc})")
-        md += ["", f"Новая формулировка: {v['requirement']}", ""]
-        if v["acceptance"]:
-            md.append("Критерии приёмки:")
-            md += [f"- {x}" for x in v["acceptance"]]
-            md.append("")
+        md.append("")
+        for w in v["rewrites"]:
+            md += [f"Новая формулировка {w['req_id']}: {w['requirement']}", ""]
+            if w["acceptance"]:
+                md.append("Критерии приёмки:")
+                md += [f"- {x}" for x in w["acceptance"]]
+                md.append("")
+        if not v["rewrites"]:
+            md += [f"Новая формулировка: {v['requirement']}", ""]
     return "\n".join(md)
 
 

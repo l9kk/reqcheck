@@ -6,16 +6,15 @@ from .model import Finding, Quote
 from .segment import clean
 
 
-def affected(rep, q) -> list[str]:
+def linked_reqs(rep, q, cap: int = 8) -> list[str]:
+    by_id = {f.id: f for f in rep.findings}
     ids = [r.id for r in rep.requirements
            if any(r.quote.start <= x.end and x.start <= r.quote.end for x in q.quotes)]
-    if not ids:
-        by_id = {f.id: f for f in rep.findings}
-        for fid in q.finding_ids:
-            for rid in by_id[fid].req_ids if fid in by_id else []:
-                if rid not in ids:
-                    ids.append(rid)
-    return ids
+    for fid in q.finding_ids:
+        for rid in by_id[fid].req_ids if fid in by_id else []:
+            if rid not in ids:
+                ids.append(rid)
+    return ids[:cap]
 
 
 def scope(rep, items: list[dict]):
@@ -23,13 +22,12 @@ def scope(rep, items: list[dict]):
     order = [r.id for r in rep.requirements]
     rewritten: dict[str, dict] = {}
     for v in items:
-        ids = affected(rep, v["q"])
-        if not ids:
-            continue
-        text = v["requirement"] + (" Критерии приёмки: " + " ".join(v["acceptance"]) if v["acceptance"] else "")
-        cur = rewritten.setdefault(ids[0], {"text": "", "qs": []})
-        cur["text"] = (cur["text"] + " " + text).strip()
-        cur["qs"].append(v["q"].id)
+        for w in v.get("rewrites", []):
+            text = w["requirement"] + (" Критерии приёмки: " + " ".join(w["acceptance"]) if w["acceptance"] else "")
+            cur = rewritten.setdefault(w["req_id"], {"text": "", "qs": []})
+            cur["text"] = (cur["text"] + " " + text).strip()
+            if v["q"].id not in cur["qs"]:
+                cur["qs"].append(v["q"].id)
     neigh = []
     for rid in list(rewritten):
         i = order.index(rid)
@@ -133,46 +131,57 @@ def recheck(pipe, rep, items: list[dict], say=print) -> dict | None:
     linked_ids = {x for v in items for x in v["q"].finding_ids}
     in_scope = set(rewritten) | set(neigh)
     old = [f for f in rep.findings if f.id in linked_ids or (set(f.req_ids) & in_scope)]
-    linked = [f for f in rep.findings if f.id in linked_ids or (set(f.req_ids) & set(rewritten))]
-    return judge(pipe, rep, items, rewritten, old, linked, new, calls0, drops0, cross_ok, say)
+    return judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok)
 
 
-def judge(pipe, rep, items, rewritten, old, linked, new, calls0, drops0, cross_ok, say) -> dict:
-    lid = {f.id for f in linked}
+def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok) -> dict:
     rw = "\n".join(f"{rid}: {v['text']}" for rid, v in rewritten.items())
-    sys_j, usr_j = roles.delta_prompt(rw, "\n".join(fmt_old(f, f.id in lid) for f in old),
+    sys_j, usr_j = roles.delta_prompt(rw, "\n".join(fmt_old(f, f.id in linked_ids) for f in old),
                                       "\n".join(f"{f.id} [{f.criterion}; {f.severity}; {', '.join(f.req_ids)}] {f.problem}"
                                                 for f in new))
     jd = pipe._llm("Delta", sys_j, usr_j, rep)
-    olds = {x.get("id"): x for x in (jd or {}).get("old", []) or [] if isinstance(x, dict)} if isinstance(jd, dict) else {}
-    news = {x.get("id"): x for x in (jd or {}).get("new", []) or [] if isinstance(x, dict)} if isinstance(jd, dict) else {}
+    olds = {x.get("id"): x for x in (jd or {}).get("old", []) or [] if isinstance(x, dict)}
+    news = {x.get("id"): x for x in (jd or {}).get("new", []) or [] if isinstance(x, dict)}
     judged = bool(olds)
     by_old = {f.id: f for f in old}
-    closed, remains, fresh = [], [], []
-    for f in linked:
+    rw_ids = set(rewritten)
+    closed, remains = [], []
+    for f in old:
+        if f.id not in linked_ids:
+            continue
         j = olds.get(f.id, {})
-        if judged and j.get("status") == "closed":
+        if judged and j.get("status") == "closed" and set(f.req_ids) & rw_ids:
             closed.append((f, str(j.get("reason", ""))))
         else:
-            why = str(j.get("reason", "")) if judged else "автоматическая сверка: оценка модели недоступна"
+            why = str(j.get("reason", "")) if judged else "оценка модели недоступна, закрытым не считаем"
+            if judged and j.get("status") == "closed":
+                why = "требование не переписано, закрытым не считаем"
             remains.append((f, why))
+    fresh, repeat_nb, other_nb = [], 0, 0
     for f in new:
         same = str(news.get(f.id, {}).get("same_as", "") or "")
-        if judged and same in by_old:
-            if same in lid and not any(x is by_old[same] for x, _ in remains + closed):
-                remains.append((by_old[same], "найдено повторно при перепроверке"))
-            continue
         if not judged:
-            twin = next((o for o in linked if o.criterion == f.criterion and set(o.req_ids) & set(f.req_ids)), None)
-            if twin:
-                continue
-        fresh.append((f, str(news.get(f.id, {}).get("reason", ""))))
+            same = next((o.id for o in old if o.criterion == f.criterion and set(o.req_ids) & set(f.req_ids)), "")
+        if same in by_old:
+            if same in linked_ids:
+                if not any(x is by_old[same] for x, _ in remains + closed):
+                    remains.append((by_old[same], "найдено повторно при перепроверке"))
+            elif not set(by_old[same].req_ids) & rw_ids:
+                repeat_nb += 1
+            continue
+        on_rewritten = bool(set(f.req_ids) & rw_ids) or any("переписанный" in q.loc for q in f.quotes)
+        if on_rewritten:
+            fresh.append((f, str(news.get(f.id, {}).get("reason", ""))))
+        else:
+            other_nb += 1
     closed_ids = {f.id for f, _ in closed}
     remains = [(f, w) for f, w in remains if f.id not in closed_ids]
+    untouched = sum(1 for f in old if f.id not in linked_ids and set(f.req_ids) & rw_ids)
     trace = pipe.llm.trace[calls0:]
     return {"rewritten": rewritten, "closed": closed, "remains": remains, "new": fresh, "judged": judged,
             "cross_ok": cross_ok, "calls": len(trace), "seconds": round(sum(t["seconds"] for t in trace), 1),
-            "guard_drops": len(pipe.drops) - drops0}
+            "guard_drops": len(pipe.drops) - drops0, "untouched": untouched, "repeat_nb": repeat_nb,
+            "other_nb": other_nb}
 
 
 def _line(f, why, answer_q=None) -> str:
@@ -196,8 +205,10 @@ def render_delta(d: dict) -> str:
     md += [f"Итог: закрыто {len(d['closed'])}, осталось {len(d['remains'])}, новых {len(d['new'])}.", ""]
     for title, key in (("Закрыто ответами", "closed"), ("Осталось", "remains"), ("Появилось новое", "new")):
         md += [f"### {title} ({len(d[key])})", ""]
-        rows = [_line(f, w) + ("" if key != "new" or set(f.req_ids) & set(d["rewritten"]) else " (сосед, текст не менялся)")
-                for f, w in d[key]]
-        md += rows or ["- нет"]
+        md += [_line(f, w) for f, w in d[key]] or ["- нет"]
         md.append("")
+    md += [f"Не относятся к ответам: на переписанных требованиях осталось {d['untouched']} старых замечаний, "
+           f"которых ни один вопрос не касался.",
+           f"На соседних требованиях повторно найдено {d['repeat_nb']} старых замечаний, без изменений; "
+           f"ещё {d['other_nb']} замечаний к соседнему тексту, который не менялся, в дельту не включены.", ""]
     return "\n".join(md)

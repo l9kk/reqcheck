@@ -35,6 +35,7 @@ class Finding:
     fix: str = ""
     test_hint: str = ""
     role: str = ""
+    edge: str = ""
 
 
 @dataclass

@@ -18,6 +18,24 @@ AUDIT_BATCH = 22
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
 REQ_MARKERS = re.compile(r"должн|требовани|обязан|систем|сервис|пользовател|клиент|приложени|\bapi\b|shall|must|"
                          r"requirement|функциональн|интеграц|запрос|ответ", re.I)
+ASSUME_TAG = "[предложение, согласовать]"
+NUM_RE = re.compile(r"(?<!\w)(?<![^\W\d_]-)(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+(?:[.,]\d+)?)(?!\d)")
+
+
+def numbers(text: str) -> set[str]:
+    out = set()
+    for m in NUM_RE.findall(text):
+        n = re.sub(r"[ \u00a0\u202f]", "", m).replace(",", ".")
+        whole, _, frac = n.partition(".")
+        out.add((whole.lstrip("0") or "0") + ("." + frac if frac else ""))
+    return out
+
+
+def tag_assumptions(findings: list[Finding], doc_text: str) -> None:
+    known = numbers(doc_text)
+    for f in findings:
+        if f.fix and ASSUME_TAG not in f.fix and numbers(f.fix) - known:
+            f.fix = f"{f.fix.rstrip()} {ASSUME_TAG}"
 
 
 def load_criteria() -> dict:
@@ -97,8 +115,10 @@ class Pipeline:
 
         if self.use_model and reqs:
             findings += self.audit(numbered, reqs, rep)
-            findings += self.cross(numbered, reqs, findings, rep)
-            findings += self.edge(numbered, reqs, findings, rep)
+            if self.use_model:
+                findings += self.cross(numbered, reqs, findings, rep)
+            if self.use_model:
+                findings += self.edge(numbered, reqs, findings, rep)
         self.attach_reqs(findings, reqs)
         findings = self.dedupe(findings)
         for i, f in enumerate(findings, start=1):
@@ -107,6 +127,7 @@ class Pipeline:
         fix_first = []
         if self.use_model and findings:
             findings, fix_first = self.critic(numbered, findings, rep)
+        tag_assumptions(findings, doc.text)
         findings.sort(key=lambda f: (SEV_RANK.get(f.severity, 3), f.quotes[0].start if f.quotes else 0))
         renum = {}
         for i, f in enumerate(findings, start=1):
@@ -147,8 +168,13 @@ class Pipeline:
         try:
             self.step(role, "запрос к модели")
             data = self.llm.json(role, system, user)
-            if not isinstance(data, dict):
-                rep.diagnostics.append(Diagnostic("warning", "bad_shape", f"{role}: ответ модели не в ожидаемом формате.",
+            err = roles.shape_error(role, data)
+            if err:
+                self.step(role, f"формат ответа: {err}, повторяю")
+                data = self.llm.json(role, system, user + roles.shape_note(err))
+                err = roles.shape_error(role, data)
+            if err:
+                rep.diagnostics.append(Diagnostic("warning", "bad_shape", f"{role}: ответ модели не в ожидаемом формате ({err}).",
                                                   "Шаг пропущен, остальные роли работают."))
                 return None
             return data
@@ -299,12 +325,15 @@ class Pipeline:
         out = []
         if not isinstance(data, dict):
             return out
+        edge_ids = {e["id"] for e in self.cr["edge"]}
         for d in data.get("findings", []) or []:
             if not isinstance(d, dict):
                 continue
             d = {**d, "criterion": "set_complete"}
             f = self._mk(d, "set", "EdgeCaser", [])
             if f:
+                eid = str(d.get("edge", "")).strip()
+                f.edge = eid if eid in edge_ids else ""
                 out.append(f)
         self.step("EdgeCaser", f"замечаний: {len(out)}")
         return out
@@ -320,11 +349,20 @@ class Pipeline:
                         ids.append(r.id)
             f.req_ids = ids
 
+    @staticmethod
+    def same_text(a: str, b: str) -> bool:
+        wa = {w for w in re.findall(r"\w+", a.lower()) if len(w) > 3}
+        wb = {w for w in re.findall(r"\w+", b.lower()) if len(w) > 3}
+        if not wa or not wb:
+            return a.strip().lower() == b.strip().lower()
+        return len(wa & wb) / len(wa | wb) >= 0.5
+
     def dedupe(self, findings: list[Finding]) -> list[Finding]:
         out: list[Finding] = []
         for f in findings:
             key = (f.criterion, tuple(sorted(q.start for q in f.quotes)))
-            if any((o.criterion, tuple(sorted(q.start for q in o.quotes))) == key for o in out):
+            if any((o.criterion, tuple(sorted(q.start for q in o.quotes))) == key and self.same_text(o.problem, f.problem)
+                   and not (o.edge and f.edge and o.edge != f.edge) for o in out):
                 self.drops.append({"role": "Guard", "reason": "дубликат", "item": f.problem[:160]})
                 continue
             out.append(f)

@@ -11,6 +11,19 @@ from .pipeline import Pipeline, all_criteria, load_criteria
 from .report_md import render
 
 
+def model_used(passport: dict) -> bool:
+    return (passport.get("llm_calls") or 0) + (passport.get("llm_cached") or 0) > 0
+
+
+def old_passport(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    passport = data.get("passport") if isinstance(data, dict) else None
+    return passport if isinstance(passport, dict) else {}
+
+
 def main(argv=None) -> int:
     for s in (sys.stdout, sys.stderr):
         try:
@@ -48,6 +61,10 @@ def main(argv=None) -> int:
     if out.suffix.lower() not in (".md", ".pdf", ".json"):
         out = out.with_suffix(".md")
     out.parent.mkdir(parents=True, exist_ok=True)
+    if not model_used(rep.passport) and model_used(old_passport(out.with_suffix(".json"))):
+        kept = out.with_suffix(".json")
+        out = out.with_name(f"{out.stem}.rules-only{out.suffix}")
+        print(f"Модель не использовалась: отчёт модели {kept} не перезаписан, отчёт по правилам: {out.with_suffix('.md')}")
     md_path = out.with_suffix(".md")
     md_path.write_text(render(rep, all_criteria(load_criteria())), encoding="utf-8")
     out.with_suffix(".json").write_text(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")

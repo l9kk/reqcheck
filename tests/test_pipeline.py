@@ -1,9 +1,11 @@
 import contextlib
+import io
 import json
 import os
 import tempfile
 import tomllib
 import unittest
+from dataclasses import asdict
 from pathlib import Path
 from unittest import mock
 
@@ -445,6 +447,242 @@ class InteractiveTest(unittest.TestCase):
         self.assertIn(rep.questions[0].id, text)
         self.assertIn("Порог по умолчанию 50 000 тенге", text)
         self.assertNotIn(rep.questions[1].text, text)
+
+
+class DedupeTest(unittest.TestCase):
+    def test_same_lines_different_problems_are_kept(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        q = [Quote("Ф-2", 40, 40)]
+        fs = [Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Не описано, уменьшает ли возврат покупки накопленную сумму месяца."),
+              Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Покупка в январе проведена в феврале: отправляется ли push за январь?"),
+              Finding("", "set", [], "set_complete", "важно", list(q),
+                      "Не описано, уменьшает ли возврат покупки накопленную сумму за месяц.")]
+        kept = p.dedupe(fs)
+        self.assertEqual([f.problem for f in kept], [fs[0].problem, fs[1].problem])
+        self.assertEqual([d["reason"] for d in p.drops], ["дубликат"])
+
+
+class ShapeRetryTest(unittest.TestCase):
+    def _run(self, bad_times):
+        from reqcheck.pipeline import Pipeline
+
+        class Bad(FakeLLM):
+            users = []
+
+            def json(self, role, system, user):
+                if role == "Critic":
+                    Bad.users.append(user)
+                    if len(Bad.users) <= bad_times:
+                        self.trace.append({"role": role, "cached": False, "seconds": 0.0, "in_tokens": 0, "out_tokens": 0})
+                        return {"decisions": "keep all"}
+                return super().json(role, system, user)
+
+        rep = Pipeline(Bad(), log=lambda m: None).run(str(DOC))
+        return rep, Bad.users
+
+    def test_bad_shape_is_retried_once_with_note(self):
+        rep, users = self._run(1)
+        self.assertEqual(len(users), 2)
+        self.assertNotIn("decisions", users[0].split("</document>")[-1])
+        self.assertIn("decisions", users[1].split("</document>")[-1])
+        self.assertFalse([d for d in rep.diagnostics if d.code == "bad_shape"])
+
+    def test_still_bad_shape_reports_diagnostic(self):
+        rep, users = self._run(5)
+        self.assertEqual(len(users), 2)
+        self.assertTrue([d for d in rep.diagnostics if d.code == "bad_shape" and "Critic" in d.message])
+        self.assertTrue(rep.findings)
+
+    def test_shape_rules(self):
+        from reqcheck.roles import SHAPES, shape_error
+        self.assertEqual(shape_error("Auditor", {"results": []}), "")
+        self.assertIn("results", shape_error("Auditor", {"findings": []}))
+        self.assertIn("объект", shape_error("Critic", ["x"]))
+        self.assertEqual(shape_error("CrossChecker", {"findings": [{}]}), "")
+        self.assertIn("checklist", shape_error("CrossChecker", {"steps": [], "checklist": "нет"}))
+        self.assertIn("questions", shape_error("Clarifier", {"questions": ["a"]}))
+        self.assertEqual(shape_error("Critic", {"decisions": [], "fix_first": ["F-01"]}), "")
+        for role in ("Segmenter", "Auditor", "CrossChecker", "EdgeCaser", "Critic", "Clarifier", "Rewriter"):
+            self.assertIn(role, SHAPES)
+
+
+class EdgeChecklistTest(unittest.TestCase):
+    def _pipe(self, answer):
+        from reqcheck.pipeline import Pipeline
+
+        class Edge(FakeLLM):
+            def edgecaser(self, user):
+                return answer
+
+        p = Pipeline(Edge(), log=lambda *a: None)
+        p.doc = read_document(str(DOC))
+        p.g = Grounder(p.doc)
+        return p
+
+    def test_edge_prompt_lists_every_checklist_id(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        cr = load_criteria()
+        system, user = roles.edge_prompt(cr, "x", "y", "z")
+        for e in cr["edge"]:
+            self.assertIn(e["id"], system)
+        self.assertIn("x", user)
+
+    def test_non_dict_answer_yields_nothing(self):
+        from reqcheck.report_md import Report
+        for answer in (["junk"], "junk", None, {"findings": "нет"}):
+            with self.subTest(answer=answer):
+                rep = Report(passport={})
+                self.assertEqual(self._pipe(answer).edge("", [], [], rep), [])
+                self.assertTrue([d for d in rep.diagnostics if d.code == "bad_shape"])
+
+    def test_checklist_id_is_kept_and_distinct_items_survive_dedupe(self):
+        from reqcheck.report_md import Report
+        good = "На карту приходится максимум один такой push за календарный месяц"
+        p = self._pipe({"findings": [
+            {"edge": "E01", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена для покупки в полночь."},
+            {"edge": "E08", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена для покупки в полночь при смене порога."},
+            {"edge": "E99", "severity": "важно", "quotes": [good], "problem": "Неизвестный пункт чек-листа про лимит."}]})
+        out = p.edge("", [], [], Report(passport={}))
+        self.assertEqual([f.edge for f in out], ["E01", "E08", ""])
+        self.assertEqual(len(p.dedupe(out)), 3)
+
+
+class AssumptionTagTest(unittest.TestCase):
+    def test_invented_numbers_in_fix_are_tagged_once(self):
+        from reqcheck.model import Finding
+        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        doc = "Порог от 1 000 до 1 000 000 ₸. Ф-2: месяц по Алматы. Ответ 400."
+        fixes = ["Порог от 1000 до 1 000 000 ₸, ответ 400 по Ф-2.",
+                 "Таймаут 30 секунд, затем 3 повтора.",
+                 f"Хранить 90 дней {ASSUME_TAG}.",
+                 "Указать часовой пояс.",
+                 ""]
+        fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix=x) for x in fixes]
+        tag_assumptions(fs, doc)
+        tag_assumptions(fs, doc)
+        self.assertEqual(fs[0].fix, fixes[0])
+        self.assertEqual(fs[1].fix, f"Таймаут 30 секунд, затем 3 повтора. {ASSUME_TAG}")
+        self.assertEqual(fs[2].fix, fixes[2])
+        self.assertEqual(fs[3].fix, fixes[3])
+        self.assertEqual(fs[4].fix, "")
+
+    def test_pipeline_tags_fix_after_critic(self):
+        from reqcheck.pipeline import ASSUME_TAG, Pipeline
+
+        class Invent(FakeLLM):
+            def auditor(self, user):
+                data = super().auditor(user)
+                for r in data["results"]:
+                    for f in r["findings"]:
+                        f["fix"] = "Ответ за 777 мс."
+                return data
+
+        rep = Pipeline(Invent(), log=lambda m: None).run(str(DOC))
+        fixes = [f.fix for f in rep.findings if f.role == "Auditor"]
+        self.assertTrue(fixes)
+        self.assertEqual(fixes, [f"Ответ за 777 мс. {ASSUME_TAG}"] * len(fixes))
+
+    def test_prompts_ask_to_tag_invented_values(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        cr = load_criteria()
+        prompts = [roles.auditor_prompt(cr, "d", "r"), roles.cross_prompt(cr, "d", "r", "k", False),
+                   roles.edge_prompt(cr, "d", "r", "k"), roles.critic_prompt(cr, "d", "f")]
+        for system, _ in prompts:
+            self.assertIn("[предложение, согласовать]", system)
+
+
+class ModelLostTest(unittest.TestCase):
+    def _roles_called(self, failing):
+        from reqcheck.llm import LLMError
+        from reqcheck.pipeline import Pipeline
+
+        class Lost(FakeLLM):
+            def json(self, role, system, user):
+                if role == failing:
+                    raise LLMError("auth", "Ключ отклонён.", "")
+                return super().json(role, system, user)
+
+        llm = Lost()
+        rep = Pipeline(llm, log=lambda m: None).run(str(DOC))
+        return [t["role"] for t in llm.trace], rep
+
+    def test_no_roles_after_model_lost_in_auditor(self):
+        called, rep = self._roles_called("Auditor")
+        self.assertEqual(called, ["Segmenter"])
+        self.assertTrue(rep.findings)
+
+    def test_edgecaser_skipped_after_model_lost_in_crosschecker(self):
+        called, _ = self._roles_called("CrossChecker")
+        self.assertNotIn("EdgeCaser", called)
+        self.assertNotIn("Critic", called)
+
+
+class RulesOnlyOutputTest(unittest.TestCase):
+    NO_KEY = {"LLM_PROVIDER": "openai_compat", "LLM_API_KEY": ""}
+
+    def test_rules_only_run_keeps_model_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, model, model_md = run(DOC, d)
+            self.assertGreater(model["passport"]["llm_calls"], 0)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                _, kept, kept_md = run(DOC, d, self.NO_KEY, fake=False)
+            self.assertEqual(kept_md, model_md)
+            self.assertEqual(kept["passport"], model["passport"])
+            rules = json.loads((Path(d) / "r.rules-only.json").read_text(encoding="utf-8"))
+            self.assertEqual(rules["passport"]["llm_calls"], 0)
+            self.assertTrue((Path(d) / "r.rules-only.md").exists())
+            self.assertIn("r.rules-only.md", out.getvalue())
+
+    def test_rules_only_run_overwrites_rules_only_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            with contextlib.redirect_stdout(io.StringIO()):
+                run(DOC, d, self.NO_KEY, fake=False)
+                (Path(d) / "r.md").write_text("old", encoding="utf-8")
+                _, data, md = run(DOC, d, self.NO_KEY, fake=False)
+            self.assertNotEqual(md, "old")
+            self.assertEqual(data["passport"]["llm_calls"], 0)
+            self.assertFalse((Path(d) / "r.rules-only.json").exists())
+
+
+class CachedReplayTest(unittest.TestCase):
+    CLEAR = ("LLM_PROVIDER", "LLM_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "LLM_API_KEY", "LLM_BASE_URL")
+
+    def _run(self, cache_dir, env, send):
+        from reqcheck.llm import LLM
+        from reqcheck.pipeline import Pipeline
+        clean = {k: v for k, v in os.environ.items() if k not in self.CLEAR}
+        with mock.patch.dict(os.environ, {**clean, **env}, clear=True), \
+                mock.patch.object(LLM, "_send_anthropic", send):
+            return Pipeline(LLM(use_cache=True, cache_dir=cache_dir), log=lambda m: None).run(str(DOC))
+
+    def test_replay_from_cache_without_any_key(self):
+        fake = FakeLLM()
+
+        def record(self, role, system, user, bad):
+            return json.dumps(getattr(fake, role.lower())(user), ensure_ascii=False), (100, 10)
+
+        def offline(self, role, system, user, bad):
+            raise AssertionError(f"network call for {role}")
+
+        with tempfile.TemporaryDirectory() as d:
+            first = self._run(d, {"ANTHROPIC_API_KEY": "test"}, record)
+            second = self._run(d, {}, offline)
+        self.assertGreater(first.passport["llm_calls"], 0)
+        self.assertEqual(first.passport["provider"], "anthropic")
+        self.assertEqual(second.passport["llm_calls"], 0)
+        self.assertEqual(second.passport["llm_cached"], first.passport["llm_calls"])
+        self.assertEqual(second.diagnostics, [])
+        self.assertEqual([asdict(f) for f in second.findings], [asdict(f) for f in first.findings])
+        self.assertEqual([asdict(q) for q in second.questions], [asdict(q) for q in first.questions])
+        self.assertEqual(second.verdict, first.verdict)
 
 
 if __name__ == "__main__":

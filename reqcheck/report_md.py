@@ -78,7 +78,8 @@ def gist(f: Finding) -> str:
 
 
 def finding_md(f: Finding, crit: dict, asks: dict | None = None) -> list[str]:
-    out = [f"**{f.id}** · {f.severity} · {crit_name(crit, f.criterion)}" + (f" · {', '.join(f.req_ids)}" if f.req_ids else "")]
+    out = [f"**{f.id}** · {f.severity} · {crit_name(crit, f.criterion)}" + (f" · {', '.join(f.req_ids)}" if f.req_ids else "")
+           + (f" · граничный случай {f.edge}" if f.edge else "")]
     for q in f.quotes:
         out.append(f"> «{cell(q.text, 300)}» ({q.loc})")
     main, *extra = problem_parts(f.problem)

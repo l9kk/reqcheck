@@ -239,7 +239,7 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
              + (f'<span class="sub">, критичных <b class="crit-n">{num(counts["критично"])}</b></span>' if counts.get("критично") else "") +
              f'<span class="sevs vh">{sev_line}</span></dd></div>'
              f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
-    head = ['<header class="top"><div class="titlebar"><div class="tt">'
+    head = ['<header class="top"><button type="button" class="theme" id="theme" aria-label="Сменить тему: светлая или тёмная" title="Светлая или тёмная тема"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><div class="titlebar"><div class="tt">'
             f'<h1>{e(title)}</h1><p class="kicker">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p></div>'
             f"{stats}</div>",
             f'<div class="verdict {VERDICT_CLASS.get(status, "v-none")}"><p class="vline">Начинать разработку и тестирование: '
@@ -357,8 +357,8 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
             + "".join(fl) + "".join(doc) + "</div></section>" + "".join(qp) + "".join(sp_) + "".join(pp))
     return (f'<!doctype html><html lang="ru"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">'
-            f"<title>{e(title)}: отчёт о проверке требований</title><style>{CSS}</style></head>"
-            f'<body><div class="wrap">{body}</div><script>{JS}</script></body></html>\n')
+            f"<title>{e(title)}: отчёт о проверке требований</title><script>{THEME_JS}document.addEventListener('DOMContentLoaded',function(){{{JS}}});</script><style>{CSS}</style></head>"
+            f'<body><div class="wrap">{body}</div></body></html>\n')
 
 
 def write_html(rep: Report, doc_lines: list[str], path, crit: dict | None = None) -> Path:
@@ -371,10 +371,13 @@ CSS = """
 :root{--bg:#f6f6f4;--surface:#fff;--raise:#f0f0ec;--hover:#f7f7f5;--ink:#1b1d1f;--ink-2:#42474d;--muted:#6b7178;--line:#e2e2dd;--mark:#c4c6c2;
 --accent:#2a55c4;--accent-soft:#ecf0fb;
 --crit:#b3261e;--crit-bg:#fbeae8;--major:#8a5a00;--major-bg:#f8efdc;--minor:#5f656c;--minor-bg:#ecedeb;--ok:#1e6b3a;--ok-bg:#e4f2e8;
---mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#121315;--surface:#1a1b1e;--raise:#24262a;--hover:#1f2124;--ink:#e6e7e8;--ink-2:#c3c6ca;--muted:#979ca3;--line:#2d2f33;--mark:#4a4d52;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;--i-sun:none;--i-moon:inline;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121315;--surface:#1a1b1e;--raise:#24262a;--hover:#1f2124;--ink:#e6e7e8;--ink-2:#c3c6ca;--muted:#979ca3;--line:#2d2f33;--mark:#4a4d52;
 --accent:#8fb0ff;--accent-soft:#1d2537;
---crit:#ff9e95;--crit-bg:#3a1e1c;--major:#e8bd62;--major-bg:#33290f;--minor:#aeb3b9;--minor-bg:#26282c;--ok:#86d19e;--ok-bg:#183022;color-scheme:dark}}
+--crit:#ff9e95;--crit-bg:#3a1e1c;--major:#e8bd62;--major-bg:#33290f;--minor:#aeb3b9;--minor-bg:#26282c;--ok:#86d19e;--ok-bg:#183022;--i-sun:inline;--i-moon:none;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#121315;--surface:#1a1b1e;--raise:#24262a;--hover:#1f2124;--ink:#e6e7e8;--ink-2:#c3c6ca;--muted:#979ca3;--line:#2d2f33;--mark:#4a4d52;
+--accent:#8fb0ff;--accent-soft:#1d2537;
+--crit:#ff9e95;--crit-bg:#3a1e1c;--major:#e8bd62;--major-bg:#33290f;--minor:#aeb3b9;--minor-bg:#26282c;--ok:#86d19e;--ok-bg:#183022;--i-sun:inline;--i-moon:none;color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
@@ -389,7 +392,12 @@ h3{font-size:14px;margin:24px 0 8px;font-weight:600}
 .muted{color:var(--muted);font-size:13px}
 .vh,.chip .ct{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .titlebar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px;margin:0 0 16px}
-.tt{min-width:0;flex:1 1 420px}
+.tt{min-width:0;flex:1 1 420px;padding-right:48px}
+.top{position:relative}
+.theme{position:absolute;top:0;right:0;width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer}
+.theme:hover{color:var(--ink);background:var(--hover)}
+.theme svg{width:16px;height:16px}
+.theme .i-sun{display:var(--i-sun)}.theme .i-moon{display:var(--i-moon)}
 .stats{display:flex;flex-wrap:wrap;gap:4px 24px;margin:0;font-size:13px;color:var(--muted)}
 .stats>div{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
 .stats dd{margin:0;display:flex;align-items:baseline}
@@ -540,10 +548,16 @@ h1{font-size:19px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 """
 
+THEME_JS = "try{var t=localStorage.getItem('reqcheck-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}\n"
+
 JS = r"""
 (function(){
 var d=document,reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 function mobile(){return window.matchMedia&&matchMedia('(max-width: 767px)').matches;}
+var th=d.getElementById('theme'),root=d.documentElement;
+function isDark(){var t=root.getAttribute('data-theme');return t?t==='dark':!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
+function syncTheme(){if(th)th.setAttribute('aria-pressed',isDark()?'true':'false');}
+if(th){syncTheme();th.addEventListener('click',function(){var t=isDark()?'light':'dark';root.setAttribute('data-theme',t);try{localStorage.setItem('reqcheck-theme',t);}catch(e){}syncTheme();});}
 [].forEach.call(d.querySelectorAll('.ln[data-md]'),function(el){var t=el.querySelector('.tx');if(t){t.innerHTML=el.getAttribute('data-md');t.classList.add('r');}});
 var tabs=[].slice.call(d.querySelectorAll('[data-tab]')),tabbar=d.querySelector('.tabs');
 function fade(){if(tabbar)tabbar.classList.toggle('more-r',tabbar.scrollLeft+tabbar.clientWidth<tabbar.scrollWidth-2);}

@@ -39,6 +39,8 @@ class GuardTest(unittest.TestCase):
         self.assertIn("too_long", [d.code for d in rep.diagnostics])
         self.assertEqual(llm.trace, [])
         self.assertIn("Модель не использовалась", rep.verdict["text"])
+        self.assertIn("слишком большой", rep.verdict["text"])
+        self.assertNotIn("ключ", rep.verdict["text"])
 
     def test_second_run_starts_clean(self):
         pipe = Pipeline(FakeLLM(), log=lambda m: None)

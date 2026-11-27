@@ -360,7 +360,7 @@ python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache
 python -m unittest discover -s tests -t . && python -m unittest discover -s eval -t .
 ```
 
-167 тестов, ключ не нужен: модель подменяет `tests/fake_llm.py`. Среди них повтор из кэша без ключа,
+176 тестов, ключ не нужен: модель подменяет `tests/fake_llm.py`. Среди них повтор из кэша без ключа,
 набор повреждённых файлов `tests/fixtures/broken/` и тест на подгонку `tests/test_no_overfit.py`.
 
 ## Ограничения и известные промахи
@@ -374,7 +374,7 @@ python -m unittest discover -s tests -t . && python -m unittest discover -s eval
   совпадает со шкалой автора задания. На cashback 12 из 73 замечаний «критично», это может быть завышено.
 - Не найден G33: где виден «Итог 50 000 ₸» в критерии 1.
 - После Reconciler рекомендации двух вопросов на выданном ТЗ всё ещё спорят друг с другом: Q-03 и Q-05, обе про
-  GET на /alerts/limit. Отчёт помечает это «Внимание» (`report/report.md:183`).
+  GET на /alerts/limit. Отчёт помечает это «Внимание» (`report/report.md:184`).
 - Почти чистый документ стресс-набора (s7) всё ещё получает «Нет»: остался 1 «критично» и 41 «важно».
 - Повторные прогоны сделаны только на выданном ТЗ; на autotopup и cashback по одному прогону.
 - Конвейер тратит больше токенов и времени, чем один промпт.

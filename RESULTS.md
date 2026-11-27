@@ -50,7 +50,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты, версии и времени прогона).
-Тесты (167): `.venv/bin/python -m unittest discover -s tests -t . && .venv/bin/python -m unittest discover -s eval -t .`
+Тесты (176): `.venv/bin/python -m unittest discover -s tests -t . && .venv/bin/python -m unittest discover -s eval -t .`
 
 ## Как мы считали
 

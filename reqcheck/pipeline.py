@@ -192,6 +192,7 @@ class Pipeline:
     def run(self, path: str) -> Report:
         t0 = time.time()
         self.drops, self.merged, self.merge_into, self.use_model = [], {}, {}, True
+        self.no_model_hint = ""
         passport = {"document": Path(path).name, "sha256": "", "date": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
                     "model": self.llm.model or "-", "provider": self.llm.provider, "agent_version": agent_version(),
                     "llm_calls": 0, "seconds": 0, "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3"}
@@ -217,6 +218,7 @@ class Pipeline:
                                               f"Документ слишком большой для одной проверки: {len(numbered)} знаков при пределе {limit}.",
                                               "Разделите документ на части или поднимите REQCHECK_MAX_CHARS в .env."))
             self.use_model = False
+            self.no_model_hint = "документ слишком большой для модели, разделите его на части и проверьте каждую"
 
         markers = len(REQ_MARKERS.findall(doc.text))
         if markers < max(3, len(doc.lines) // 40):
@@ -747,6 +749,7 @@ class Pipeline:
                 model_used: bool = True) -> dict:
         crit = [f for f in findings if f.severity == "критично"]
         major = [f for f in findings if f.severity == "важно"]
+        hint = getattr(self, "no_model_hint", "")
         if not fix_first:
             fix_first = [f.id for f in (crit + major)[:7]]
         if not reqs:
@@ -755,11 +758,14 @@ class Pipeline:
             return {"status": "Нет", "fix_first": fix_first,
                     "text": f"Начинать разработку и тестирование нельзя: {len(crit)} {_ru(len(crit), 'критичный дефект', 'критичных дефекта', 'критичных дефектов')} "
                             f"(противоречия, непроверяемые или неполные требования). Сначала исправить их и ответить на уточняющие вопросы."
-                            + (" Модель не использовалась: это только правила кода, полную проверку даст запуск с ключом LLM." if not model_used else "")}
+                            + ((f" Модель не использовалась: это только правила кода, {hint}." if hint else
+                               " Модель не использовалась: это только правила кода, полную проверку даст запуск с ключом LLM.")
+                              if not model_used else "")}
         if not model_used:
             return {"status": "Не проверено", "fix_first": fix_first,
                     "text": f"Модель не использовалась, проверены только правила кода ({len(findings)} {_ru(len(findings), 'замечание', 'замечания', 'замечаний')}). "
-                            "Это не подтверждает готовность документа: задайте ключ LLM и повторите проверку."}
+                            + (f"Это не подтверждает готовность документа: {hint}." if hint else
+                               "Это не подтверждает готовность документа: задайте ключ LLM и повторите проверку.")}
         if len(major) > 5:
             return {"status": "С оговорками", "fix_first": fix_first,
                     "text": f"Можно начинать с оговорками: критичных дефектов нет, но {len(major)} {_ru(len(major), 'важное замечание заставит', 'важных замечания заставят', 'важных замечаний заставят')} команду додумывать."}

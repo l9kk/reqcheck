@@ -165,7 +165,7 @@ def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, 
             if judged and j.get("status") == "closed":
                 why = "требование не переписано или не перепроверено, закрытым не считаем"
             remains.append((f, why))
-    fresh, repeat_nb, other_nb = [], 0, 0
+    fresh, repeat_nb, other_nb, noise = [], 0, 0, 0
     for f in new:
         same = str(news.get(f.id, {}).get("same_as", "") or "")
         if not judged:
@@ -178,7 +178,10 @@ def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, 
                 repeat_nb += 1
             continue
         on_rewritten = bool(set(f.req_ids) & rw_ids) or any("переписанный" in q.loc for q in f.quotes)
-        if on_rewritten:
+        if on_rewritten and f.req_ids and set(f.req_ids) <= rw_ids and \
+                (f.criterion in NOISE_CRITERIA or DUP_RE.search(f.problem)):
+            noise += 1
+        elif on_rewritten:
             fresh.append((f, str(news.get(f.id, {}).get("reason", ""))))
         else:
             other_nb += 1
@@ -189,7 +192,7 @@ def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, 
     return {"rewritten": rewritten, "closed": closed, "remains": remains, "new": fresh, "judged": judged,
             "cross_ok": cross_ok, "calls": len(trace), "seconds": round(sum(t["seconds"] for t in trace), 1),
             "guard_drops": len(pipe.drops) - drops0, "untouched": untouched, "repeat_nb": repeat_nb,
-            "other_nb": other_nb, "all_old": list(all_old)}
+            "other_nb": other_nb, "noise": noise, "all_old": list(all_old)}
 
 
 def _line(f, why, answer_q=None) -> str:
@@ -200,6 +203,10 @@ def _line(f, why, answer_q=None) -> str:
     return f"- {f.id} [{f.severity}, {f.criterion}, {where}]{quote}: {f.problem}{tail}"
 
 
+NOISE_CRITERIA = {"necessary", "singular"}
+DUP_RE = re.compile(r"дублир|повторя|повторен|дважды|то же правило", re.I)
+
+
 def counts(fs) -> str:
     return f"критично {sum(f.severity == 'критично' for f in fs)}, важно {sum(f.severity == 'важно' for f in fs)}, " \
            f"мелочь {sum(f.severity == 'мелочь' for f in fs)}"
@@ -207,11 +214,13 @@ def counts(fs) -> str:
 
 def render_delta(d: dict) -> str:
     gone = {f.id for f, _ in d["closed"]}
-    after = [f for f in d["all_old"] if f.id not in gone] + [f for f, _ in d["new"]]
+    linked = len(d["closed"]) + len(d["remains"])
+    rw = set(d["rewritten"])
+    before = [f for f in d["all_old"] if set(f.req_ids) & rw]
+    after = [f for f in before if f.id not in gone] + [f for f, _ in d["new"]]
     md = ["## Дельта после ответов", "",
-          f"Было: {counts(d['all_old'])} (всего {len(d['all_old'])}).",
-          f"Стало (оценка по перепроверке, соседние требования не пересчитывались): {counts(after)} (всего {len(after)}).",
-          f"Закрыто замечаний: {', '.join(sorted(gone)) or 'нет'}. Новых: {', '.join(f.id for f, _ in d['new']) or 'нет'}.", "",
+          f"По ответам: закрыто {len(d['closed'])} из {len(d['closed']) + len(d['remains'])} связанных замечаний, "
+          f"осталось {len(d['remains'])}; новых последствий ответов: {len(d['new'])}.", "",
           f"Переписано требований: {len(d['rewritten'])} ({', '.join(d['rewritten'])}). Перепроверка: Аудитор и "
           f"Кросс-проверка на переписанных требованиях и соседних, затем сверка. Вызовов модели: {d['calls']}, "
           f"{d['seconds']} с. Замечания на переписанном тексте ссылаются на номер требования и его новую формулировку; "
@@ -220,13 +229,16 @@ def render_delta(d: dict) -> str:
         md += ["Оценка модели по сверке недоступна: закрытыми ничего не считаем.", ""]
     if not d["cross_ok"]:
         md += ["Кросс-проверка не ответила: новые противоречия могли остаться незамеченными.", ""]
-    md += [f"Итог: закрыто {len(d['closed'])}, осталось {len(d['remains'])}, новых {len(d['new'])}.", ""]
     for title, key in (("Закрыто ответами", "closed"), ("Осталось", "remains"), ("Появилось новое", "new")):
         md += [f"### {title} ({len(d[key])})", ""]
         md += [_line(f, w) for f, w in d[key]] or ["- нет"]
         md.append("")
-    md += [f"Не относятся к ответам: на переписанных требованиях осталось {d['untouched']} старых замечаний, "
+    md += [f"Не показано как шум: {d['noise']} замечаний о дублировании и единичности между переписанными "
+           f"текстами этого же прогона.",
+           f"Не относятся к ответам: на переписанных требованиях осталось {d['untouched']} старых замечаний, "
            f"которых ни один вопрос не касался.",
            f"На соседних требованиях повторно найдено {d['repeat_nb']} старых замечаний, без изменений; "
            f"ещё {d['other_nb']} замечаний к соседнему тексту, который не менялся, в дельту не включены.", ""]
+    md += ["", f"Оценка только по изменённым требованиям (не по всему документу): было {counts(before)} "
+           f"(всего {len(before)}), стало {counts(after)} (всего {len(after)}).", ""]
     return "\n".join(md)

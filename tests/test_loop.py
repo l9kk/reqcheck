@@ -45,7 +45,9 @@ def canned(role, system, user):
                 {"criterion": "unambiguous", "severity": "важно", "quote": "Возврат уменьшает расходы месяца",
                  "problem": "Не сказано, что делать с частичным возвратом."},
                 {"criterion": "verifiable", "severity": "важно", "quote": "цитаты нет нигде в тексте документа",
-                 "problem": "Выдуманное замечание без цитаты."}]},
+                 "problem": "Выдуманное замечание без цитаты."},
+                {"criterion": "necessary", "severity": "мелочь", "quote": "Месяц определяется по дате покупки",
+                 "problem": "Правило дублирует другое переписанное требование."}]},
             {"req_id": "R-03", "fail": ["complete"], "findings": [
                 {"criterion": "complete", "severity": "важно", "quote": "Когда расходы переходят от суммы ниже порога",
                  "problem": "Нет сообщения push для соседнего требования."}]},
@@ -57,7 +59,7 @@ def canned(role, system, user):
                         {"id": "D-02", "status": "remains", "reason": "термин не определён"},
                         {"id": "D-03", "status": "closed", "reason": "соседний"}],
                 "new": [{"id": "N-01", "same_as": "", "reason": "новый дефект"},
-                        {"id": "N-02", "same_as": "D-03", "reason": "то же"}]}
+                        {"id": "N-03", "same_as": "D-03", "reason": "то же"}]}
     return {}
 
 
@@ -104,10 +106,11 @@ class DeltaTest(unittest.TestCase):
         self.assertEqual([f.id for f, _ in d["new"]], ["N-01"])
         self.assertEqual(d["guard_drops"], 1)
         self.assertEqual(d["untouched"], 1)
+        self.assertEqual(d["noise"], 1)
         self.assertEqual(d["repeat_nb"], 1)
         self.assertIn("повторно найдено 1 старых", render_delta(d))
         text = render_delta(d)
-        self.assertIn("закрыто 1, осталось 1, новых 1", text)
+        self.assertIn("закрыто 1 из 2 связанных замечаний, осталось 1; новых последствий ответов: 1", text)
         self.assertIn("D-01", text)
         self.assertIn("N-01", text)
 

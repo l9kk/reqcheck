@@ -1,0 +1,14 @@
+{
+ "doc": "input/requirements.md",
+ "model": "claude-opus-5-5",
+ "seconds": 133.0,
+ "stop_reason": "end_turn",
+ "input_tokens": 9237,
+ "output_tokens": 15307,
+ "cache_read_input_tokens": null,
+ "cache_creation_input_tokens": null,
+ "findings": 30,
+ "questions": 9,
+ "quotes": 50,
+ "quotes_exact": 50
+}

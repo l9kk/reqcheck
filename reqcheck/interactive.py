@@ -61,10 +61,13 @@ def rewrite(answers: list[dict], rep: Report, llm, say=print) -> list[dict]:
             say(f"Модель не ответила ({e.code}): показываю ответы без новых формулировок.")
             data = None
         if isinstance(data, dict):
-            for it in data.get("items", []) or []:
-                if isinstance(it, dict) and it.get("q_id") in out:
-                    out[it["q_id"]]["requirement"] = str(it.get("requirement", "")).strip()
-                    out[it["q_id"]]["acceptance"] = [str(x) for x in it.get("acceptance", []) or []][:3]
+            items = data.get("items")
+            for it in items if isinstance(items, list) else []:
+                qid = it.get("q_id") if isinstance(it, dict) else None
+                if isinstance(qid, str) and qid in out:
+                    acc = it.get("acceptance")
+                    out[qid]["requirement"] = str(it.get("requirement", "")).strip()
+                    out[qid]["acceptance"] = [str(x) for x in (acc if isinstance(acc, list) else [])][:3]
     for v in out.values():
         if not v["requirement"]:
             v["requirement"] = f"{v['answer']} (формулировку нужно внести в требование вручную)"

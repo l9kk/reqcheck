@@ -685,5 +685,113 @@ class CachedReplayTest(unittest.TestCase):
         self.assertEqual(second.verdict, first.verdict)
 
 
+class NestedShapeTest(unittest.TestCase):
+    BAD = "неверный формат элемента"
+
+    def _run(self, **override):
+        from reqcheck.pipeline import Pipeline
+
+        class Odd(FakeLLM):
+            pass
+
+        for role, fn in override.items():
+            setattr(Odd, role, fn)
+        rep = Pipeline(Odd(), log=lambda m: None).run(str(DOC))
+        self.assertFalse([d for d in rep.diagnostics if d.level == "error"])
+        return rep
+
+    def _bad_roles(self, rep):
+        return {d["role"] for d in rep.drops if d.get("reason") == self.BAD}
+
+    def test_segmenter_candidates_list_of_lists(self):
+        def segmenter(self, user):
+            data = FakeLLM.segmenter(self, user)
+            data["requirements"] += [{"candidates": [["C001"], {"x": 1}]}, {"candidates": "C001"},
+                                     {"candidates": [["C002"]], "type": ["api"]}]
+            return data
+
+        rep = self._run(segmenter=segmenter)
+        self.assertGreater(len(rep.requirements), 10)
+        self.assertTrue([d for d in rep.drops if d["role"] == "Segmenter"])
+
+    def test_auditor_nested_junk_keeps_good_finding(self):
+        def auditor(self, user):
+            data = FakeLLM.auditor(self, user)
+            first = data["results"][0]
+            first["fail"] = [["verifiable"], {"a": 1}, "verifiable"]
+            first["findings"] = ["строка вместо объекта", ["список"]] + first["findings"]
+            data["results"][1]["fail"] = "verifiable"
+            data["results"][1]["findings"] = "нет"
+            data["results"].append({"req_id": ["R-01"], "fail": [], "findings": []})
+            data["results"].append({"req_id": {"id": "R-02"}, "fail": [], "findings": []})
+            return data
+
+        rep = self._run(auditor=auditor)
+        self.assertTrue([f for f in rep.findings if f.role == "Auditor"])
+        self.assertIn("Auditor", self._bad_roles(rep))
+        self.assertIn("verifiable", [c for v in rep.req_checks.values() for c in v])
+
+    def test_crosschecker_nested_junk(self):
+        def crosschecker(self, user):
+            data = FakeLLM.crosschecker(self, user)
+            data["steps"][0]["findings"] += ["junk", [1, 2]]
+            data["steps"].append({"step": "7", "findings": "нет"})
+            data["set_summary"].append({"criterion": ["set_complete"], "status": "ok"})
+            data["findings"] = [{"criterion": ["x"], "quotes": 5, "problem": "Достаточно длинное описание проблемы."}]
+            return data
+
+        rep = self._run(crosschecker=crosschecker)
+        self.assertTrue([f for f in rep.findings if f.role == "CrossChecker"])
+        self.assertEqual(len(rep.set_summary), 1)
+
+    def test_critic_list_or_dict_ids(self):
+        def critic(self, user):
+            data = FakeLLM.critic(self, user)
+            data["decisions"] = [{"id": ["F-01"], "action": "drop"}, {"id": {"id": "F-02"}, "action": "drop"},
+                                 {"id": "F-01", "action": "merge", "into": ["F-02"]},
+                                 {"id": "F-02", "action": "merge", "into": {"id": "F-01"}}] + data["decisions"]
+            data["fix_first"] = [["F-01"], {"x": 1}, "F-01"]
+            return data
+
+        rep = self._run(critic=critic)
+        self.assertGreaterEqual(len(rep.findings), 2)
+        self.assertIn("Critic", self._bad_roles(rep))
+        self.assertTrue(rep.verdict["fix_first"])
+
+    def test_clarifier_nested_junk(self):
+        def clarifier(self, user):
+            data = FakeLLM.clarifier(self, user)
+            data["questions"][0]["options"] = 5
+            data["questions"][0]["finding_ids"] = [["D-01"], {"id": "D-01"}]
+            data["questions"][1]["quotes"] = 7
+            data["questions"][1]["options"] = "строка"
+            return data
+
+        rep = self._run(clarifier=clarifier)
+        self.assertGreaterEqual(len(rep.questions), 2)
+        for q in rep.questions:
+            self.assertTrue(all(len(o) > 1 for o in q.options))
+            self.assertTrue(all(isinstance(x, str) for x in q.finding_ids))
+
+    def test_rewriter_nested_junk(self):
+        from reqcheck.interactive import rewrite
+        from reqcheck.pipeline import Pipeline
+        rep = Pipeline(FakeLLM(), log=lambda m: None).run(str(DOC))
+        q1, q2 = rep.questions[:2]
+
+        class Rw(FakeLLM):
+            def rewriter(self, user):
+                return {"items": [{"q_id": [q1.id], "requirement": "x"}, {"q_id": {"id": q1.id}},
+                                  {"q_id": q2.id, "requirement": "Новая формулировка.", "acceptance": 3},
+                                  {"q_id": q1.id, "requirement": "Готово.", "acceptance": ["Дано А Когда Б Тогда В"]}]}
+
+        items = rewrite([{"q": q1, "answer": "да"}, {"q": q2, "answer": "нет"}], rep, Rw(), say=lambda m: None)
+        by = {v["q"].id: v for v in items}
+        self.assertEqual(by[q1.id]["requirement"], "Готово.")
+        self.assertEqual(by[q1.id]["acceptance"], ["Дано А Когда Б Тогда В"])
+        self.assertEqual(by[q2.id]["requirement"], "Новая формулировка.")
+        self.assertEqual(by[q2.id]["acceptance"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

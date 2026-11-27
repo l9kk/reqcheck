@@ -74,6 +74,22 @@ class Pipeline:
     def step(self, name: str, msg: str):
         self.log(f"[{name}] {msg}")
 
+    def _bad(self, role: str, item) -> None:
+        self.drops.append({"role": role, "reason": "неверный формат элемента", "item": str(item)[:200]})
+
+    def _dicts(self, items, role: str, record: bool = True) -> list[dict]:
+        if not isinstance(items, list):
+            if items and record:
+                self._bad(role, items)
+            return []
+        out = []
+        for x in items:
+            if isinstance(x, dict):
+                out.append(x)
+            elif record:
+                self._bad(role, x)
+        return out
+
     def run(self, path: str) -> Report:
         t0 = time.time()
         passport = {"document": Path(path).name, "sha256": "", "date": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -199,13 +215,15 @@ class Pipeline:
                                                   "Модель считает, что документ не является документом с требованиями.",
                                                   "Проверьте, что передан нужный файл."))
             used = set()
-            for r in data["requirements"]:
-                ids = [c for c in r.get("candidates", []) if c in by_id and c not in used]
+            for r in self._dicts(data["requirements"], "Segmenter"):
+                cand = r.get("candidates")
+                ids = [c for c in (cand if isinstance(cand, list) else [])
+                       if isinstance(c, str) and c in by_id and c not in used]
                 if not ids:
                     self.drops.append({"role": "Segmenter", "reason": "нет валидных фрагментов", "item": str(r)[:200]})
                     continue
                 used.update(ids)
-                items.append((ids, r.get("type", ""), str(r.get("doc_id", "") or ""), str(r.get("short", "") or "")))
+                items.append((ids, str(r.get("type", "") or ""), str(r.get("doc_id", "") or ""), str(r.get("short", "") or "")))
         else:
             if self.use_model or not rep.diagnostics:
                 rep.diagnostics.append(Diagnostic("warning", "segment_fallback",
@@ -235,6 +253,10 @@ class Pipeline:
                          f"{r.section}]: {clean(r.quote.text)[:600]}" for r in reqs)
 
     def _ground_quotes(self, raw_quotes, hint=None):
+        if isinstance(raw_quotes, str):
+            raw_quotes = [raw_quotes]
+        if not isinstance(raw_quotes, list):
+            return []
         out = []
         for q in raw_quotes:
             if not isinstance(q, str) or not q.strip():
@@ -249,7 +271,11 @@ class Pipeline:
         if crit not in self.crit:
             self.drops.append({"role": role, "reason": f"неизвестный критерий {crit}", "item": str(d.get("problem", ""))[:160]})
             return None
-        raw = d.get("quotes") or ([d.get("quote")] if d.get("quote") else [])
+        raw = d.get("quotes") or d.get("quote") or []
+        if isinstance(raw, str):
+            raw = [raw]
+        if not isinstance(raw, list):
+            raw = []
         quotes = self._ground_quotes(raw, hint)
         if not quotes:
             self.drops.append({"role": role, "reason": "цитата не найдена в документе", "item": str(raw)[:200]})
@@ -277,14 +303,18 @@ class Pipeline:
                 if not self.use_model:
                     break
                 continue
-            for res in data.get("results", []) or []:
+            for res in self._dicts(data.get("results"), "Auditor"):
                 rid = res.get("req_id")
+                if not isinstance(rid, str):
+                    self._bad("Auditor", res)
+                    continue
                 if rid not in by_id:
                     continue
                 r = by_id[rid]
-                r_fail = [c for c in res.get("fail", []) or [] if c in self.crit]
+                fail = res.get("fail")
+                r_fail = [c for c in fail if isinstance(c, str) and c in self.crit] if isinstance(fail, list) else []
                 rep.req_checks[rid] = r_fail
-                for d in res.get("findings", []) or []:
+                for d in self._dicts(res.get("findings"), "Auditor"):
                     f = self._mk(d, "req", "Auditor", [rid], r.quote.start)
                     if f:
                         out.append(f)
@@ -299,19 +329,18 @@ class Pipeline:
         out = []
         if not isinstance(data, dict):
             return out
-        raw = list(data.get("findings", []) or [])
-        for st in data.get("steps", []) or []:
-            if isinstance(st, dict):
-                raw += [d for d in st.get("findings", []) or [] if isinstance(d, dict)]
+        raw = self._dicts(data.get("findings"), "CrossChecker")
+        for st in self._dicts(data.get("steps"), "CrossChecker"):
+            raw += self._dicts(st.get("findings"), "CrossChecker")
         for d in raw:
             f = self._mk(d, "set", "CrossChecker", [])
             if f:
                 out.append(f)
-        for s in data.get("set_summary", []) or []:
-            if s.get("criterion") in self.crit:
+        for s in self._dicts(data.get("set_summary"), "CrossChecker"):
+            if isinstance(s.get("criterion"), str) and s["criterion"] in self.crit:
                 rep.set_summary.append({"criterion": s["criterion"], "status": str(s.get("status", "")),
                                         "comment": str(s.get("comment", ""))})
-        for c in data.get("checklist", []) or []:
+        for c in self._dicts(data.get("checklist"), "CrossChecker"):
             if c.get("item"):
                 rep.checklist.append(ChecklistRow(item=str(c["item"]), value=str(c.get("value", "")),
                                                   evidence=str(c.get("evidence", ""))))
@@ -326,9 +355,7 @@ class Pipeline:
         if not isinstance(data, dict):
             return out
         edge_ids = {e["id"] for e in self.cr["edge"]}
-        for d in data.get("findings", []) or []:
-            if not isinstance(d, dict):
-                continue
+        for d in self._dicts(data.get("findings"), "EdgeCaser", record=False):
             d = {**d, "criterion": "set_complete"}
             f = self._mk(d, "set", "EdgeCaser", [])
             if f:
@@ -393,17 +420,21 @@ class Pipeline:
             return findings, []
         by_id = {f.id: f for f in findings}
         drop = set()
-        for d in data.get("decisions", []) or []:
+        for d in self._dicts(data.get("decisions"), "Critic"):
             fid = d.get("id")
+            if not isinstance(fid, str):
+                self._bad("Critic", d)
+                continue
             if fid not in by_id:
                 continue
+            into = d.get("into") if isinstance(d.get("into"), str) else ""
             act = d.get("action")
             if act == "drop":
                 drop.add(fid)
                 self.drops.append({"role": "Critic", "reason": str(d.get("reason", ""))[:200], "item": by_id[fid].problem[:160]})
-            elif act == "merge" and d.get("into") in by_id and d.get("into") != fid:
+            elif act == "merge" and into in by_id and into != fid:
                 drop.add(fid)
-                tgt = by_id[d["into"]]
+                tgt = by_id[into]
                 for q in by_id[fid].quotes:
                     if all(q.start != x.start for x in tgt.quotes):
                         tgt.quotes.append(q)
@@ -411,13 +442,15 @@ class Pipeline:
                     if r not in tgt.req_ids:
                         tgt.req_ids.append(r)
                 own = [] if by_id[fid].role == "linter" else [by_id[fid].problem]
-                self.merged.setdefault(d["into"], []).extend(own + self.merged.pop(fid, []))
-                self.merge_into[fid] = d["into"]
-                self.drops.append({"role": "Critic", "reason": "", "into": d["into"], "item": by_id[fid].problem[:160]})
+                self.merged.setdefault(into, []).extend(own + self.merged.pop(fid, []))
+                self.merge_into[fid] = into
+                self.drops.append({"role": "Critic", "reason": "", "into": into, "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:
                 by_id[fid].severity = d["severity"]
         kept = [f for f in findings if f.id not in drop]
-        fix_first = [x for x in data.get("fix_first", []) or [] if x in by_id and x not in drop]
+        ff = data.get("fix_first")
+        fix_first = [x for x in (ff if isinstance(ff, list) else [])
+                     if isinstance(x, str) and x in by_id and x not in drop]
         self.step("Critic", f"оставлено {len(kept)} из {len(findings)}")
         return kept, fix_first
 
@@ -428,7 +461,7 @@ class Pipeline:
             return self.fallback_questions(findings)
         ids = {f.id for f in findings}
         out = []
-        for q in data.get("questions", []) or []:
+        for q in self._dicts(data.get("questions"), "Clarifier"):
             text = str(q.get("text", "")).strip()
             if len(text) < 15:
                 continue
@@ -440,10 +473,12 @@ class Pipeline:
             if not quotes:
                 self.drops.append({"role": "Clarifier", "reason": "вопрос без найденной цитаты", "item": text[:160]})
                 continue
+            opts, fids = q.get("options"), q.get("finding_ids")
             out.append(Question(id=f"Q-{len(out) + 1:02d}", text=text, quotes=quotes, blocks=str(q.get("blocks", "")),
-                                options=[str(o) for o in (q.get("options") or [])][:4], default=str(q.get("default", "")),
-                                addressee=str(q.get("addressee", "")),
-                                finding_ids=[x for x in (q.get("finding_ids") or []) if x in ids]))
+                                options=[str(o) for o in (opts if isinstance(opts, list) else [])][:4],
+                                default=str(q.get("default", "")), addressee=str(q.get("addressee", "")),
+                                finding_ids=[x for x in (fids if isinstance(fids, list) else [])
+                                             if isinstance(x, str) and x in ids]))
         if not out:
             out = self.fallback_questions(findings)
         self.step("Clarifier", f"вопросов: {len(out)}")

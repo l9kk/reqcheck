@@ -239,9 +239,9 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
              + (f'<span class="sub">, критичных <b class="crit-n">{num(counts["критично"])}</b></span>' if counts.get("критично") else "") +
              f'<span class="sevs vh">{sev_line}</span></dd></div>'
              f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
-    head = ['<header class="top"><button type="button" class="theme" id="theme" aria-label="Сменить тему: светлая или тёмная" title="Светлая или тёмная тема"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><div class="titlebar"><div class="tt">'
+    head = ['<header class="top"><div class="titlebar"><div class="tt">'
             f'<h1>{e(title)}</h1><p class="kicker">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p></div>'
-            f"{stats}</div>",
+            f"{stats}<button type=\"button\" class=\"theme\" id=\"theme\" aria-label=\"Сменить тему: светлая или тёмная\" title=\"Светлая или тёмная тема\"><svg class=\"i-moon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z\"/></svg><svg class=\"i-sun\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4\"/></svg></button></div>",
             f'<div class="verdict {VERDICT_CLASS.get(status, "v-none")}"><p class="vline">Начинать разработку и тестирование: '
             f'<span class="pill"><span class="pg" aria-hidden="true">{glyph}</span><strong>{e(status)}</strong></span></p>'
             + (f'<p class="vtext">{e(vshort)}</p>' if vshort else "")]
@@ -392,9 +392,9 @@ h3{font-size:14px;margin:24px 0 8px;font-weight:600}
 .muted{color:var(--muted);font-size:13px}
 .vh,.chip .ct{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .titlebar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px;margin:0 0 16px}
-.tt{min-width:0;flex:1 1 420px;padding-right:48px}
+.tt{min-width:0;flex:1 1 420px}
 .top{position:relative}
-.theme{position:absolute;top:0;right:0;width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer}
+.theme{flex:none;align-self:flex-end;margin-left:auto;width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer}
 .theme:hover{color:var(--ink);background:var(--hover)}
 .theme svg{width:16px;height:16px}
 .theme .i-sun{display:var(--i-sun)}.theme .i-moon{display:var(--i-moon)}
@@ -526,7 +526,7 @@ tr:last-child td{border-bottom:0}
 .empty{color:var(--muted);padding:16px;margin:0}
 code{font:12.5px var(--mono)}
 .panel ul{padding-left:20px}
-@media (max-width:767px){.ff{display:none}.wrap{padding:16px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
+@media (max-width:767px){.tt{padding-right:48px}.theme{position:absolute;top:0;right:0}.ff{display:none}.wrap{padding:16px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
 .pane{position:static;height:auto;overflow:visible}.doc .lines{max-height:60vh}.flist{overflow:visible;padding:4px 16px 16px}
 .doc:not(.open) .lines{display:none}.doc:not(.open) .pane-head{border-bottom:0}
 .dtog{display:inline-flex;margin-left:auto}

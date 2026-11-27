@@ -44,9 +44,9 @@
 ## Повторить весь прогон без ключа
 
 ```bash
-git clone https://github.com/l9kk/reqcheck && cd reqcheck
+git clone https://github.com/l9kk/themis && cd themis
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m reqcheck input/requirements.md -o out/report.md --replay
+.venv/bin/python -m themis input/requirements.md -o out/report.md --replay
 ```
 
 Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты, версии и времени прогона).

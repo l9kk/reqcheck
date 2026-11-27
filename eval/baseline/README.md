@@ -1,4 +1,4 @@
-# B1. Single-prompt baseline vs the reqcheck pipeline
+# B1. Single-prompt baseline vs the themis pipeline
 
 Date: 27.11.2026. Model: `claude-opus-5-5` for both. Script: `eval/baseline/baseline.py`.
 Script: `eval/baseline/baseline.py`. Raw outputs and reports: `eval/baseline/runs/<run>/` (raw.txt, report.json, meta.json).
@@ -8,8 +8,8 @@ Question: why not just send one big prompt to Claude?
 ## Setup
 
 - One request per document. No segmenting, no roles, no critic, no rules in code, no quote guard.
-- Same model and call settings as the pipeline (`reqcheck/llm.py`): streaming, `max_tokens` 64000, default effort, no thinking setting.
-- Same numbered text as the pipeline: `Document.numbered()` from `reqcheck/reader.py` (`"{no:>4}| {text}"`).
+- Same model and call settings as the pipeline (`themis/llm.py`): streaming, `max_tokens` 64000, default effort, no thinking setting.
+- Same numbered text as the pipeline: `Document.numbered()` from `themis/reader.py` (`"{no:>4}| {text}"`).
 - The system prompt is built from `criteria.toml` (all ids and definitions, severity rules, language rules, the E01-E12 edge checklist).
 - No cache. The second run on the task doc is a fresh request (`cache_read_input_tokens` was empty on every run).
 - Pipeline numbers come from the committed reports (`report/report.json`, `examples/autotopup/report.json`, `examples/cashback/report.json`, v1.3). Pipeline time is `llm_seconds_uncached` from the passport (sum of its calls).
@@ -222,7 +222,7 @@ What the pipeline adds over one prompt:
 - Higher recall: 40 auto and 39 strict, against 36 at best for the single prompt.
 - Stable critical detection: in each of 3 pipeline runs all 6 critical defects are rated critical and all 13 must-find are found (`eval/variance.md`). The single prompt rated one critical defect too low in one of its two runs.
 - On cashback, blind for both: 20/20 and 9/9 must-find, against 19/20 and a missed must-find (B07).
-- Quotes checked by code: every quote is looked up in the document and its line number is set by code (`reqcheck/ground.py`); a quote that is not found is dropped. The single prompt's quotes were exact on these runs too, so this is a guarantee, not a recall gain.
+- Quotes checked by code: every quote is looked up in the document and its line number is set by code (`themis/ground.py`); a quote that is not found is dropped. The single prompt's quotes were exact on these runs too, so this is a guarantee, not a recall gain.
 - Questions with an addressee, options and a recommendation (7 of 10 with a test per option), an answer loop that rewrites requirements and rechecks them, and MD, PDF, JSON and HTML reports. The single prompt gives plain question text and findings only.
 
 The single prompt is cheaper and faster: 1 call, 95-133 s and $0.26-0.34, against 9 calls, about 14 minutes and $2.42. Its prompt was written after reading the task-doc golden list, so on that doc the comparison leans its way.

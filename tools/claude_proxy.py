@@ -1,8 +1,8 @@
 """Local stand-in for the Anthropic Messages API, served by Claude Code headless (claude -p).
 
-Lets reqcheck's LLM_PROVIDER=anthropic run on a Claude Code subscription instead of an API key:
+Lets themis's LLM_PROVIDER=anthropic run on a Claude Code subscription instead of an API key:
     python tools/claude_proxy.py 8765
-    ANTHROPIC_BASE_URL=http://127.0.0.1:8765 LLM_PROVIDER=anthropic python -m reqcheck ...
+    ANTHROPIC_BASE_URL=http://127.0.0.1:8765 LLM_PROVIDER=anthropic python -m themis ...
 Binds to 127.0.0.1 only.
 """
 import json

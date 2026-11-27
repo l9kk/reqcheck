@@ -11,7 +11,7 @@ for p in (str(ROOT), str(HERE)):
         sys.path.insert(0, p)
 
 import make_fixtures  # noqa: E402
-from reqcheck.reader import Document, ReadError, read_document  # noqa: E402
+from themis.reader import Document, ReadError, read_document  # noqa: E402
 
 FIX = HERE / "fixtures"
 GOOD = FIX / "good"
@@ -101,7 +101,7 @@ class TestGoodInputs(unittest.TestCase):
         import subprocess
         from unittest import mock
         path = FIX / "pdf_export" / "libreoffice_fallback_font.pdf"
-        with mock.patch("reqcheck.reader.shutil.which", return_value=None):
+        with mock.patch("themis.reader.shutil.which", return_value=None):
             doc = read_document(str(path))
         self.assertTrue(any("слиплись" in w for w in doc.warnings), doc.warnings)
         exe = shutil.which("pdftotext")

@@ -9,13 +9,13 @@ from dataclasses import asdict
 from pathlib import Path
 from unittest import mock
 
-from reqcheck.cli import main
-from reqcheck.ground import Grounder
-from reqcheck.lint import lint
-from reqcheck.model import Finding
-from reqcheck.pipeline import Pipeline
-from reqcheck.llm import parse_json, unwrap
-from reqcheck.reader import read_document
+from themis.cli import main
+from themis.ground import Grounder
+from themis.lint import lint
+from themis.model import Finding
+from themis.pipeline import Pipeline
+from themis.llm import parse_json, unwrap
+from themis.reader import read_document
 from tests.fake_llm import FakeLLM
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,7 +27,7 @@ def run(path, out_dir, env=None, fake=True):
     old = dict(os.environ)
     os.environ.update(env or {})
     try:
-        with mock.patch("reqcheck.cli.LLM", FakeLLM) if fake else contextlib.nullcontext():
+        with mock.patch("themis.cli.LLM", FakeLLM) if fake else contextlib.nullcontext():
             code = main([str(path), "-o", str(Path(out_dir) / "r.md"), "--quiet", "--no-cache", "--no-pdf"])
     finally:
         os.environ.clear()
@@ -92,8 +92,8 @@ class DocumentTagInjectionTest(unittest.TestCase):
             "- Ф-3: Система должна хранить историю уведомлений 90 дней.\n")
 
     def test_close_tag_in_document_is_neutralized_and_still_grounded(self):
-        from reqcheck import roles
-        from reqcheck.pipeline import load_criteria
+        from themis import roles
+        from themis.pipeline import load_criteria
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "inj.md"
             path.write_text(self.TEXT, encoding="utf-8")
@@ -121,7 +121,7 @@ class LLMShapeTest(unittest.TestCase):
     def test_daily_quota_detected_from_response_body(self):
         from types import SimpleNamespace
         from openai import RateLimitError
-        from reqcheck.llm import LLM, LLMError
+        from themis.llm import LLM, LLMError
 
         body = ('[{"error": {"code": 429, "message": "Quota exceeded. Generate content requests per day limit '
                 'exceeded on Free Tier.\\nPlease retry in 20h21m1.49s.", "details": [{"quotaId": '
@@ -151,7 +151,7 @@ class LLMShapeTest(unittest.TestCase):
     def test_depleted_credits_fail_fast(self):
         from types import SimpleNamespace
         from openai import APIStatusError
-        from reqcheck.llm import LLM, LLMError
+        from themis.llm import LLM, LLMError
 
         err = APIStatusError.__new__(APIStatusError)
         Exception.__init__(err, "Error code: 402")
@@ -177,7 +177,7 @@ class LLMShapeTest(unittest.TestCase):
 
     def _anthropic(self, outcome):
         from types import SimpleNamespace
-        from reqcheck.llm import LLM
+        from themis.llm import LLM
 
         seen = []
 
@@ -217,7 +217,7 @@ class LLMShapeTest(unittest.TestCase):
     def test_anthropic_no_credit_fails_fast(self):
         from types import SimpleNamespace
         import anthropic
-        from reqcheck.llm import LLMError
+        from themis.llm import LLMError
 
         err = anthropic.BadRequestError.__new__(anthropic.BadRequestError)
         Exception.__init__(err, "Error code: 400")
@@ -232,7 +232,7 @@ class LLMShapeTest(unittest.TestCase):
         self.assertEqual(len(seen), 1)
 
     def test_anthropic_needs_key_for_remote_api(self):
-        from reqcheck.llm import LLM, LLMError
+        from themis.llm import LLM, LLMError
 
         env = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-5-5", "ANTHROPIC_API_KEY": "", "LLM_API_KEY": "",
                "ANTHROPIC_BASE_URL": ""}
@@ -243,13 +243,13 @@ class LLMShapeTest(unittest.TestCase):
 
 
     def test_merged_rule_finding_adds_no_boilerplate(self):
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
 
         fs = [Finding("F-01", "req", [], "complete", "важно", [Quote("a", 5, 5)], "Не указан таймаут оплаты."),
               Finding("F-02", "req", [], "verifiable", "важно", [Quote("a", 5, 5)], "Формулировка содержит слова.",
                       role="linter")]
-        from reqcheck.llm import LLM
+        from themis.llm import LLM
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         p._llm = lambda *a: {"decisions": [{"id": "F-02", "action": "merge", "into": "F-01"}]}
         kept, _ = p.critic("", fs, None)
@@ -379,8 +379,8 @@ class GeneralizedRulesTest(unittest.TestCase):
         self.assertFalse([f for f in self._lint(far) if "Content-Type" in f.problem])
 
     def test_cross_prompt_has_no_sample_wording(self):
-        from reqcheck import roles
-        from reqcheck.pipeline import load_criteria
+        from themis import roles
+        from themis.pipeline import load_criteria
         system, _ = roles.cross_prompt(load_criteria(), "d", "r", "k", False)
         step = system.split("4a.")[1].split("5.")[0]
         for w in ("максимум", "независимо от", "всегда", "в любом случае"):
@@ -400,8 +400,8 @@ class KazakhDocTest(unittest.TestCase):
 """
 
     def test_kazakh_requirements_not_rejected_without_model(self):
-        from reqcheck.llm import LLM
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.pipeline import Pipeline
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "kk.md"
             p.write_text(self.TEXT, encoding="utf-8")
@@ -413,7 +413,7 @@ class KazakhDocTest(unittest.TestCase):
 
 class PipelineMockTest(unittest.TestCase):
     def test_model_not_requirements_with_requirements_keeps_auditing(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
 
         class Unsure(FakeLLM):
             def segmenter(self, user):
@@ -426,7 +426,7 @@ class PipelineMockTest(unittest.TestCase):
         self.assertTrue(rep.findings)
 
     def test_model_not_requirements_stops_before_audit(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
 
         class NotSpec(FakeLLM):
             def segmenter(self, user):
@@ -509,8 +509,8 @@ class PipelineMockTest(unittest.TestCase):
 
 class RankTest(unittest.TestCase):
     def test_questions_on_critical_findings_come_first(self):
-        from reqcheck.model import Finding, Question
-        from reqcheck.pipeline import Pipeline
+        from themis.model import Finding, Question
+        from themis.pipeline import Pipeline
         fs = [Finding("D-01", "req", [], "complete", "критично", [], "a"),
               Finding("D-02", "req", [], "complete", "мелочь", [], "b")]
         qs = [Question("Q-01", "minor?", [], "", [], "", "", ["D-02"]),
@@ -523,9 +523,9 @@ class RankTest(unittest.TestCase):
 
 class EdgePassTest(unittest.TestCase):
     def test_edge_findings_are_grounded_and_checklist_is_data(self):
-        from reqcheck.llm import LLM
-        from reqcheck.pipeline import Pipeline, load_criteria
-        from reqcheck.report_md import Report
+        from themis.llm import LLM
+        from themis.pipeline import Pipeline, load_criteria
+        from themis.report_md import Report
         self.assertGreaterEqual(len(load_criteria()["edge"]), 10)
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         p.doc = read_document(str(DOC))
@@ -543,9 +543,9 @@ class EdgePassTest(unittest.TestCase):
 
 class MergeTextTest(unittest.TestCase):
     def test_merged_finding_keeps_its_text_after_clarifier(self):
-        from reqcheck.llm import LLM
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         fs = [Finding("F-01", "req", [], "correct", "критично", [Quote("GET", 104, 104)], "GET для записи."),
               Finding("F-02", "req", [], "consistent", "критично", [Quote("Сохранение", 103, 103)],
@@ -561,9 +561,9 @@ class MergeTextTest(unittest.TestCase):
         self.assertEqual(kept[1].problem, "Другое.")
 
     def test_merge_into_already_merged_finding_keeps_text(self):
-        from reqcheck.llm import LLM
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         fs = [Finding(f"F-0{i}", "req", [], "complete", "важно", [Quote("x", i, i)], t)
               for i, t in [(1, "Текст A."), (2, "Текст B."), (3, "Текст C.")]]
@@ -577,9 +577,9 @@ class MergeTextTest(unittest.TestCase):
         self.assertIn("Текст B.", kept[0].problem)
 
     def test_merged_text_that_repeats_target_is_skipped(self):
-        from reqcheck.llm import LLM
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         fs = [Finding("F-01", "req", [], "complete", "важно", [Quote("x", 1, 1)],
                       "Не указан таймаут ответа внешнего сервиса и действие при его превышении."),
@@ -597,7 +597,7 @@ class MergeTextTest(unittest.TestCase):
         self.assertIn("уведомление о неудачной попытке списания", kept[0].problem)
 
     def test_mostly_covered_threshold(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         target = "Не описан возврат средств клиенту при отмене операции банком."
         self.assertTrue(Pipeline.mostly_covered("Возврат средств клиенту при отмене не описан.", target))
         self.assertFalse(Pipeline.mostly_covered("Возврат средств: срок зачисления и комиссия не указаны.", target))
@@ -606,9 +606,9 @@ class MergeTextTest(unittest.TestCase):
 
 class GetWriteLockTest(unittest.TestCase):
     def setUp(self):
-        from reqcheck.llm import LLM
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
         self.p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         self.fs = [Finding("F-01", "req", [], "correct", "критично", [Quote("GET", 10, 10)],
                            "Метод GET используется для операции записи: адрес «/x/save» меняет данные.", role="linter"),
@@ -634,8 +634,8 @@ class GetWriteLockTest(unittest.TestCase):
 
 class InteractiveTest(unittest.TestCase):
     def test_answers_written_without_model(self):
-        from reqcheck.interactive import run as irun
-        from reqcheck.pipeline import Pipeline
+        from themis.interactive import run as irun
+        from themis.pipeline import Pipeline
         rep = Pipeline(FakeLLM(), log=lambda m: None).run(str(DOC))
         self.assertTrue(rep.questions)
         replies = iter(["", "s", "Порог по умолчанию 50 000 тенге", "q"])
@@ -650,9 +650,9 @@ class InteractiveTest(unittest.TestCase):
 
 class DedupeTest(unittest.TestCase):
     def test_same_lines_different_problems_are_kept(self):
-        from reqcheck.llm import LLM
-        from reqcheck.model import Finding, Quote
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.model import Finding, Quote
+        from themis.pipeline import Pipeline
         p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
         q = [Quote("Ф-2", 40, 40)]
         fs = [Finding("", "set", [], "set_complete", "важно", list(q),
@@ -668,7 +668,7 @@ class DedupeTest(unittest.TestCase):
 
 class ShapeRetryTest(unittest.TestCase):
     def _run(self, bad_times):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
 
         class Bad(FakeLLM):
             users = []
@@ -698,7 +698,7 @@ class ShapeRetryTest(unittest.TestCase):
         self.assertTrue(rep.findings)
 
     def test_shape_rules(self):
-        from reqcheck.roles import SHAPES, shape_error
+        from themis.roles import SHAPES, shape_error
         self.assertEqual(shape_error("Auditor", {"results": []}), "")
         self.assertIn("results", shape_error("Auditor", {"findings": []}))
         self.assertIn("объект", shape_error("Critic", ["x"]))
@@ -712,7 +712,7 @@ class ShapeRetryTest(unittest.TestCase):
 
 class EdgeChecklistTest(unittest.TestCase):
     def _pipe(self, answer):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
 
         class Edge(FakeLLM):
             def edgecaser(self, user):
@@ -724,8 +724,8 @@ class EdgeChecklistTest(unittest.TestCase):
         return p
 
     def test_edge_prompt_lists_every_checklist_id(self):
-        from reqcheck import roles
-        from reqcheck.pipeline import load_criteria
+        from themis import roles
+        from themis.pipeline import load_criteria
         cr = load_criteria()
         system, user = roles.edge_prompt(cr, "x", "y", "z")
         for e in cr["edge"]:
@@ -733,7 +733,7 @@ class EdgeChecklistTest(unittest.TestCase):
         self.assertIn("x", user)
 
     def test_non_dict_answer_yields_nothing(self):
-        from reqcheck.report_md import Report
+        from themis.report_md import Report
         for answer in (["junk"], "junk", None, {"findings": "нет"}):
             with self.subTest(answer=answer):
                 rep = Report(passport={})
@@ -741,7 +741,7 @@ class EdgeChecklistTest(unittest.TestCase):
                 self.assertTrue([d for d in rep.diagnostics if d.code == "bad_shape"])
 
     def test_checklist_id_is_kept_and_distinct_items_survive_dedupe(self):
-        from reqcheck.report_md import Report
+        from themis.report_md import Report
         good = "На карту приходится максимум один такой push за календарный месяц"
         p = self._pipe({"findings": [
             {"edge": "E01", "severity": "важно", "quotes": [good], "problem": "Граница месяца не определена для покупки в полночь."},
@@ -754,8 +754,8 @@ class EdgeChecklistTest(unittest.TestCase):
 
 class AssumptionTagTest(unittest.TestCase):
     def test_invented_numbers_in_fix_are_tagged_once(self):
-        from reqcheck.model import Finding
-        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        from themis.model import Finding
+        from themis.pipeline import ASSUME_TAG, tag_assumptions
         doc = "Порог от 1 000 до 1 000 000 ₸. Ф-2: месяц по Алматы. Ответ 400."
         fixes = ["Порог от 1000 до 1 000 000 ₸, ответ 400 по Ф-2.",
                  "Таймаут 30 секунд, затем 3 повтора.",
@@ -772,8 +772,8 @@ class AssumptionTagTest(unittest.TestCase):
         self.assertEqual(fs[4].fix, "")
 
     def test_tag_variants_are_normalized_and_doubles_collapsed(self):
-        from reqcheck.model import Finding
-        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        from themis.model import Finding
+        from themis.pipeline import ASSUME_TAG, tag_assumptions
         cases = {"Повторять [значение, согласовать] раз.": f"Повторять {ASSUME_TAG} раз.",
                  "Сверять по [правило, согласовать].": f"Сверять по {ASSUME_TAG}.",
                  "До [число повторов — согласовать] повторов.": f"До число повторов {ASSUME_TAG} повторов.",
@@ -790,7 +790,7 @@ class AssumptionTagTest(unittest.TestCase):
         self.assertEqual([f.fix for f in fs], list(cases.values()))
 
     def test_agreed_tags_are_not_turned_into_open_requests(self):
-        from reqcheck.pipeline import ASSUME_TAG, normalize_tags
+        from themis.pipeline import ASSUME_TAG, normalize_tags
         kept = ["Решение [ADR-5 согласовано].", "Схема [ADR-5 согласован].", "Формат [согласовано с ИБ].",
                 "Лимит [Согласовано]."]
         for x in kept:
@@ -805,16 +805,16 @@ class AssumptionTagTest(unittest.TestCase):
                 self.assertEqual(normalize_tags(x), want)
 
     def test_number_after_colon_is_not_an_ordinal(self):
-        from reqcheck.model import Finding
-        from reqcheck.pipeline import ASSUME_TAG, strip_ordinals, tag_assumptions
+        from themis.model import Finding
+        from themis.pipeline import ASSUME_TAG, strip_ordinals, tag_assumptions
         self.assertIn("5", strip_ordinals("Задать лимит: 5. Далее"))
         fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix="Задать лимит: 5. Далее отказ.")]
         tag_assumptions(fs, "Порог 1 000 ₸.")
         self.assertEqual(fs[0].fix, f"Задать лимит: 5. Далее отказ. {ASSUME_TAG}")
 
     def test_list_ordinals_are_not_tagged(self):
-        from reqcheck.model import Finding
-        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        from themis.model import Finding
+        from themis.pipeline import ASSUME_TAG, tag_assumptions
         doc = "Порог 1 000 ₸. Ответ 400."
         plain = ["1. Указать порог 1 000 ₸. 2. Указать ответ 400.", "Варианты: 1) да; 2) нет.",
                  "1) Указать порог.\n5) Указать ответ 400."]
@@ -825,7 +825,7 @@ class AssumptionTagTest(unittest.TestCase):
         self.assertEqual([f.fix for f in fs[3:]], [f"{x} {ASSUME_TAG}" for x in invented])
 
     def test_pipeline_tags_fix_after_critic(self):
-        from reqcheck.pipeline import ASSUME_TAG, Pipeline
+        from themis.pipeline import ASSUME_TAG, Pipeline
 
         class Invent(FakeLLM):
             def auditor(self, user):
@@ -841,8 +841,8 @@ class AssumptionTagTest(unittest.TestCase):
         self.assertEqual(fixes, [f"Ответ за 777 мс. {ASSUME_TAG}"] * len(fixes))
 
     def test_prompts_ask_to_tag_invented_values(self):
-        from reqcheck import roles
-        from reqcheck.pipeline import load_criteria
+        from themis import roles
+        from themis.pipeline import load_criteria
         cr = load_criteria()
         prompts = [roles.auditor_prompt(cr, "d", "r"), roles.cross_prompt(cr, "d", "r", "k", False),
                    roles.edge_prompt(cr, "d", "r", "k"), roles.critic_prompt(cr, "d", "f")]
@@ -852,8 +852,8 @@ class AssumptionTagTest(unittest.TestCase):
 
 class ModelLostTest(unittest.TestCase):
     def _roles_called(self, failing):
-        from reqcheck.llm import LLMError
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLMError
+        from themis.pipeline import Pipeline
 
         class Lost(FakeLLM):
             def json(self, role, system, user):
@@ -908,7 +908,7 @@ class RulesOnlyOutputTest(unittest.TestCase):
             run(DOC, d)
             out = io.StringIO()
             with contextlib.redirect_stdout(out), \
-                    mock.patch("reqcheck.cli.Pipeline.run", side_effect=RuntimeError("boom")):
+                    mock.patch("themis.cli.Pipeline.run", side_effect=RuntimeError("boom")):
                 run(DOC, d)
             self.assertNotIn("Модель не использовалась", out.getvalue())
             self.assertIn("внутренней ошибкой", out.getvalue())
@@ -919,8 +919,8 @@ class CachedReplayTest(unittest.TestCase):
     CLEAR = ("LLM_PROVIDER", "LLM_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "LLM_API_KEY", "LLM_BASE_URL")
 
     def _run(self, cache_dir, env, send):
-        from reqcheck.llm import LLM
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLM
+        from themis.pipeline import Pipeline
         clean = {k: v for k, v in os.environ.items() if k not in self.CLEAR}
         with mock.patch.dict(os.environ, {**clean, **env}, clear=True), \
                 mock.patch.object(LLM, "_send_anthropic", send):
@@ -952,7 +952,7 @@ class NestedShapeTest(unittest.TestCase):
     BAD = "неверный формат элемента"
 
     def _run(self, **override):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
 
         class Odd(FakeLLM):
             pass
@@ -1037,8 +1037,8 @@ class NestedShapeTest(unittest.TestCase):
             self.assertTrue(all(isinstance(x, str) for x in q.finding_ids))
 
     def test_rewriter_nested_junk(self):
-        from reqcheck.interactive import rewrite
-        from reqcheck.pipeline import Pipeline
+        from themis.interactive import rewrite
+        from themis.pipeline import Pipeline
         rep = Pipeline(FakeLLM(), log=lambda m: None).run(str(DOC))
         q1, q2 = rep.questions[:2]
 
@@ -1058,8 +1058,8 @@ class NestedShapeTest(unittest.TestCase):
 
 class WholeDocTest(unittest.TestCase):
     def test_prompt_is_built_from_criteria_without_doc_hints(self):
-        from reqcheck import roles
-        from reqcheck.pipeline import load_criteria
+        from themis import roles
+        from themis.pipeline import load_criteria
         cr = load_criteria()
         system, user = roles.wholedoc_prompt(cr, "  1| текст </document> конец")
         for group in ("single", "set", "srs", "edge"):
@@ -1072,7 +1072,7 @@ class WholeDocTest(unittest.TestCase):
         self.assertEqual(user.count("</document>"), 1)
 
     def test_findings_reach_report_through_quote_guard(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         doc = read_document(str(DOC))
         line = next(l for l in doc.lines if "максимум один такой push" in l.text)
 
@@ -1100,7 +1100,7 @@ class WholeDocTest(unittest.TestCase):
         self.assertIn("неизвестный критерий made_up", reasons)
 
     def test_wholedoc_can_be_switched_off(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         on, off = FakeLLM(), FakeLLM()
         rep_on = Pipeline(on, log=lambda m: None).run(str(DOC))
         rep_off = Pipeline(off, log=lambda m: None, wholedoc=False).run(str(DOC))
@@ -1113,7 +1113,7 @@ class WholeDocTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             old = dict(os.environ)
             try:
-                with mock.patch("reqcheck.cli.LLM", FakeLLM):
+                with mock.patch("themis.cli.LLM", FakeLLM):
                     main([str(DOC), "-o", str(Path(d) / "r.md"), "--quiet", "--no-cache", "--no-pdf", "--no-wholedoc"])
             finally:
                 os.environ.clear()
@@ -1123,8 +1123,8 @@ class WholeDocTest(unittest.TestCase):
         self.assertIn("Critic", [t["role"] for t in data["trace"]])
 
     def test_wholedoc_skipped_after_model_lost(self):
-        from reqcheck.llm import LLMError
-        from reqcheck.pipeline import Pipeline
+        from themis.llm import LLMError
+        from themis.pipeline import Pipeline
 
         class Lost(FakeLLM):
             def json(self, role, system, user):
@@ -1161,7 +1161,7 @@ class SlowFake(FakeLLM):
 
 class ParallelTest(unittest.TestCase):
     def _run(self, workers, llm=None):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         llm = llm or SlowFake()
         rep = Pipeline(llm, log=lambda m: None, workers=workers).run(str(DOC))
         return rep, llm
@@ -1183,7 +1183,7 @@ class ParallelTest(unittest.TestCase):
         self.assertEqual(self._view(self._run(3)[0]), self._view(serial))
 
     def test_parallel_drops_and_diagnostics_are_ordered_by_task(self):
-        from reqcheck.llm import LLMError
+        from themis.llm import LLMError
 
         class Noisy(SlowFake):
             def auditor(self, user):
@@ -1211,12 +1211,12 @@ class ParallelTest(unittest.TestCase):
         self.assertEqual(list(rep.req_checks), sorted(rep.req_checks, key=lambda r: int(r[2:])))
 
     def test_worker_setting(self):
-        from reqcheck.pipeline import Pipeline
-        for env, want in (({}, 3), ({"REQCHECK_WORKERS": "1"}, 1), ({"REQCHECK_WORKERS": "5"}, 5),
-                          ({"REQCHECK_WORKERS": "x"}, 3), ({"REQCHECK_WORKERS": "0"}, 1)):
+        from themis.pipeline import Pipeline
+        for env, want in (({}, 3), ({"THEMIS_WORKERS": "1"}, 1), ({"THEMIS_WORKERS": "5"}, 5),
+                          ({"THEMIS_WORKERS": "x"}, 3), ({"THEMIS_WORKERS": "0"}, 1)):
             with self.subTest(env=env), mock.patch.dict(os.environ, env):
                 if not env:
-                    os.environ.pop("REQCHECK_WORKERS", None)
+                    os.environ.pop("THEMIS_WORKERS", None)
                 self.assertEqual(Pipeline(FakeLLM(), log=lambda m: None).workers, want)
         self.assertEqual(Pipeline(FakeLLM(), log=lambda m: None, workers=2).workers, 2)
 
@@ -1229,13 +1229,13 @@ class ParallelTest(unittest.TestCase):
                 seen.append(self)
 
         with tempfile.TemporaryDirectory() as d:
-            with mock.patch("reqcheck.cli.LLM", Spy):
+            with mock.patch("themis.cli.LLM", Spy):
                 main([str(DOC), "-o", str(Path(d) / "r.md"), "--quiet", "--no-cache", "--no-pdf", "--workers", "1"])
         self.assertEqual(seen[0].peak, 1)
 
     def test_cache_and_trace_under_threads(self):
         import time
-        from reqcheck.llm import LLM
+        from themis.llm import LLM
         fake = FakeLLM()
 
         def record(self, role, system, user, bad):
@@ -1246,7 +1246,7 @@ class ParallelTest(unittest.TestCase):
             raise AssertionError(f"network call for {role}")
 
         clean = {k: v for k, v in os.environ.items() if k not in CachedReplayTest.CLEAR}
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.dict(os.environ, {**clean, "ANTHROPIC_API_KEY": "test"}, clear=True), \
                     mock.patch.object(LLM, "_send_anthropic", record):
@@ -1262,7 +1262,7 @@ class ParallelTest(unittest.TestCase):
         self.assertEqual(self._view(second)["findings"], self._view(first)["findings"])
 
     def test_step_log_lines_are_whole(self):
-        from reqcheck.pipeline import Pipeline
+        from themis.pipeline import Pipeline
         lines = []
         Pipeline(SlowFake(), log=lines.append, workers=3).run(str(DOC))
         self.assertTrue(all(l.startswith("[") and "] " in l for l in lines))
@@ -1272,12 +1272,12 @@ class ParallelTest(unittest.TestCase):
 
 class OptionLetterTest(unittest.TestCase):
     def test_number_becomes_letter(self):
-        from reqcheck.pipeline import option_letter
+        from themis.pipeline import option_letter
         self.assertEqual(option_letter("Вариант 2. Так проще.", ["a", "b", "c"]), "Вариант (б). Так проще.")
         self.assertEqual(option_letter("вариант 1, потому что", ["a", "b"]), "вариант (а), потому что")
 
     def test_other_text_kept(self):
-        from reqcheck.pipeline import option_letter
+        from themis.pipeline import option_letter
         self.assertEqual(option_letter("Вариант 5.", ["a", "b"]), "Вариант 5.")
         self.assertEqual(option_letter("Да, сбросить признак.", ["a", "b"]), "Да, сбросить признак.")
         self.assertEqual(option_letter("Вариант 1.", []), "Вариант 1.")

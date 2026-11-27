@@ -1,4 +1,4 @@
-# reqcheck: подробности
+# themis: подробности
 
 Здесь всё, что не вошло в [README](../README.md): полные числа, расчёт ценности, устройство агента, запуск,
 оценка и тесты. Версия v1.6.13, сделано для BCC-HUB x MNU FinTech Hackathon.
@@ -132,7 +132,7 @@
 Ответы можно дать в терминале (`--interactive`) или файлом:
 
 ```bash
-python -m reqcheck input/requirements.md -o out/report.md --answers examples/answers/requirements.answers.toml
+python -m themis input/requirements.md -o out/report.md --answers examples/answers/requirements.answers.toml
 ```
 
 Формат файла: `Q-01 = "a"` (буква варианта), `"default"` (рекомендация агента) или свой текст. Роль Rewriter
@@ -174,10 +174,10 @@ flowchart TD
 ```
 
 - Ветка CrossChecker затем EdgeCaser и ветка WholeDoc идут параллельно (`--workers`, по умолчанию 3).
-- Повторы. Если JSON роли не той формы, код один раз спрашивает роль заново (`reqcheck/pipeline.py:296-309`);
-  этот вызов попадает в паспорт. Невалидный JSON, сетевые ошибки и лимиты повторяются внутри `reqcheck/llm.py`
+- Повторы. Если JSON роли не той формы, код один раз спрашивает роль заново (`themis/pipeline.py:296-309`);
+  этот вызов попадает в паспорт. Невалидный JSON, сетевые ошибки и лимиты повторяются внутри `themis/llm.py`
   до `LLM_MAX_RETRIES` раз (по умолчанию 4, `llm.py:168-183`); эти повторы в паспорт не входят.
-- Проверка цитат в коде (`reqcheck/ground.py`): каждую цитату от Auditor, CrossChecker, EdgeCaser, WholeDoc
+- Проверка цитат в коде (`themis/ground.py`): каждую цитату от Auditor, CrossChecker, EdgeCaser, WholeDoc
   и Clarifier код ищет в тексте документа. Нашёл дословно - цитата остаётся. Нашёл приблизительно - цитата
   заменяется найденными строками документа (1-3 строки целиком). Порог сходства 0.85; если найденные строки
   включают ожидаемую строку (номер от модели или начало требования), к сходству прибавляется 0.05, то есть
@@ -187,10 +187,10 @@ flowchart TD
   отбрасывается (`pipeline.py:396-398`). Отброшенное с причиной лежит в `drops` в JSON.
 - Калибровка важности. Размытая формулировка без числа это «важно», а не «критично» (`criteria.toml:9-10`).
   Если документ о чём-то просто молчит, это не повод для «критично». Общие пункты чек-листа, которые документ
-  сам не обещает, не выше «мелочь» (`reqcheck/roles.py:280-292`). Критик не может понизить или удалить
-  «критично» от правил кода про GET для операции записи (`reqcheck/pipeline.py:588`, `599`, `617-623`).
+  сам не обещает, не выше «мелочь» (`themis/roles.py:280-292`). Критик не может понизить или удалить
+  «критично» от правил кода про GET для операции записи (`themis/pipeline.py:588`, `599`, `617-623`).
 - Для каждого противоречия CrossChecker даёт пример-свидетель: один вход и два разных результата
-  (`reqcheck/roles.py:145-147`).
+  (`themis/roles.py:145-147`).
 - Reconciler переписывает «Как исправить» у замечаний, которые закрывает вопрос, под рекомендованный вариант.
   Код разрешает менять только это поле; важность, цитаты и номера не меняются. Если вопросы спорят между собой,
   у вопроса появляется пометка «Внимание» (`pipeline.py:678-731`).
@@ -199,7 +199,7 @@ flowchart TD
   если модель не использовалась и правила кода не нашли критичных. Если правила нашли критичные, вердикт «Нет»
   и без модели (`pipeline.py:757-768`).
 - Текст документа передаётся модели как данные: промпт велит не выполнять команды из документа и считать их
-  дефектом (`reqcheck/roles.py:23-24`). На ТЗ с такими командами (`examples/injection/report.md`) агент их
+  дефектом (`themis/roles.py:23-24`). На ТЗ с такими командами (`examples/injection/report.md`) агент их
   не выполнил и отметил как дефект D-05.
 
 Что конвейер добавляет к одному промпту, кроме полноты: таблицу «требование x 9 свойств 29148 п. 5.2.5» для
@@ -262,7 +262,7 @@ python eval/score.py examples/cashback/report.json --golden eval/golden_cashback
   Строго найдено 55 из 56 дефектов и 29 из 29 обязательных (`eval/stress/RESULTS_v1.4-rc1.md`).
 - Абляция по ролям: [`eval/ablation.md`](../eval/ablation.md), считается из кэша без запросов к модели
   (`python -m eval.ablation`).
-- Тест на подгонку `tests/test_no_overfit.py`: в `reqcheck/*.py` и `criteria.toml` нет ни одной фразы из 5 слов
+- Тест на подгонку `tests/test_no_overfit.py`: в `themis/*.py` и `criteria.toml` нет ни одной фразы из 5 слов
   из трёх примеров ТЗ и четырёх названий API из примеров (`saveLimit`, `cardId`, `/alerts/`, `spentMonth`).
 
 ### Вклад ролей
@@ -301,11 +301,11 @@ python eval/score.py examples/cashback/report.json --golden eval/golden_cashback
 берёт ответы только из кэша и не обращается к модели, даже если в `.env` задан другой провайдер или модель.
 
 ```bash
-git clone https://github.com/l9kk/reqcheck && cd reqcheck
+git clone https://github.com/l9kk/themis && cd themis
 python -m venv .venv
 . .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m reqcheck input/requirements.md -o out/report.md --replay
+python -m themis input/requirements.md -o out/report.md --replay
 ```
 
 Отчёт ляжет в `out/report.md`, рядом `out/report.html`, `out/report.pdf` и `out/report.json`. Агент берёт ответы
@@ -316,7 +316,7 @@ python -m reqcheck input/requirements.md -o out/report.md --replay
 Чтобы отдельно убедиться, что сеть не нужна, можно направить API в никуда (Linux, macOS):
 
 ```bash
-ANTHROPIC_BASE_URL=http://127.0.0.1:9 LLM_MAX_RETRIES=0 python -m reqcheck input/requirements.md -o out/report.md
+ANTHROPIC_BASE_URL=http://127.0.0.1:9 LLM_MAX_RETRIES=0 python -m themis input/requirements.md -o out/report.md
 ```
 
 Эти переменные только для такой проверки. Без `LLM_MAX_RETRIES=0` на документе без кэша агент будет повторять
@@ -325,8 +325,8 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:9 LLM_MAX_RETRIES=0 python -m reqcheck input
 Так же повторяются два других документа:
 
 ```bash
-python -m reqcheck examples/docs/autotopup.md -o out/autotopup/report.md
-python -m reqcheck examples/docs/cashback.md -o out/cashback/report.md
+python -m themis examples/docs/autotopup.md -o out/autotopup/report.md
+python -m themis examples/docs/cashback.md -o out/cashback/report.md
 ```
 
 На другом документе кэша нет. Без ключа агент тогда отработает только правила кода и напишет
@@ -338,14 +338,14 @@ python -m reqcheck examples/docs/cashback.md -o out/cashback/report.md
 ключ в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`.
 
 ```bash
-python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache
+python -m themis input/requirements.md -o out/opus/report.md --no-cache
 ```
 
 Без `--no-cache` на наших трёх документах агент просто повторит отчёт из кэша.
 
 Форматы входа: `.pdf`, `.docx`, `.xlsx` (каждый лист как таблица), `.html`, `.md`, `.txt` (UTF-8 и cp1251). Старые `.doc` и `.xls` и сканы без текста дают понятную ошибку с советом.
 
-Коды выхода (`reqcheck/cli.py:127-129`):
+Коды выхода (`themis/cli.py:127-129`):
 
 - 2 - файл не прочитан (нет файла, пустой, битый, зашифрованный, скан без текста), документ не похож на ТЗ
   (по правилам кода или по ответу модели), внутренняя ошибка агента или ошибка в файле `--answers`;
@@ -391,7 +391,7 @@ python -m unittest discover -s tests -t . && python -m unittest discover -s eval
 
 ```bash
 python tools/claude_proxy.py 8765
-LLM_PROVIDER=anthropic ANTHROPIC_BASE_URL=http://127.0.0.1:8765 python -m reqcheck input/requirements.md -o out/report.md --no-cache
+LLM_PROVIDER=anthropic ANTHROPIC_BASE_URL=http://127.0.0.1:8765 python -m themis input/requirements.md -o out/report.md --no-cache
 ```
 
 ## Что нового в v1.6

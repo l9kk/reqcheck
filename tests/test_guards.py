@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from reqcheck.interactive import pick
-from reqcheck.pipeline import Pipeline
-from reqcheck.reader import decode_text
+from themis.interactive import pick
+from themis.pipeline import Pipeline
+from themis.reader import decode_text
 from tests.fake_llm import FakeLLM
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,12 +30,12 @@ class GuardTest(unittest.TestCase):
         self.assertTrue(out.startswith("Система"))
 
     def test_too_long_document_skips_model(self):
-        os.environ["REQCHECK_MAX_CHARS"] = "1000"
+        os.environ["THEMIS_MAX_CHARS"] = "1000"
         try:
             llm = FakeLLM()
             rep = Pipeline(llm, log=lambda m: None).run(str(ROOT / "input" / "requirements.md"))
         finally:
-            del os.environ["REQCHECK_MAX_CHARS"]
+            del os.environ["THEMIS_MAX_CHARS"]
         self.assertIn("too_long", [d.code for d in rep.diagnostics])
         self.assertEqual(llm.trace, [])
         self.assertIn("Модель не использовалась", rep.verdict["text"])

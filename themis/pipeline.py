@@ -101,7 +101,7 @@ def option_letter(text: str, opts) -> str:
 
 def default_workers() -> int:
     try:
-        return max(1, int(os.getenv("REQCHECK_WORKERS", "3")))
+        return max(1, int(os.getenv("THEMIS_WORKERS", "3")))
     except ValueError:
         return 3
 
@@ -212,11 +212,11 @@ class Pipeline:
         self.doc = doc
         self.g = Grounder(doc)
         numbered = doc.numbered()
-        limit = int(os.getenv("REQCHECK_MAX_CHARS", "400000"))
+        limit = int(os.getenv("THEMIS_MAX_CHARS", "400000"))
         if len(numbered) > limit:
             rep.diagnostics.append(Diagnostic("error", "too_long",
                                               f"Документ слишком большой для одной проверки: {len(numbered)} знаков при пределе {limit}.",
-                                              "Разделите документ на части или поднимите REQCHECK_MAX_CHARS в .env."))
+                                              "Разделите документ на части или поднимите THEMIS_MAX_CHARS в .env."))
             self.use_model = False
             self.no_model_hint = "документ слишком большой для модели, разделите его на части и проверьте каждую"
 

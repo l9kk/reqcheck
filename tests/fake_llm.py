@@ -12,7 +12,7 @@ def words(text: str, n: int = 8) -> str:
 
 
 class FakeLLM:
-    """Stands in for reqcheck.llm.LLM: small schema-valid answers per role, built from the prompt."""
+    """Stands in for themis.llm.LLM: small schema-valid answers per role, built from the prompt."""
 
     provider = "fake"
     model = "fake"

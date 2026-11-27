@@ -2,7 +2,7 @@ import re
 import unittest
 from html import escape, unescape
 
-from reqcheck.report_html import md_line, render_html
+from themis.report_html import md_line, render_html
 from tests.test_report_html import DOC, EVIL, doc_lines
 from tests.test_report_md import CRIT, ROOT, load, small_report
 

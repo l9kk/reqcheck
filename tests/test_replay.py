@@ -3,8 +3,8 @@ import unittest
 from dataclasses import asdict
 from pathlib import Path
 
-from reqcheck.llm import ReplayLLM
-from reqcheck.pipeline import Pipeline
+from themis.llm import ReplayLLM
+from themis.pipeline import Pipeline
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = [("input/requirements.md", "report/report.json"),

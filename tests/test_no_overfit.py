@@ -16,7 +16,7 @@ class NoOverfitTest(unittest.TestCase):
     """Prompts, rules and code must not carry text copied from the sample documents."""
 
     def sources(self):
-        return sorted((ROOT / "reqcheck").glob("*.py")) + [ROOT / "criteria.toml"]
+        return sorted((ROOT / "themis").glob("*.py")) + [ROOT / "criteria.toml"]
 
     def test_no_five_word_phrase_from_sample_docs(self):
         code = {p: shingles(p.read_text(encoding="utf-8")) for p in self.sources()}

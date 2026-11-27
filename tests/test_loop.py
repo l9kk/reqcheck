@@ -2,13 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from reqcheck.interactive import load_answers, pick, run as irun
-from reqcheck.loop import recheck, render_delta
-from reqcheck.model import Finding, Question, Quote, Report
-from reqcheck.pipeline import Pipeline
-from reqcheck.ground import Grounder
-from reqcheck.model import Requirement
-from reqcheck.reader import read_document
+from themis.interactive import load_answers, pick, run as irun
+from themis.loop import recheck, render_delta
+from themis.model import Finding, Question, Quote, Report
+from themis.pipeline import Pipeline
+from themis.ground import Grounder
+from themis.model import Requirement
+from themis.reader import read_document
 from tests.fake_llm import FakeLLM
 
 DOC = Path(__file__).resolve().parent.parent / "input" / "requirements.md"
@@ -115,7 +115,7 @@ class DeltaTest(unittest.TestCase):
         self.assertIn("N-01", text)
 
     def test_new_findings_about_one_issue_share_a_line(self):
-        from reqcheck.loop import group_new
+        from themis.loop import group_new
         q = Quote("цитата", 138, 138, "строка 138")
         n = [Finding("N-23", "req", ["R-16"], "correct", "критично", [q],
                      "В примере параметры передаются в JSON-теле, но ниже cardId, amount и enabled описаны как "
@@ -157,7 +157,7 @@ class DeltaTest(unittest.TestCase):
         self.assertIsNone(recheck(pipe, rep, self.items(q), say=lambda m: None))
 
     def test_rewriter_covers_all_linked_requirements(self):
-        from reqcheck.interactive import rewrite
+        from themis.interactive import rewrite
         seen = {}
 
         def mock(role, system, user):

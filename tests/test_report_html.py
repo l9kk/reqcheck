@@ -4,9 +4,9 @@ import unittest
 from html import escape
 from pathlib import Path
 
-from reqcheck.model import Diagnostic, Finding, Question, Quote, Report
-from reqcheck.reader import read_document
-from reqcheck.report_html import render_html, write_html
+from themis.model import Diagnostic, Finding, Question, Quote, Report
+from themis.reader import read_document
+from themis.report_html import render_html, write_html
 from tests.test_report_md import CRIT, ROOT, load, small_report
 
 EVIL = '<script>alert("x")</script><img src=x onerror=alert(1)>'

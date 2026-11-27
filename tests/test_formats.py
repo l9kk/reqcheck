@@ -3,8 +3,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from reqcheck.pipeline import Pipeline
-from reqcheck.reader import ReadError, read_document
+from themis.pipeline import Pipeline
+from themis.reader import ReadError, read_document
 from tests.fake_llm import FakeLLM
 
 NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'

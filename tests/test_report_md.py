@@ -3,10 +3,10 @@ import re
 import unittest
 from pathlib import Path
 
-from reqcheck.model import ChecklistRow, Diagnostic, Finding, Question, Quote, Report, Requirement
-from reqcheck.pipeline import all_criteria, load_criteria
-from reqcheck.report_md import brief, problem_parts, render
-from reqcheck.segment import clean
+from themis.model import ChecklistRow, Diagnostic, Finding, Question, Quote, Report, Requirement
+from themis.pipeline import all_criteria, load_criteria
+from themis.report_md import brief, problem_parts, render
+from themis.segment import clean
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = [ROOT / "report" / "report.json", ROOT / "examples" / "autotopup" / "report.json",

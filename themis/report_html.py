@@ -269,7 +269,7 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
 
     head = ['<header class="bar"><div class="bar-in"><div class="brand">'
             '<svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="6"/><path d="M7.5 12.5l3 3 6-7"/></svg>'
-            '<span class="bname">reqcheck</span></div>'
+            '<span class="bname">themis</span></div>'
             + "".join(nav) + '<div class="bact">'
             '<button type="button" class="tbtn" id="print" title="Печать или сохранение в PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg><span>PDF</span></button>'
             f"<button type=\"button\" class=\"theme\" id=\"theme\" aria-label=\"Сменить тему: светлая или тёмная\" title=\"Светлая или тёмная тема\"><svg class=\"i-moon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z\"/></svg><svg class=\"i-sun\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4\"/></svg></button></div></div></header>",
@@ -648,7 +648,7 @@ code{font:12.5px var(--mono)}
 @page{size:A4;margin:14mm 12mm}
 """
 
-THEME_JS = "try{var t=localStorage.getItem('reqcheck-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}\n"
+THEME_JS = "try{var t=localStorage.getItem('themis-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}\n"
 
 JS = r"""
 (function(){
@@ -657,7 +657,7 @@ function mobile(){return window.matchMedia&&matchMedia('(max-width: 767px)').mat
 var th=d.getElementById('theme'),root=d.documentElement;
 function isDark(){var t=root.getAttribute('data-theme');return t?t==='dark':!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
 function syncTheme(){if(th)th.setAttribute('aria-pressed',isDark()?'true':'false');}
-if(th){syncTheme();th.addEventListener('click',function(){var t=isDark()?'light':'dark';root.setAttribute('data-theme',t);try{localStorage.setItem('reqcheck-theme',t);}catch(e){}syncTheme();});}
+if(th){syncTheme();th.addEventListener('click',function(){var t=isDark()?'light':'dark';root.setAttribute('data-theme',t);try{localStorage.setItem('themis-theme',t);}catch(e){}syncTheme();});}
 [].forEach.call(d.querySelectorAll('.ln[data-md]'),function(el){var t=el.querySelector('.tx');if(t){t.innerHTML=el.getAttribute('data-md');t.classList.add('r');}});
 var tabs=[].slice.call(d.querySelectorAll('[data-tab]')),tabbar=d.querySelector('.tabs');
 function fade(){if(tabbar)tabbar.classList.toggle('more-r',tabbar.scrollLeft+tabbar.clientWidth<tabbar.scrollWidth-2);}

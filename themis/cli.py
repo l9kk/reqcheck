@@ -30,7 +30,7 @@ def main(argv=None) -> int:
             s.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
-    ap = argparse.ArgumentParser(prog="python -m reqcheck",
+    ap = argparse.ArgumentParser(prog="python -m themis",
                                  description="Агент проверки качества требований (ISO/IEC/IEEE 29148, IEEE 830).")
     ap.add_argument("input", help="путь к документу требований (.pdf, .docx, .xlsx, .html, .md, .txt)")
     ap.add_argument("-o", "--output", default="out/report.md", help="путь к отчёту (.md); рядом пишутся .json, .html, .pdf")
@@ -47,7 +47,7 @@ def main(argv=None) -> int:
     ap.add_argument("--no-wholedoc", action="store_true",
                     help="без роли WholeDoc (ревью всего документа одним запросом), для сравнения")
     ap.add_argument("--workers", type=int, metavar="N",
-                    help="сколько запросов к модели слать одновременно (по умолчанию REQCHECK_WORKERS или 3; 1 = по очереди)")
+                    help="сколько запросов к модели слать одновременно (по умолчанию THEMIS_WORKERS или 3; 1 = по очереди)")
     args = ap.parse_args(argv)
 
     load_dotenv(Path.cwd() / ".env")
@@ -70,7 +70,7 @@ def main(argv=None) -> int:
         rep.diagnostics.append(Diagnostic("error", "internal", f"Внутренняя ошибка агента: {type(e).__name__}: {e}",
                                           "Сообщите разработчикам, приложив входной файл."))
         rep.verdict = {"status": "Не проверено", "text": "Проверка прервана внутренней ошибкой.", "fix_first": []}
-        if os.getenv("REQCHECK_DEBUG"):
+        if os.getenv("THEMIS_DEBUG"):
             raise
 
     out = Path(args.output)

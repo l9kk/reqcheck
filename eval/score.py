@@ -1,4 +1,4 @@
-"""Score a reqcheck report.json against the golden list of planted defects.
+"""Score a themis report.json against the golden list of planted defects.
 
 Usage: python eval/score.py <report.json> [--golden eval/golden.toml] [--md out.md]
 """

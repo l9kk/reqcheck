@@ -1,10 +1,10 @@
-# reqcheck: проверка ТЗ до разработки
+# themis: проверка ТЗ до разработки
 
 Агент читает ТЗ, находит дефекты требований по ISO/IEC/IEEE 29148 и IEEE 830, задаёт автору вопросы
 с вариантами ответа и пишет отчёт на русском. Для QA-лида и аналитика: дефекты видны до того, как по ТЗ
 начнут писать код и тесты. Каждое замечание с дословной цитатой и номером строки, цитаты проверяет код.
 
-**Для жюри:** [отчёт в браузере](https://htmlpreview.github.io/?https://github.com/l9kk/reqcheck/blob/main/report/report.html) ·
+**Для жюри:** [отчёт в браузере](https://htmlpreview.github.io/?https://github.com/l9kk/themis/blob/main/report/report.html) ·
 [отчёт PDF](report/report.pdf) · [презентация](docs/deck.pdf) · [все числа и команды](RESULTS.md) · [вопросы и ответы](docs/qa.md)
 
 | На выданном ТЗ | |
@@ -32,10 +32,10 @@
 
 | Что проверяет код | Где | Что это даёт |
 | :--- | :--- | :--- |
-| Ищет каждую цитату в ТЗ и сам ставит номер строки. Цитата не найдена: замечание выброшено | `reqcheck/ground.py:34-80`, `reqcheck/pipeline.py:382-406` | 132 цитаты в отчёте, все дословные |
-| Форму JSON каждой роли. Не та форма: один повторный запрос, потом роль пропускается | `reqcheck/roles.py:418-446`, `reqcheck/pipeline.py:296-309` | одна сломанная роль не ломает отчёт |
-| Границы ролей: Critic не может удалить найденный кодом GET для записи, Reconciler меняет только текст исправления | `reqcheck/pipeline.py:582-629`, `678-731` | роль не выходит за свою задачу |
-| Вердикт «Да / Нет» считает код по числу критичных | `reqcheck/pipeline.py:748-772` | текст внутри ТЗ не поставит «Да» |
+| Ищет каждую цитату в ТЗ и сам ставит номер строки. Цитата не найдена: замечание выброшено | `themis/ground.py:34-80`, `themis/pipeline.py:382-406` | 132 цитаты в отчёте, все дословные |
+| Форму JSON каждой роли. Не та форма: один повторный запрос, потом роль пропускается | `themis/roles.py:418-446`, `themis/pipeline.py:296-309` | одна сломанная роль не ломает отчёт |
+| Границы ролей: Critic не может удалить найденный кодом GET для записи, Reconciler меняет только текст исправления | `themis/pipeline.py:582-629`, `678-731` | роль не выходит за свою задачу |
+| Вердикт «Да / Нет» считает код по числу критичных | `themis/pipeline.py:748-772` | текст внутри ТЗ не поставит «Да» |
 | Всё отброшенное пишет в `drops` с причиной | `report/report.json` | видно, что и почему отсеяно |
 
 Каждая роль оправдана замером на выданном ТЗ (повтор из кэша, `python -m eval.ablation`, [`eval/ablation.md`](eval/ablation.md)):
@@ -140,18 +140,16 @@ ISO 29148 п. 5.2.5, Ф-3 и Ф-4 - пункты самого ТЗ.
 - повторное сохранение того же порога сбрасывает признак отправки (Q-01, вариант в).
 
 Вопрос не попадает в отчёт, если ответ уже есть в ТЗ: модель приводит цитату-ответ, код находит её в
-документе и снимает вопрос (`reqcheck/pipeline.py:642-645`).
+документе и снимает вопрос (`themis/pipeline.py:642-645`).
 
 ## Быстрый старт
-
-![Запуск агента в терминале: повтор из кэша без ключа](docs/img/run.gif)
 
 Повтор нашего прогона без ключа: ответы модели из кэша `.cache/llm`, 0 запросов. Нужен Python 3.11+.
 
 ```bash
-git clone https://github.com/l9kk/reqcheck && cd reqcheck
+git clone https://github.com/l9kk/themis && cd themis
 python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt   # Windows: .venv\Scripts\activate
-python -m reqcheck input/requirements.md -o out/report.md --replay
+python -m themis input/requirements.md -o out/report.md --replay
 ```
 
 Отчёт ляжет в `out/report.md`, рядом `out/report.pdf`, `out/report.html` и `out/report.json`.
@@ -160,7 +158,7 @@ python -m reqcheck input/requirements.md -o out/report.md --replay
 
 - **Anthropic.** Ключ: https://platform.claude.com/settings/keys (нужен баланс). Вставьте его
   в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`. Без `--no-cache` агент повторит отчёт из кэша.
-  Запуск: `python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache`
+  Запуск: `python -m themis input/requirements.md -o out/opus/report.md --no-cache`
 - **Подписка Claude Code вместо ключа.** Локальный прокси `tools/claude_proxy.py` передаёт запросы в `claude -p`,
   наши отчёты сделаны так. [Как запустить](docs/details.md#два-способа-подключить-claude).
 
@@ -194,10 +192,10 @@ flowchart TD
 Роли с пометкой «код» работают без модели.
 
 - **Цитаты проверяет код.** Каждую цитату модели код ищет в тексте ТЗ и сам ставит номер строки. Не нашёл -
-  цитата выброшена, замечание без цитат тоже (`reqcheck/ground.py`).
+  цитата выброшена, замечание без цитат тоже (`themis/ground.py`).
 - **Критерии - это данные.** Свойства 29148 и IEEE 830 лежат в `criteria.toml`, промпты собираются из него.
 - **Проверка формы ответа.** Если JSON роли не той формы, код один раз спрашивает роль заново
-  (`reqcheck/pipeline.py:296-309`). Вердикт считает код, а не модель.
+  (`themis/pipeline.py:296-309`). Вердикт считает код, а не модель.
 - **Reconciler.** Сверяет исправления в замечаниях с рекомендациями вопросов: противоречий было 4-8 из 10
   вопросов, стало 2 из 10, и они помечены в отчёте «Внимание» ([`eval/reconciler_check.md`](eval/reconciler_check.md)).
 - **Кэш.** Каждый ответ модели сохраняется в `.cache/llm`, повтор того же прогона не тратит запросов.

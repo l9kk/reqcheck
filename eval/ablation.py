@@ -13,9 +13,9 @@ from dataclasses import asdict
 from pathlib import Path
 
 from eval.score import load_golden, score
-from reqcheck import pipeline as pl
-from reqcheck.llm import LLM
-from reqcheck.roles import restore
+from themis import pipeline as pl
+from themis.llm import LLM
+from themis.roles import restore
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / ".cache" / "llm"

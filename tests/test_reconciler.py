@@ -3,12 +3,12 @@ import unittest
 from dataclasses import asdict
 from pathlib import Path
 
-from reqcheck.ground import Grounder
-from reqcheck.llm import LLMError
-from reqcheck.model import Finding, Question, Report
-from reqcheck.pipeline import ROLE_ORDER, Pipeline
-from reqcheck.reader import read_document
-from reqcheck.report_md import render
+from themis.ground import Grounder
+from themis.llm import LLMError
+from themis.model import Finding, Question, Report
+from themis.pipeline import ROLE_ORDER, Pipeline
+from themis.reader import read_document
+from themis.report_md import render
 from tests.fake_llm import FakeLLM
 
 DOC = Path(__file__).resolve().parent.parent / "input" / "requirements.md"

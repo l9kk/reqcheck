@@ -138,10 +138,10 @@ def recheck(pipe, rep, items: list[dict], say=print) -> dict | None:
     linked_ids = {x for v in items for x in v["q"].finding_ids}
     in_scope = set(rewritten) | set(neigh)
     old = [f for f in rep.findings if f.id in linked_ids or (set(f.req_ids) & in_scope)]
-    return judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked)
+    return judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked, rep.findings)
 
 
-def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked=frozenset()) -> dict:
+def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, unchecked=frozenset(), all_old=()) -> dict:
     rw = "\n".join(f"{rid}: {v['text']}" for rid, v in rewritten.items())
     sys_j, usr_j = roles.delta_prompt(rw, "\n".join(fmt_old(f, f.id in linked_ids) for f in old),
                                       "\n".join(f"{f.id} [{f.criterion}; {f.severity}; {', '.join(f.req_ids)}] {f.problem}"
@@ -189,7 +189,7 @@ def judge(pipe, rep, rewritten, old, linked_ids, new, calls0, drops0, cross_ok, 
     return {"rewritten": rewritten, "closed": closed, "remains": remains, "new": fresh, "judged": judged,
             "cross_ok": cross_ok, "calls": len(trace), "seconds": round(sum(t["seconds"] for t in trace), 1),
             "guard_drops": len(pipe.drops) - drops0, "untouched": untouched, "repeat_nb": repeat_nb,
-            "other_nb": other_nb}
+            "other_nb": other_nb, "all_old": list(all_old)}
 
 
 def _line(f, why, answer_q=None) -> str:
@@ -200,8 +200,18 @@ def _line(f, why, answer_q=None) -> str:
     return f"- {f.id} [{f.severity}, {f.criterion}, {where}]{quote}: {f.problem}{tail}"
 
 
+def counts(fs) -> str:
+    return f"критично {sum(f.severity == 'критично' for f in fs)}, важно {sum(f.severity == 'важно' for f in fs)}, " \
+           f"мелочь {sum(f.severity == 'мелочь' for f in fs)}"
+
+
 def render_delta(d: dict) -> str:
+    gone = {f.id for f, _ in d["closed"]}
+    after = [f for f in d["all_old"] if f.id not in gone] + [f for f, _ in d["new"]]
     md = ["## Дельта после ответов", "",
+          f"Было: {counts(d['all_old'])} (всего {len(d['all_old'])}).",
+          f"Стало (оценка по перепроверке, соседние требования не пересчитывались): {counts(after)} (всего {len(after)}).",
+          f"Закрыто замечаний: {', '.join(sorted(gone)) or 'нет'}. Новых: {', '.join(f.id for f, _ in d['new']) or 'нет'}.", "",
           f"Переписано требований: {len(d['rewritten'])} ({', '.join(d['rewritten'])}). Перепроверка: Аудитор и "
           f"Кросс-проверка на переписанных требованиях и соседних, затем сверка. Вызовов модели: {d['calls']}, "
           f"{d['seconds']} с. Замечания на переписанном тексте ссылаются на номер требования и его новую формулировку; "

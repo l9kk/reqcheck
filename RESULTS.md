@@ -50,7 +50,7 @@ LLM_PROVIDER=anthropic LLM_MODEL=claude-opus-5-5 .venv/bin/python -m reqcheck in
 ```
 
 Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты).
-Тесты (151): `.venv/bin/python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit tests.test_report_html tests.test_reconciler`
+Тесты (164): `.venv/bin/python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit tests.test_report_html tests.test_reconciler tests.test_report_html_polish`
 
 ## Чего здесь нет
 

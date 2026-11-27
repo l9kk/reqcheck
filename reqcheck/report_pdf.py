@@ -127,9 +127,14 @@ def write_pdf(md_path: Path, pdf_path: Path) -> None:
                 s = s + " " + lines[i].strip()
         text = _plain(bullet.group(1) if bullet else s)
         if bullet:
-            pad = 8 if ln.startswith("  ") else 3
+            pad = 8 if ln.startswith("  ") else 4
+            mark = "•" if s[0] in "-*" else s.split()[0]
+            gap = 4 if mark == "•" else pdf.get_string_width(mark) + 1.6
             pdf.set_x(pdf.l_margin + pad)
-            pdf.multi_cell(w - pad, 5, ("- " if s[0] in "-*" else s.split()[0] + " ") + text, markdown=True, align="L", **NL)
+            pdf.set_text_color(110, 122, 125)
+            pdf.cell(gap, 5, mark)
+            pdf.set_text_color(20, 32, 35)
+            pdf.multi_cell(w - pad - gap, 5, text, markdown=True, align="L", **NL)
         else:
             pdf.multi_cell(w, 5, text, markdown=True, align="L", **NL)
         i += 1

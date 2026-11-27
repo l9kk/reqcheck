@@ -10,7 +10,6 @@ SEV_CLASS = {"критично": "s-crit", "важно": "s-major", "мелоч�
 VERDICT_CLASS = {"Да": "v-ok", "С оговорками": "v-warn", "Нет": "v-bad"}
 STATUS_CLASS = {"ok": "st-ok", "partial": "st-partial", "fail": "st-fail"}
 REC_RE = re.compile(r"^\s*Вариант\s*\(([а-я])\)")
-LOC_SEC_RE = re.compile(r"^строк[аи]\s+[\d\s-]+\((.+)\)\s*$")
 SENT_RE = re.compile(r"(?<=[.!?…])\s+(?=[A-ZА-ЯЁ«\"(])")
 MD_SEP_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 VERDICT_GLYPH = {"Да": "✓", "С оговорками": "!", "Нет": "✕"}
@@ -36,10 +35,8 @@ def quote_html(q: Quote, n_lines: int, owner: str = "") -> str:
     loc = e(q.loc or (f"строки {q.start}-{q.end}" if q.end != q.start else f"строка {q.start}"))
     if sp:
         short = f"строки {sp[0]}-{sp[1]}" if sp[1] != sp[0] else f"строка {sp[0]}"
-        sec = LOC_SEC_RE.search(q.loc or "")
         ref = (f'<a class="qref" href="#L{sp[0]}" data-start="{sp[0]}" data-end="{sp[1]}"'
-               + (f' data-owner="{e(owner)}"' if owner else "") + f' title="{loc}">{short}</a>'
-               + (f' <span class="qsec">{e(sec.group(1))}</span>' if sec else ""))
+               + (f' data-owner="{e(owner)}"' if owner else "") + f' title="{loc}">{short}</a>')
     else:
         ref = f'<span class="qref-none">{loc}</span>'
     return f'<blockquote class="quote"><p>«{e(clean(q.text))}»</p><footer>{ref}</footer></blockquote>'
@@ -109,14 +106,13 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
         meta.append('<span class="tag">набор требований</span>')
     if f.edge:
         meta.append(f'<span class="tag">граничный случай {e(f.edge)}</span>')
-    out = [f'<article class="finding" id="{fid}" data-sev="{e(f.severity)}" data-ranges="{ranges_attr(f.quotes, n_lines)}" tabindex="-1">',
-           f'<header><button type="button" class="fsel" aria-controls="doc" title="Показать цитаты в документе">'
-           f'<span class="fid">{e(f.id)}</span></button><span class="sev {sev}">{e(f.severity)}</span>'
-           f'<span class="ftitle">{e(short_title(f, 14))}</span></header>']
-    out += [quote_html(q, n_lines, fid) for q in f.quotes]
     main, *extra = problem_parts(f.problem)
     lead, rest = first_sentence(main)
-    out.append(f'<p class="problem">{e(lead)}</p>')
+    out = [f'<article class="finding" id="{fid}" data-sev="{e(f.severity)}" data-ranges="{ranges_attr(f.quotes, n_lines)}" tabindex="-1">',
+           f'<header><button type="button" class="fsel" aria-controls="doc" title="Показать цитаты в документе">'
+           f'<span class="fmeta-l"><span class="fid">{e(f.id)}</span><span class="sev {sev}"><i class="dot {sev}" aria-hidden="true"></i>{e(f.severity)}</span></span>'
+           f'<span class="ftitle">{e(lead)}</span></button></header>']
+    out += [quote_html(q, n_lines, fid) for q in f.quotes]
     more = []
     if rest:
         more.append(f'<p class="prest">{e(rest)}</p>')
@@ -146,7 +142,8 @@ def chip_html(f: Finding, fnum: dict) -> str:
     sev = SEV_CLASS.get(f.severity, "s-minor")
     lab = "" if f.severity == "критично" else f' · <span class="clab">{e(f.severity)}</span>'
     return (f'<a class="flink chip" href="#{fnum[f.id]}" data-sev="{e(f.severity)}"><i class="dot {sev}" aria-hidden="true"></i>'
-            f'<b>{e(f.id)}</b>{lab}<span class="ct">{e(short_title(f))}</span></a>')
+            f'<b>{e(f.id)}</b>{lab}<span class="ct">{e(short_title(f))}</span>'
+            f'<span class="ctl" aria-hidden="true">{e(first_sentence(problem_parts(f.problem)[0])[0])}</span></a>')
 
 
 def question_html(q, i: int, fnum: dict, n_lines: int) -> str:
@@ -220,29 +217,29 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
     if vshort != vtext and vshort:
         vshort = vshort[0].upper() + vshort[1:]
     glyph = VERDICT_GLYPH.get(status, "?")
-    head = [f'<header class="top"><p class="kicker">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p>',
-            f"<h1>{e(title)}</h1>",
+    sev_line = "".join(f'<span class="sev {SEV_CLASS[s]}">{e(s)}: {counts[s]}</span>' for s in SEVERITIES)
+    stats = ('<dl class="stats">'
+             f'<div><dt>Требований</dt><dd><span class="big">{num(len(rep.requirements))}</span>'
+             f'<span class="sub">, с замечаниями {num(len(req_with))}</span></dd></div>'
+             f'<div><dt>Замечаний</dt><dd><span class="big">{num(len(rep.findings))}</span>'
+             f'<span class="sevs vh">{sev_line}</span></dd></div>'
+             f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
+    head = ['<header class="top"><div class="titlebar"><div class="tt">'
+            f'<h1>{e(title)}</h1><p class="kicker">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p></div>'
+            f"{stats}</div>",
             f'<div class="verdict {VERDICT_CLASS.get(status, "v-none")}"><p class="vline">Начинать разработку и тестирование: '
             f'<span class="pill"><span class="pg" aria-hidden="true">{glyph}</span><strong>{e(status)}</strong></span></p>'
             + (f'<p class="vtext">{e(vshort)}</p>' if vshort else "")]
     if fix_first:
         groups = []
         if ff_crit:
-            groups.append(f'<div class="ffg"><span class="ffl">Критично · {len(ff_crit)}</span><div class="chips">'
+            groups.append(f'<div class="ffg"><span class="ffl vh">Критично · {len(ff_crit)}</span><div class="chips">'
                           + "".join(chip_html(f, fnum) for f in ff_crit) + "</div></div>")
         if ff_rest:
-            groups.append(f'<div class="ffg"><span class="ffl">Ещё в первую очередь · {len(ff_rest)}</span><div class="chips">'
-                          + "".join(chip_html(f, fnum) for f in ff_rest) + "</div></div>")
-        head.append('<div class="ff"><p class="ffh">Исправить в первую очередь</p>' + "".join(groups) + "</div>")
+            groups.append(f'<details class="ffg ffmore"><summary class="ffl">Ещё в первую очередь · {len(ff_rest)}</summary><div class="chips">'
+                          + "".join(chip_html(f, fnum) for f in ff_rest) + "</div></details>")
+        head.append('<div class="ff"><p class="ffh vh">Исправить в первую очередь</p>' + "".join(groups) + "</div>")
     head.append("</div>")
-    sev_line = "".join(f'<span class="sev {SEV_CLASS[s]}">{e(s)}: {counts[s]}</span>' for s in SEVERITIES)
-    head.append('<dl class="stats">'
-                f'<div class="hero"><dt>Критично</dt><dd><span class="big">{num(counts["критично"])}</span>'
-                '<span class="sub">блокируют начало работ</span></dd></div>'
-                f'<div><dt>Замечаний</dt><dd><span class="big">{num(len(rep.findings))}</span>'
-                f'<span class="sub">в {num(len(req_with))} из <span class="big">{num(len(rep.requirements))}</span> требований</span>'
-                f'<span class="sevs">{sev_line}</span></dd></div>'
-                f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
     errs = [d for d in rep.diagnostics if d.level == "error"]
     if errs:
         head.append('<div class="diag" role="alert"><p><strong>Диагностика</strong></p><ul>' + "".join(
@@ -283,12 +280,12 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
 
     crit_n = counts["критично"]
     fl = ['<section class="pane fl" id="findings" aria-label="Замечания"><div class="pane-head"><h2>Замечания</h2>'
-          '<span class="muted" id="fcount" aria-live="polite"></span></div>']
+          '<span class="vh" id="fcount" aria-live="polite"></span></div>']
     if rep.findings:
         fl.append(f'<div class="tools"><div class="seg" role="group" aria-label="Фильтр по важности" data-default="{"критично" if crit_n else ""}">'
                   f'<button type="button" data-sev="" aria-pressed="{"false" if crit_n else "true"}">Все <span class="cnt">{len(rep.findings)}</span></button>'
                   + "".join(f'<button type="button" data-sev="{s}" aria-pressed="{"true" if s == "критично" and crit_n else "false"}">'
-                            f'<i class="dot {SEV_CLASS[s]}"></i>{s} <span class="cnt">{counts[s]}</span></button>' for s in SEVERITIES)
+                            f'<i class="dot {SEV_CLASS[s]}"></i>{s}<span class="cnt vh"> {counts[s]}</span></button>' for s in SEVERITIES)
                   + '</div><input type="search" id="q" placeholder="Поиск по замечаниям" aria-label="Поиск по замечаниям" autocomplete="off">'
                   '<p class="linef" id="linef" hidden><span></span> <button type="button" id="linef-x">Сбросить</button></p></div>')
         fl.append('<div class="flist" id="flist">' + "".join(finding_html(f, crit, asks, qnum, fnum, n_lines) for f in rep.findings)
@@ -371,35 +368,37 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-app
 .wrap{max-width:1600px;margin:0 auto;padding:20px 24px 48px}
 a{color:var(--accent)}
 a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,.ln:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-h1{font-size:15px;line-height:1.35;margin:2px 0 10px;font-weight:600}
+h1{font-size:20px;line-height:1.3;margin:0;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
 h2{font-size:15px;margin:0;font-weight:650}
 h3{font-size:14px;margin:22px 0 8px;font-weight:650}
-.kicker{margin:0;color:var(--muted);font-size:12.5px}
+.kicker{margin:2px 0 0;color:var(--muted);font-size:12.5px}
 .muted{color:var(--muted);font-size:12.5px}
-.verdict{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--minor);border-radius:6px;padding:14px 18px;margin-bottom:14px}
-.verdict.v-bad{border-left-color:var(--crit)}.verdict.v-warn{border-left-color:var(--major)}.verdict.v-ok{border-left-color:var(--ok)}
-.vline{margin:0;font-size:24px;line-height:1.3;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:17px;line-height:1;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid currentColor;color:var(--minor);background:var(--minor-bg)}
-.pill strong{font-weight:650}.pg{font-size:15px;font-weight:700}
-.v-bad .pill{color:var(--crit);background:var(--crit-bg)}.v-warn .pill{color:var(--major);background:var(--major-bg)}.v-ok .pill{color:var(--ok);background:var(--ok-bg)}
-.vtext{margin:8px 0 0;color:var(--ink);max-width:75ch}
-.ff{margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-.ffh{margin:0;font-weight:600;font-size:13px}
-.ffg{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
-.ffl{font-size:12.5px;color:var(--muted);min-width:9.5em}
-.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-.chip{min-width:0;display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:13px;line-height:18px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);text-decoration:none}
-.chip:hover{border-color:var(--accent)}
-.chip b{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
-.chip .clab{color:var(--major);font-weight:600;white-space:nowrap}
-.chip .ct{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.stats{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(260px,1.6fr) minmax(150px,.8fr);gap:10px;margin:0 0 14px}
-.stats>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:0}
-.stats dt{color:var(--muted);font-size:12.5px}.stats dd{margin:2px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
-.big{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums}.sub{color:var(--muted);font-size:12.5px}
+.vh,.chip .ct{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.titlebar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px;margin:4px 0 16px}
+.tt{min-width:0;flex:1 1 420px}
+.stats{display:flex;flex-wrap:wrap;gap:4px 20px;margin:0;font-size:13px;color:var(--muted)}
+.stats>div{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.stats dd{margin:0;display:flex;align-items:baseline}
+.big{font-size:15px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}.sub{color:var(--muted)}
 .sub .big{font-size:inherit;font-weight:inherit}
-.hero .big{font-size:32px;line-height:1.1;color:var(--crit)}
-.sevs{display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%}
+.verdict{--vc:var(--minor);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 22px 14px;margin-bottom:18px}
+.verdict.v-bad{--vc:var(--crit)}.verdict.v-warn{--vc:var(--major)}.verdict.v-ok{--vc:var(--ok)}
+.vline{margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-.01em;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:16px;line-height:1;padding:6px 12px 6px 10px;border-radius:999px;color:var(--minor);background:var(--minor-bg)}
+.pill strong{font-weight:650}.pg{font-size:14px;font-weight:700}
+.v-bad .pill{color:var(--crit);background:var(--crit-bg)}.v-warn .pill{color:var(--major);background:var(--major-bg)}.v-ok .pill{color:var(--ok);background:var(--ok-bg)}
+.vtext{margin:6px 0 0;color:var(--muted);font-size:15px;max-width:none;text-wrap:pretty}
+.ff{margin-top:12px;display:grid;gap:6px}
+.ffg>.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:2px 20px;margin:0 -8px}
+.ffmore>summary{cursor:pointer;color:var(--accent);font-size:13px;width:max-content;max-width:100%;padding:2px 0}
+.ffmore[open]>summary{margin-bottom:2px}
+.chip{min-width:0;display:flex;align-items:baseline;gap:8px;font-size:14px;line-height:20px;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none}
+.chip:hover{background:var(--soft)}
+.chip .dot{align-self:center}
+.chip b{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:3.2em}
+.chip .clab{color:var(--muted);font-weight:500;white-space:nowrap}
+.chip .ctl{min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-wrap:pretty}
+.chip:hover .ctl{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 .diag{background:var(--crit-bg);border:1px solid var(--line);border-radius:6px;padding:10px 16px;margin-bottom:14px}
 .diag p{margin:0}.diag ul{margin:6px 0 0;padding-left:18px}
 .sev,.tag,.st{display:inline-block;font-size:12px;line-height:18px;padding:0 7px;border-radius:4px;white-space:nowrap}
@@ -429,14 +428,14 @@ h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 .md-th .tx.r{color:var(--muted);font-size:12.5px;font-weight:600}
 .tx.r .c:only-child{grid-column:1/-1}
 .md-sep .tx,.md-hr .tx{font-size:0;line-height:0;align-self:center;border-top:1px solid var(--line);height:0}
-.md-sep{height:8px;overflow:hidden}.md-sep .no{visibility:hidden}
+.md-sep,.md-blank{height:8px;overflow:hidden}.md-sep .no,.md-blank .no,.md-hr .no{visibility:hidden}
 .md-li .tx.r{padding-left:14px;position:relative}
 .bul{position:absolute;left:3px;top:.68em;width:5px;height:5px;border-radius:50%;background:var(--muted)}
 .md-bq .tx.r{color:var(--muted);border-left:2px solid var(--line);padding-left:8px}
 .tx code,.quote code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);padding:0 3px;border-radius:3px}
 .ln[data-f]{cursor:pointer}
-.ln.q0{border-left-color:var(--crit);background:color-mix(in srgb,var(--crit) 8%,transparent)}
-.ln.q1{border-left-color:var(--major);background:color-mix(in srgb,var(--major) 8%,transparent)}
+.ln.q0{border-left-color:var(--crit);background:color-mix(in srgb,var(--crit) 5%,transparent)}
+.ln.q1{border-left-color:var(--major);background:color-mix(in srgb,var(--major) 5%,transparent)}
 .ln.q2{border-left-color:var(--minor);background:color-mix(in srgb,var(--minor) 8%,transparent)}
 .ln[data-f]:hover{background:var(--soft)}
 .ln.hl{background:var(--hl)}.ln.hl .no{color:var(--ink);opacity:1}
@@ -451,22 +450,25 @@ h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 #q{font:inherit;flex:1 1 180px;min-width:0;padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink)}
 .linef{margin:0;flex-basis:100%;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
 .flist{overflow:auto;flex:1;min-height:0;padding:10px 14px 24px}
-.finding,.question{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;background:var(--surface);transition:opacity .15s ease}
-.finding.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
-.finding header,.question header{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
-.ftitle{font-weight:600;min-width:0}
-.fsel{font:inherit;background:none;border:0;padding:0;cursor:pointer;color:var(--accent)}
+.question{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.finding{padding:14px 10px 12px;margin:0 -10px;border-radius:8px;border-top:1px solid var(--soft)}
+.finding:first-of-type,.finding.active,.finding.active+.finding{border-top-color:transparent}
+.finding.active{background:var(--accent-soft)}
+.question header{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.finding header{display:block}
+.fsel{font:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;color:inherit;text-align:left;display:block;width:100%;border-radius:4px}
+.fmeta-l{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.fmeta-l .sev{background:none;padding:0;display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+.ftitle{display:block;font-size:15px;line-height:1.45;font-weight:600;max-width:75ch;text-wrap:pretty}
+.fsel:hover .ftitle{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--muted)}
 .fid{font-weight:650;font-variant-numeric:tabular-nums}
-.fsel .fid{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .fmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .crit,.reqs{font-size:12.5px;color:var(--muted)}
-.problem,.qtext{margin:8px 0 6px;max-width:75ch}
+.qtext{margin:8px 0 6px;max-width:75ch}
 .prest{margin:6px 0;max-width:75ch}
 .also{margin:0 0 6px;padding-left:18px;color:var(--ink);max-width:75ch}
-.quote{margin:8px 0;padding:5px 10px;border-left:3px solid var(--line);color:var(--ink);background:var(--raise);border-radius:0 4px 4px 0}
-.finding[data-sev="критично"] .quote{border-left-color:var(--crit)}.finding[data-sev="важно"] .quote{border-left-color:var(--major)}.finding[data-sev="мелочь"] .quote{border-left-color:var(--minor)}
-.quote p{margin:0}.quote footer{font-size:12px;color:var(--muted)}
-.qsec{color:var(--muted)}
+.quote{margin:8px 0;padding:7px 12px;color:var(--ink);background:var(--raise);border-radius:6px;max-width:75ch}
+.quote p{margin:0;font-size:13.5px}.quote footer{font-size:12px;color:var(--muted);margin-top:2px}
 .more{margin-top:4px}
 .more>summary{cursor:pointer;color:var(--accent);font-size:12.5px;width:max-content;list-style-position:inside}
 .more[open]>summary{margin-bottom:4px}
@@ -487,13 +489,13 @@ tr:last-child td{border-bottom:0}
 .empty{color:var(--muted);padding:16px 14px;margin:0}
 code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .panel ul{padding-left:18px}
-@media (max-width:1100px){.stats{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 @media (max-width:767px){.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
 .pane{position:static;height:auto}.doc .lines{max-height:60vh}.flist{overflow:visible}
 .doc:not(.open) .lines{display:none}.doc:not(.open) .pane-head{border-bottom:0}
 .dtog{display:inline-flex;margin-left:auto}
-.vline{font-size:20px}.ffl{min-width:0;flex-basis:100%}
-.stats{grid-template-columns:1fr 1fr}.stats>div:nth-child(2){grid-column:1/-1;order:2}
+.vline{font-size:17px;gap:4px 8px}.pill{font-size:14px;padding:4px 9px 4px 8px}.verdict{padding:12px 12px 8px;margin-bottom:14px}.vtext{font-size:13.5px}
+.ffg>.chips{display:flex;flex-wrap:wrap;gap:4px;margin:0}.chip{padding:3px 8px;font-size:13.5px;border:1px solid var(--line)}.chip b{min-width:0}.chip .ctl{display:none}.kicker{display:none}
+.titlebar{margin-bottom:12px}.stats{gap:2px 14px}
 .fdl{grid-template-columns:1fr}.fdl dt{padding-top:4px}
 .tabs{margin-left:-16px;margin-right:-16px;padding:0 16px}
 .tabs.more-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}

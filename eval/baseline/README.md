@@ -1,6 +1,6 @@
 # B1. Single-prompt baseline vs the reqcheck pipeline
 
-Date: 27.11.2026. Model: `claude-opus-5-5` for both. Branch `baseline` (from tag `v14`) in the reqcheck repo.
+Date: 27.11.2026. Model: `claude-opus-5-5` for both. Branch `baseline` (from branch `v14`) in the reqcheck repo.
 Script: `eval/baseline/baseline.py`. Raw outputs and reports: `eval/baseline/runs/<run>/` (raw.txt, report.json, meta.json).
 
 Question: why not just send one big prompt to Claude?

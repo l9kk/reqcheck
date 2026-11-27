@@ -394,7 +394,7 @@ python eval/score.py examples/cashback/report.json --golden eval/golden_cashback
 python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit
 ```
 
-130 тестов, ключ не нужен: модель подменяет `tests/fake_llm.py`. Среди них повтор из кэша без ключа,
+164 теста, ключ не нужен: модель подменяет `tests/fake_llm.py`. Среди них повтор из кэша без ключа,
 набор повреждённых файлов `tests/fixtures/broken/` и тест на подгонку `tests/test_no_overfit.py`.
 
 ## Ограничения и известные промахи

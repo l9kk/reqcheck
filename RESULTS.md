@@ -3,13 +3,13 @@
 Каждое число ниже взято из файла в этом репозитории, и его можно перепроверить командой. Команды не тратят
 деньги и не ходят в сеть: отчёты уже лежат в репозитории, а ответы модели в кэше `.cache/llm`.
 
-Версия агента 1.6.1 (тег `v1.6.1`; замечания те же, что в 1.6, поменялся только вид HTML-отчёта), модель `claude-opus-5-5`, если не сказано другое.
+Версия агента 1.6.2 (тег `v1.6.2`; замечания те же, что в 1.6, поменялся только вид HTML-отчёта), модель `claude-opus-5-5`, если не сказано другое.
 
 ## Выданное ТЗ
 
 | Что | Число | Откуда | Как проверить |
 | :--- | :--- | :--- | :--- |
-| Найдено дефектов из нашего списка, ручная строгая проверка | **39 из 40** | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | читать таблицу G01-G40 |
+| Найдено дефектов из нашего списка, строгая проверка (каждое совпадение прочитал отдельный агент, не человек) | **39 из 40** | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | читать таблицу G01-G40 |
 | То же, автоматическая сверка | 40 из 40 | [`eval/golden.toml`](eval/golden.toml) | `python eval/score.py report/report.json` |
 | Критичные распознаны как критичные | 6 из 6 | то же | то же, строка `Critical found as critical` |
 | Замечания агента, оказавшиеся реальными дефектами | 48 из 55 (87%), ложных 0 | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | раздел Precision |
@@ -24,7 +24,7 @@
 | Что | Число | Откуда | Как проверить |
 | :--- | :--- | :--- | :--- |
 | autotopup, автоматическая сверка | 18 из 18, критичные 4 из 4 | [`examples/autotopup/report.json`](examples/autotopup/report.json) | `python eval/score.py examples/autotopup/report.json --golden eval/golden_autotopup.toml` |
-| cashback, разметка написана до первого прогона | первый прогон (v1.3): 20 из 20 при ручной строгой проверке | [`eval/manual_check.md`](eval/manual_check.md) | разметка: коммит 0fe31eb (26.11 02:10), первый отчёт: 80e6f66 (27.11 03:29) |
+| cashback, разметка написана до первого прогона | первый прогон (v1.3): 20 из 20 при строгой проверке агентом | [`eval/manual_check.md`](eval/manual_check.md) | разметка: коммит 0fe31eb (26.11 02:10), первый отчёт: 80e6f66 (27.11 03:29) |
 | cashback на v1.6, автоматическая сверка | 20 из 20, критичные 4 из 5 (B04 понижен до «важно») | [`examples/cashback/report.json`](examples/cashback/report.json) | `python eval/score.py examples/cashback/report.json --golden eval/golden_cashback.toml` |
 | Бесплатный Gemini (`gemini-3.5-flash`, v1.5) | 29 из 40, критичные 6 из 6 | [`examples/gemini/report.json`](examples/gemini/report.json) | `python eval/score.py examples/gemini/report.json` |
 | Ответы автора закрывают дефекты | закрыто 8 из 21, критичных 5 → 3 | [`examples/answers/requirements.report.answers.md`](examples/answers/requirements.report.answers.md) | раздел «Дельта после ответов» |
@@ -49,7 +49,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 LLM_PROVIDER=anthropic LLM_MODEL=claude-opus-5-5 .venv/bin/python -m reqcheck input/requirements.md -o out/report.md
 ```
 
-Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты).
+Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты, версии и времени прогона).
 Тесты (164): `.venv/bin/python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit tests.test_report_html tests.test_reconciler tests.test_report_html_polish`
 
 ## Чего здесь нет

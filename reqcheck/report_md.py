@@ -320,10 +320,12 @@ def render(rep: Report, crit: dict) -> str:
         L.append("")
 
     whole = " и WholeDoc (модель, весь документ одним запросом)" if any(t.get("role") == "WholeDoc" for t in rep.trace) else ""
+    recon = " → Reconciler (модель, исправления под рекомендации вопросов)" if any(t.get("role") == "Reconciler" for t in rep.trace) else ""
     L += ["## 9. Как работал агент", "",
           "Конвейер ролей: Reader (код) → Segmenter (модель + проверка цитат кодом) → Linter (код, правила 29148 п. 5.2.7) → "
           "Auditor (модель, 5.2.5, пачки требований параллельно) → параллельно: CrossChecker (модель, 5.2.6 и IEEE 830) → "
-          f"EdgeCaser (модель, граничные случаи){whole} → Critic (модель) → Clarifier (модель) → Reporter (код).", ""]
+          f"EdgeCaser (модель, граничные случаи){whole} → Critic (модель) → Clarifier (модель)"
+          f"{recon} → Reporter (код).", ""]
     if rep.trace:
         L += ["| Роль | Ответ из кэша | Время модели, с | Токены вход / выход |", "| --- | --- | --- | --- |"]
         for t in rep.trace:

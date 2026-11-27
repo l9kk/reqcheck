@@ -765,6 +765,17 @@ class RulesOnlyOutputTest(unittest.TestCase):
             self.assertEqual(data["passport"]["llm_calls"], 0)
             self.assertFalse((Path(d) / "r.rules-only.json").exists())
 
+    def test_crash_message_does_not_claim_rules_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            run(DOC, d)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), \
+                    mock.patch("reqcheck.cli.Pipeline.run", side_effect=RuntimeError("boom")):
+                run(DOC, d)
+            self.assertNotIn("Модель не использовалась", out.getvalue())
+            self.assertIn("внутренней ошибкой", out.getvalue())
+            self.assertTrue((Path(d) / "r.rules-only.md").exists())
+
 
 class CachedReplayTest(unittest.TestCase):
     CLEAR = ("LLM_PROVIDER", "LLM_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "LLM_API_KEY", "LLM_BASE_URL")

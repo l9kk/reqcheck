@@ -46,10 +46,12 @@ def main(argv=None) -> int:
     llm = LLM(use_cache=not args.no_cache)
     log = (lambda m: None) if args.quiet else (lambda m: print(m, flush=True))
     pipe = Pipeline(llm, log=log)
+    crashed = False
     try:
         rep = pipe.run(args.input)
     except Exception as e:
         from .model import Diagnostic, Report
+        crashed = True
         rep = Report(passport={"document": Path(args.input).name, "model": llm.model, "provider": llm.provider})
         rep.diagnostics.append(Diagnostic("error", "internal", f"Внутренняя ошибка агента: {type(e).__name__}: {e}",
                                           "Сообщите разработчикам, приложив входной файл."))
@@ -64,7 +66,11 @@ def main(argv=None) -> int:
     if not model_used(rep.passport) and model_used(old_passport(out.with_suffix(".json"))):
         kept = out.with_suffix(".json")
         out = out.with_name(f"{out.stem}.rules-only{out.suffix}")
-        print(f"Модель не использовалась: отчёт модели {kept} не перезаписан, отчёт по правилам: {out.with_suffix('.md')}")
+        if crashed:
+            print(f"Проверка прервана внутренней ошибкой: отчёт модели {kept} не перезаписан, "
+                  f"отчёт об ошибке: {out.with_suffix('.md')}")
+        else:
+            print(f"Модель не использовалась: отчёт модели {kept} не перезаписан, отчёт по правилам: {out.with_suffix('.md')}")
     md_path = out.with_suffix(".md")
     md_path.write_text(render(rep, all_criteria(load_criteria())), encoding="utf-8")
     out.with_suffix(".json").write_text(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")

@@ -3,7 +3,7 @@
 Каждое число ниже взято из файла в этом репозитории, и его можно перепроверить командой. Команды не тратят
 деньги и не ходят в сеть: отчёты уже лежат в репозитории, а ответы модели в кэше `.cache/llm`.
 
-Версия агента 1.6.6 (тег `v1.6.6`; замечания те же, что в 1.6, поменялся только вид HTML-отчёта), модель `claude-opus-5-5`, если не сказано другое.
+Версия агента 1.6.7 (тег `v1.6.7`; замечания те же, что в 1.6, поменялись только вид HTML-отчёта и строка о критичных в сводке), модель `claude-opus-5-5`, если не сказано другое.
 
 ## Выданное ТЗ
 
@@ -50,7 +50,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты, версии и времени прогона).
-Тесты (164): `.venv/bin/python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit tests.test_report_html tests.test_reconciler tests.test_report_html_polish`
+Тесты (167): `.venv/bin/python -m unittest discover -s tests -t . && .venv/bin/python -m unittest discover -s eval -t .`
 
 ## Как мы считали
 

@@ -100,12 +100,16 @@
   .chip small { display: block; font-size: 14px; opacity: 0.85; }
   .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .sep { padding-top: 64px; display: flex; justify-content: center; }
-  .rerun { margin-top: 44px; display: flex; align-items: center; gap: 14px; font-size: 18px; }
+  .rerun { margin-top: 26px; display: flex; align-items: center; gap: 14px; font-size: 18px; }
   .rerun .lbl { font-weight: 600; font-size: 20px; margin-right: 6px; }
-  .legend { display: flex; gap: 28px; margin-top: 30px; font-size: 18px; color: var(--muted); align-items: center; }
+  .legend { display: flex; gap: 28px; margin-top: 18px; font-size: 18px; color: var(--muted); align-items: center; }
   .legend i { display: inline-block; width: 22px; height: 14px; margin-right: 8px; vertical-align: -1px; border-radius: 2px; }
   .legend i.model { background: var(--accent); }
   .legend i.code { border: 1.5px solid var(--ink); background: #fff; }
+  .why { margin: 16px 0 0; font-size: 19px; color: var(--ink); }
+  .abl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 18px; color: var(--muted); align-items: baseline; }
+  .abl b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .abl i { font-style: normal; }
 
   /* 5 results */
   .runs { margin-top: 48px; display: grid; grid-template-columns: 240px 1fr 120px; gap: 18px 24px; align-items: center; }
@@ -209,7 +213,7 @@
 </section>
 
 <section class="slide">
-  <h2>Каждая роль делает одно дело</h2>
+  <h2>Модель предлагает, код решает</h2>
   <div class="arch">
     <div class="stage">
       <div class="h">Прочитать</div>
@@ -258,7 +262,9 @@
     <div class="chip code">Delta</div>
   </div>
   <div class="legend"><span><i class="model"></i>модель</span><span><i class="code"></i>код, без модели</span><span>9 вызовов модели на выданном ТЗ</span></div>
-  <div class="foot"><span></span><span>4</span></div>
+  <p class="why">Код проверяет каждую цитату и ставит номер строки, проверяет форму JSON каждой роли и сам считает вердикт.</p>
+  <div class="abl"><span>Найдено из 40:</span><b>правила 11</b><i>→</i><b>+ Auditor 36</b><i>→</i><b>+ набор 39</b><i>→</i><b>+ WholeDoc 40</b><i>·</i><b>Critic: 124 → 55 замечаний</b></div>
+  <div class="foot"><span>eval/ablation.md</span><span>4</span></div>
 </section>
 
 <section class="slide">

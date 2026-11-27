@@ -5,7 +5,7 @@
 начнут писать код и тесты. Каждое замечание с дословной цитатой и номером строки, цитаты проверяет код.
 
 **Для жюри:** [отчёт в браузере](https://htmlpreview.github.io/?https://github.com/l9kk/themis/blob/main/report/report.html) ·
-[отчёт PDF](report/report.pdf) · [презентация](docs/deck.pdf) · [все числа и команды](RESULTS.md) · [вопросы и ответы](docs/qa.md)
+[отчёт PDF](report/report.pdf) · [презентация](docs/deck.pdf) · [все числа и команды](RESULTS.md) · [вопросы и ответы](docs/qa.md) · [видео](https://drive.google.com/file/d/13PtAlNUBapWB01AmjT1zc0khaRnuDeaj/view)
 
 | На выданном ТЗ | |
 | :--- | :--- |

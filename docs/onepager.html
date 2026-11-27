@@ -81,11 +81,13 @@ p { margin: 0; }
 .doc-lines div { display: grid; grid-template-columns: 6mm 1fr; }
 .doc-lines .ln { color: var(--muted); }
 .doc-body { padding: 2.8mm 3mm 3mm; }
-.finding { display: flex; gap: 2mm; align-items: baseline; }
+.doc-body { display: grid; grid-template-columns: auto auto 1fr; column-gap: 2mm; row-gap: 2.4mm; align-items: baseline; }
+.finding { display: contents; }
+.finding .tag { justify-self: start; }
 .id { font-family: var(--mono); font-size: 8.4pt; font-weight: 600; white-space: nowrap; }
 .tag { font-size: 7.6pt; font-weight: 600; color: var(--crit); background: var(--crit-soft); border-radius: 1mm; padding: 0.2mm 1.4mm; white-space: nowrap; }
 .tag.q { color: #0a4f4f; background: var(--accent-soft); }
-.finding + .finding { margin-top: 2.4mm; }
+.reco { display: block; }
 .reco { margin-top: 1mm; color: var(--muted); }
 
 .value p { font-size: 9.6pt; }
@@ -183,7 +185,7 @@ p { margin: 0; }
         <div class="doc-body">
           <div class="finding">
             <span class="id">D-01</span><span class="tag">критично</span>
-            <span>Строки 39 и 40 противоречат друг другу.</span>
+            <span>Строки 39 и 40 противоречат друг другу: второй push в&nbsp;месяце и&nbsp;запрещён, и&nbsp;обязателен.</span>
           </div>
           <div class="finding">
             <span class="id">Q-01</span><span class="tag q">бизнесу</span>

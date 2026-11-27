@@ -195,10 +195,34 @@ Only the baseline found:
 
 - task doc G10 (different names for the same components) and G34 (goal has no measurable KPI), in both runs. The pipeline missed both. Neither is a must-find.
 
-Variance: two runs of the same prompt gave 36 and 34 strict, and different defects dropped out each time. Together the two runs cover 37/40. I have only one pipeline run per doc to compare, so I cannot say how much the pipeline varies.
+Variance: two runs of the same prompt gave 36 and 34 strict, and different defects dropped out each time. Together the two runs cover 37/40. The pipeline now has three runs on the task doc (`eval/variance.md`): 40, 39 and 38 auto, with all 6 critical defects rated critical and all 13 must-find found in every run.
 
-Not compared here: the pipeline also gives a per-requirement check table, a checklist, a verdict, quote checks and PDF/MD reports. The baseline gives only findings and questions.
+Not compared here: the pipeline also gives a per-requirement check table, a checklist, a verdict, quote checks and MD, PDF, JSON and HTML reports. The baseline gives only findings and questions.
 
 ## Conclusion
 
-On the same model, one well-written prompt found as many planted defects in the task document as the full pipeline (36 of 40 checked by hand, all 13 must-find), in about 2 minutes instead of about 10, using about a fifth of the tokens. The pipeline was a little better on the blind third document (20 of 20 against 19 of 20, and it did not miss the one must-find the single prompt missed), and the single prompt moved by two defects between two runs. So the pipeline does not find much more than one big prompt; its value has to be argued from consistency, traceable structure, checked quotes and the report format, not from recall.
+The tables above compare the single prompt with pipeline v1.3. The current pipeline (v1.6, `report/report.json`) on the task doc:
+
+| Metric | Pipeline v1.6 | Baseline run 1 | Baseline run 2 |
+| :--- | :--- | :--- | :--- |
+| Auto recall (score.py) | 40/40 | 36/40 | 35/40 |
+| Strict recall | 39/40 | 36/40 | 34/40 |
+| Must-find (strict) | 13/13 | 13/13 | 13/13 |
+| Critical found as critical | 6/6 | 5/6 | 6/6 |
+| Precision (score.py) | 49/55 = 89% | 28/30 = 93% | 28/29 = 97% |
+| Wrong findings (strict) | 0 | 0 | 0 |
+| LLM calls | 9 | 1 | 1 |
+| Time | 843.8 s (about 14 min) | 133 s | 95 s |
+| API price equivalent | $2.42 | $0.34 | $0.26 |
+
+Pipeline strict numbers are from `eval/handcheck_v1.5.md` (same 55 findings as v1.6, checked with `eval/same_findings.py`). Strict checks were done by a separate reviewer agent, not by a human.
+
+What the pipeline adds over one prompt:
+
+- Higher recall: 40 auto and 39 strict, against 36 at best for the single prompt.
+- Stable critical detection: in each of 3 pipeline runs all 6 critical defects are rated critical and all 13 must-find are found (`eval/variance.md`). The single prompt rated one critical defect too low in one of its two runs.
+- On cashback, blind for both: 20/20 and 9/9 must-find, against 19/20 and a missed must-find (B07).
+- Quotes checked by code: every quote is looked up in the document and its line number is set by code (`reqcheck/ground.py`); a quote that is not found is dropped. The single prompt's quotes were exact on these runs too, so this is a guarantee, not a recall gain.
+- Questions with an addressee, options and a recommendation (7 of 10 with a test per option), an answer loop that rewrites requirements and rechecks them, and MD, PDF, JSON and HTML reports. The single prompt gives plain question text and findings only.
+
+The single prompt is cheaper and faster: 1 call, 95-133 s and $0.26-0.34, against 9 calls, about 14 minutes and $2.42. Its prompt was written after reading the task-doc golden list, so on that doc the comparison leans its way.

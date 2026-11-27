@@ -111,7 +111,7 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
     out = [f'<article class="finding" id="{fid}" data-sev="{e(f.severity)}" data-ranges="{ranges_attr(f.quotes, n_lines)}" tabindex="-1">',
            f'<header><button type="button" class="fsel" aria-controls="doc" title="Показать цитаты в документе">'
            f'<span class="fmeta-l"><span class="fid">{e(f.id)}</span><span class="sev {sev}"><i class="dot {sev}" aria-hidden="true"></i>{e(f.severity)}</span></span>'
-           f'<span class="ftitle">{e(lead)}</span></button></header>']
+           f'<span class="ftitle">{md_inline(lead)}</span></button></header>']
     out += [quote_html(q, n_lines, fid) for q in f.quotes]
     more = []
     if rest:
@@ -143,7 +143,7 @@ def chip_html(f: Finding, fnum: dict) -> str:
     lab = "" if f.severity == "критично" else f' · <span class="clab">{e(f.severity)}</span>'
     return (f'<a class="flink chip" href="#{fnum[f.id]}" data-sev="{e(f.severity)}"><i class="dot {sev}" aria-hidden="true"></i>'
             f'<b>{e(f.id)}</b>{lab}<span class="ct">{e(short_title(f))}</span>'
-            f'<span class="ctl" aria-hidden="true">{e(first_sentence(problem_parts(f.problem)[0])[0])}</span></a>')
+            f'<span class="ctl" aria-hidden="true">{md_inline(first_sentence(problem_parts(f.problem)[0])[0])}</span></a>')
 
 
 def question_html(q, i: int, fnum: dict, n_lines: int) -> str:

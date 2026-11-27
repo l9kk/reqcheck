@@ -159,7 +159,7 @@ def first_screen(rep: Report, crit: dict, asks: dict, counts: dict) -> list[str]
             L.append("")
     if rep.questions:
         L += ["### Главные вопросы к автору", ""]
-        for q in rep.questions[:5]:
+        for q in rep.questions[:3]:
             meta = "; ".join(x for x in [q.addressee, f"закрывает {', '.join(q.finding_ids)}" if q.finding_ids else ""] if x)
             L.append(f"**{q.id}**" + (f" ({meta})" if meta else "") + f": {q.text}")
             if q.options:

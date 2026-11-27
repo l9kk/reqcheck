@@ -6,7 +6,6 @@ import threading
 import time
 from pathlib import Path
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
 class LLMError(Exception):
@@ -70,15 +69,15 @@ TEXTS = {
     },
     "openai_compat": {
         "no_key": ("Не задан ключ LLM (LLM_API_KEY в файле .env).",
-                   "Скопируйте .env.example в .env и вставьте ключ из aistudio.google.com."),
+                   "Задайте LLM_API_KEY, LLM_BASE_URL и LLM_MODEL в .env."),
         "auth": ("Ключ LLM отклонён провайдером (401/403).", "Проверьте LLM_API_KEY в .env."),
-        "billing": ("Провайдер отклонил запрос: закончились оплаченные кредиты проекта (402).",
-                    "Пополните баланс проекта в AI Studio или укажите ключ бесплатного проекта."),
+        "billing": ("Провайдер отклонил запрос: закончились оплаченные кредиты (402).",
+                    "Пополните баланс у провайдера."),
         "bad_request": "Проверьте LLM_MODEL и LLM_BASE_URL в .env.",
     },
 }
 
-DEFAULT_MODEL = {"anthropic": "claude-opus-5-5", "openai_compat": "gemini-3.5-flash"}
+DEFAULT_MODEL = {"anthropic": "claude-opus-5-5"}
 
 
 def pick_provider() -> str:
@@ -101,7 +100,7 @@ class LLM:
             self.base_url = os.getenv("ANTHROPIC_BASE_URL", "").strip() or "https://api.anthropic.com"
         else:
             self.api_key = os.getenv("LLM_API_KEY", "").strip()
-            self.base_url = os.getenv("LLM_BASE_URL", "").strip() or GEMINI_URL
+            self.base_url = os.getenv("LLM_BASE_URL", "").strip()
         self.texts = TEXTS["anthropic" if self.provider == "anthropic" else "openai_compat"]
         self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", "64000"))
         self.timeout = float(os.getenv("LLM_TIMEOUT", "600"))
@@ -115,6 +114,9 @@ class LLM:
     def check(self) -> None:
         if not self.api_key and "localhost" not in self.base_url and "127.0.0.1" not in self.base_url:
             raise LLMError("no_key", *self.texts["no_key"])
+        if not self.base_url:
+            raise LLMError("no_model", "Не задан адрес модели (LLM_BASE_URL в файле .env).",
+                           "Для LLM_PROVIDER=openai_compat укажите LLM_BASE_URL и LLM_MODEL.")
         if not self.model:
             raise LLMError("no_model", "Не задана модель (LLM_MODEL в файле .env).",
                            "Укажите модель, например из .env.example.")
@@ -212,7 +214,7 @@ class LLM:
             if "per day" in msg.lower() or "perday" in msg.lower() or "daily" in msg.lower():
                 wait = re.search(r"retry in (\d+h)?(\d+m)?", msg)
                 when = f" Провайдер просит повторить через {wait.group(0)[9:]}." if wait and wait.group(0)[9:] else ""
-                raise LLMError("quota_day", "Исчерпана дневная квота бесплатного тарифа LLM.",
+                raise LLMError("quota_day", "Исчерпана дневная квота LLM.",
                                "Повторите после сброса квоты или укажите модель с большим лимитом." + when)
             return "rate_limit"
         if isinstance(e, (sdk.APITimeoutError, sdk.APIConnectionError)):

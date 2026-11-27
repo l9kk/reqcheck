@@ -295,10 +295,8 @@ python eval/score.py examples/cashback/report.json --golden eval/golden_cashback
 
 ### 2. Повтор без ключа, 0 запросов к модели
 
-Нужен Python 3.11 или новее. В свежем клоне файла `.env` нет, и повтор работает без него. Если вы уже
-создали `.env` (например, для Gemini в шаге 3), переименуйте его или оставьте в нём только блок Anthropic
-из `.env.example` с моделью `claude-opus-5-5`: другие `LLM_PROVIDER` или `LLM_MODEL` меняют ключ кэша, и тогда
-повтор пойдёт к модели.
+Нужен Python 3.11 или новее. В свежем клоне файла `.env` нет, и повтор работает без него. С флагом `--replay` агент
+берёт ответы только из кэша и не обращается к модели, даже если в `.env` задан другой провайдер или модель.
 
 ```bash
 git clone https://github.com/l9kk/reqcheck && cd reqcheck
@@ -332,30 +330,7 @@ python -m reqcheck examples/docs/cashback.md -o out/cashback/report.md
 На другом документе кэша нет. Без ключа агент тогда отработает только правила кода и напишет
 в отчёте, что модель не вызывалась.
 
-### 3. Бесплатно: Gemini
-
-Для пробы на открытых документах. Ключ: https://aistudio.google.com/apikey (войти Google-аккаунтом, Create API
-key). Скопируйте `.env.example` в `.env` (Windows: `copy .env.example .env`), закомментируйте три строки
-Anthropic и раскомментируйте блок Gemini:
-
-```
-LLM_PROVIDER=openai_compat
-LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-LLM_API_KEY=ваш_ключ
-LLM_MODEL=gemini-3.5-flash
-```
-
-```bash
-python -m reqcheck input/requirements.md -o out/gemini/report.md
-```
-
-Наш прогон на бесплатном ключе 27.11 ([`examples/gemini/report.md`](../examples/gemini/report.md), код v1.5):
-7 запросов, около 5 минут (315.3 с работы модели), 26 требований, 31 замечание. Автоматическая сверка
-(`eval/score.py`): 29 из 40, все 13 обязательных, все 6 критичных как «критично», все 31 замечание совпали со
-списком. Одна роль (WholeDoc) вернула невалидный JSON, отчёт собран без неё, это написано в «Диагностике».
-Если кончится дневная квота, агент тоже напишет это в «Диагностике».
-
-### 4. Anthropic (на этой модели сделаны отчёты в репозитории)
+### 3. Anthropic (на этой модели сделаны отчёты в репозитории)
 
 Ключ: https://platform.claude.com/settings/keys (нужен баланс). В `.env` оставьте блок Anthropic и вставьте
 ключ в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`.
@@ -407,8 +382,7 @@ python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md ev
 
 ## Как сделаны отчёты в репозитории
 
-- Отчёты сделаны на модели `claude-opus-5-5` 27.11.2026. Исключения: `examples/broken/` (сделаны на v1.2)
-  и `examples/gemini/` (бесплатный Gemini).
+- Отчёты сделаны на модели `claude-opus-5-5` 27.11.2026. Исключение: `examples/broken/` (сделаны на v1.2).
 - Ответы модели для ролей v1.5 записаны кодом v1.5-rc1 (коммит 669700f), ответ роли Reconciler записан при
   разработке v1.6. Отчёты собраны из этого кэша кодом v1.6.3. Поэтому в паспорте стоит «все ответы взяты из
   кэша», а время и токены указаны по исходному прогону.

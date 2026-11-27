@@ -110,10 +110,6 @@ python -m reqcheck input/requirements.md -o out/report.md --replay
 - **Anthropic.** Ключ: https://platform.claude.com/settings/keys (нужен баланс). Вставьте его
   в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`. Без `--no-cache` агент повторит отчёт из кэша.
   Запуск: `python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache`
-- **Попробовать бесплатно, Gemini.** Ключ: https://aistudio.google.com/apikey (Create API key). В `.env` закомментируйте
-  три строки Anthropic, раскомментируйте блок Gemini и вставьте ключ в `LLM_API_KEY=`. Модель `gemini-3.5-flash`.
-  Запуск: `python -m reqcheck input/requirements.md -o out/gemini/report.md`
-  Только для пробы на открытых документах: условия Google запрещают отправлять на бесплатный уровень конфиденциальные данные, запросы могут читать люди (aistudio.google.com/docs/terms, действуют с 23.03.2026).
 
 На входе `.pdf`, `.docx`, `.md` или `.txt`. Другие провайдеры, коды выхода и проверка без сети:
 [`docs/details.md`](docs/details.md#как-посмотреть-от-готовых-отчётов-к-своему-прогону).
@@ -183,4 +179,4 @@ flowchart TD
 - Отчёт на выданном ТЗ: [`report/report.md`](report/report.md), [`report.pdf`](report/report.pdf), [`report.json`](report/report.json).
 - Вопросы жюри и ответы: [`docs/qa.md`](docs/qa.md).
 - Одностраничник: [`docs/onepager.pdf`](docs/onepager.pdf). Презентация: [`docs/deck.pdf`](docs/deck.pdf).
-- Ещё отчёты: [`examples/`](examples/) (два наших ТЗ, Gemini, битые файлы, ТЗ с инструкциями для модели).
+- Ещё отчёты: [`examples/`](examples/) (два наших ТЗ, битые файлы, ТЗ с инструкциями для модели).

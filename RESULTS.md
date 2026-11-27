@@ -14,7 +14,7 @@
 | Критичные распознаны как критичные | 6 из 6 | то же | то же, строка `Critical found as critical` |
 | Замечания агента, оказавшиеся реальными дефектами | 48 из 55 (87%), ложных 0 | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | раздел Precision |
 | Ручная проверка v1.5 относится к v1.6 | 55 замечаний те же, кроме текстов исправлений | [`eval/handcheck_v1.5_input.json`](eval/handcheck_v1.5_input.json) | `python eval/same_findings.py eval/handcheck_v1.5_input.json report/report.json` |
-| Вопросы к автору | 10, у каждого адресат, варианты, тест и рекомендация | [`report/report.md`](report/report.md) | раздел «Вопросы» |
+| Вопросы к автору | 10, у каждого адресат, варианты и рекомендация; у 7 из 10 к вариантам приложен тест | [`report/report.md`](report/report.md) | раздел «Вопросы» |
 | Один промпт на той же модели, 2 прогона | 36 и 34 из 40 | [`eval/baseline/README.md`](eval/baseline/README.md) | таблица Strict recall |
 | Вклад каждого шага пайплайна | от 11 из 40 (только правила) до 40 из 40 | [`eval/ablation.md`](eval/ablation.md) | `python -m eval.ablation` |
 | Противоречия между замечанием и исправлением после Reconciler | было 4-8 из 10, стало 2 из 10 (два слепых проверяющих) | [`eval/reconciler_check.md`](eval/reconciler_check.md) | читать вердикты |

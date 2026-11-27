@@ -14,7 +14,7 @@
 
 ## Как работает
 
-Reader (код) -> Segmenter -> Linter (код) -> Auditor -> CrossChecker, EdgeCaser, WholeDoc -> Critic →
+Reader (код) -> Segmenter -> Linter (код) -> Auditor -> CrossChecker, EdgeCaser, WholeDoc -> Critic ->
 Clarifier -> Reconciler -> отчёт. Вход PDF, DOCX, MD, TXT. Отчёт MD, PDF, JSON, HTML. Номер строки к
 каждой цитате ставит код.
 

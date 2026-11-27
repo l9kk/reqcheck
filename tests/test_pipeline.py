@@ -410,6 +410,19 @@ class KazakhDocTest(unittest.TestCase):
 
 
 class PipelineMockTest(unittest.TestCase):
+    def test_model_not_requirements_with_requirements_keeps_auditing(self):
+        from reqcheck.pipeline import Pipeline
+
+        class Unsure(FakeLLM):
+            def segmenter(self, user):
+                return {**super().segmenter(user), "is_requirements_doc": False}
+
+        fake = Unsure()
+        rep = Pipeline(fake, log=lambda m: None).run(str(DOC))
+        self.assertIn("not_requirements", [d.code for d in rep.diagnostics])
+        self.assertIn("Auditor", [t["role"] for t in fake.trace])
+        self.assertTrue(rep.findings)
+
     def test_model_not_requirements_stops_before_audit(self):
         from reqcheck.pipeline import Pipeline
 

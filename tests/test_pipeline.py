@@ -557,6 +557,34 @@ class MergeTextTest(unittest.TestCase):
         self.assertIn("Текст B.", kept[0].problem)
 
 
+class GetWriteLockTest(unittest.TestCase):
+    def setUp(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        self.p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        self.fs = [Finding("F-01", "req", [], "correct", "критично", [Quote("GET", 10, 10)],
+                           "Метод GET используется для операции записи: адрес «/x/save» меняет данные.", role="linter"),
+                   Finding("F-02", "req", [], "appropriate", "важно", [Quote("GET", 10, 10)],
+                           "Запись выполняется методом GET.", role="Auditor"),
+                   Finding("F-03", "req", [], "correct", "критично", [Quote("y", 20, 20)], "Другое.", role="linter")]
+
+    def test_critic_cannot_lower_or_drop_linter_get_write(self):
+        self.p._llm = lambda *a: {"decisions": [{"id": "F-01", "action": "keep", "severity": "важно"},
+                                                {"id": "F-03", "action": "keep", "severity": "важно"}]}
+        kept, _ = self.p.critic("", self.fs, None)
+        sev = {f.id: f.severity for f in kept}
+        self.assertEqual((sev["F-01"], sev["F-03"]), ("критично", "важно"))
+        self.p._llm = lambda *a: {"decisions": [{"id": "F-01", "action": "drop"}]}
+        kept, _ = self.p.critic("", self.fs, None)
+        self.assertIn("F-01", [f.id for f in kept])
+
+    def test_merged_get_write_raises_target(self):
+        self.p._llm = lambda *a: {"decisions": [{"id": "F-01", "action": "merge", "into": "F-02"}]}
+        kept, _ = self.p.critic("", self.fs, None)
+        self.assertEqual([(f.id, f.severity) for f in kept], [("F-02", "критично"), ("F-03", "критично")])
+
+
 class InteractiveTest(unittest.TestCase):
     def test_answers_written_without_model(self):
         from reqcheck.interactive import run as irun

@@ -201,6 +201,13 @@ def rule_secrets_in_logs(doc: Document, lang: dict, g: Grounder) -> list[Finding
     return []
 
 
+GET_WRITE = "Метод GET используется для операци"
+
+
+def is_get_write(f: Finding) -> bool:
+    return f.role == "linter" and f.severity == "критично" and f.problem.startswith(GET_WRITE)
+
+
 def rule_get_writes_in_table(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
     out = []
     for no, cells in [(no, cells) for _, rows in _tables(doc) for no, cells in rows]:

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import __version__, roles
 from .ground import Grounder
-from .lint import lint
+from .lint import is_get_write, lint
 from .llm import LLM, LLMError
 from .model import SEVERITIES, ChecklistRow, Diagnostic, Finding, Question, Report, Requirement
 from .reader import Document, ReadError, read_document
@@ -550,6 +550,7 @@ class Pipeline:
         if not isinstance(data, dict):
             return findings, []
         by_id = {f.id: f for f in findings}
+        locked = {f.id for f in findings if is_get_write(f)}
         drop = set()
         for d in self._dicts(data.get("decisions"), "Critic"):
             fid = d.get("id")
@@ -560,7 +561,7 @@ class Pipeline:
                 continue
             into = d.get("into") if isinstance(d.get("into"), str) else ""
             act = d.get("action")
-            if act == "drop":
+            if act == "drop" and fid not in locked:
                 drop.add(fid)
                 self.drops.append({"role": "Critic", "reason": str(d.get("reason", ""))[:200], "item": by_id[fid].problem[:160]})
             elif act == "merge" and into in by_id and into != fid:
@@ -578,6 +579,13 @@ class Pipeline:
                 self.drops.append({"role": "Critic", "reason": "", "into": into, "item": by_id[fid].problem[:160]})
             if fid not in drop and d.get("severity") in SEVERITIES:
                 by_id[fid].severity = d["severity"]
+        for fid in locked:
+            seen = {fid}
+            while fid in drop and self.merge_into.get(fid) in by_id and self.merge_into[fid] not in seen:
+                fid = self.merge_into[fid]
+                seen.add(fid)
+            if fid not in drop:
+                by_id[fid].severity = "критично"
         kept = [f for f in findings if f.id not in drop]
         ff = data.get("fix_first")
         fix_first = [x for x in (ff if isinstance(ff, list) else [])

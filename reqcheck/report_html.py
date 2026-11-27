@@ -104,9 +104,10 @@ def question_html(q, i: int, fnum: dict, n_lines: int) -> str:
     return "".join(out)
 
 
-def table(head: list[str], rows: list[list[str]]) -> str:
-    return ('<div class="tw"><table><thead><tr>' + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"
-            + "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows) + "</tbody></table></div>")
+def table(head: list[str], rows: list[list[str]], cls: str = "") -> str:
+    return (f'<div class="tw{" " + cls if cls else ""}"><table><thead><tr>' + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"
+            + "".join("<tr>" + "".join(f'<td data-label="{e(h)}">{c}</td>' for h, c in zip(head, r)) + "</tr>" for r in rows)
+            + "</tbody></table></div>")
 
 
 def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> str:
@@ -230,7 +231,7 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
     sp_.append("</section>")
 
     pp = ['<section class="panel" id="panel-passport" role="tabpanel" aria-labelledby="tab-passport"><h2>Паспорт прогона</h2>',
-          table(["Поле", "Значение"], [[e(a), e(b if b not in (None, "") else "-")] for a, b in passport_rows(rep)])]
+          table(["Поле", "Значение"], [[e(a), e(b if b not in (None, "") else "-")] for a, b in passport_rows(rep)], "kv")]
     if rep.trace:
         pp.append("<h3>Роли и запросы к модели</h3>" + table(["Роль", "Ответ из кэша", "Время модели, с", "Токены вход / выход"], [
             [e(t.get("role")), "да" if t.get("cached") else "нет", e(t.get("orig_seconds", "-") if t.get("cached") else t.get("seconds")),
@@ -356,6 +357,11 @@ code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 @media (max-width:900px){.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}
 .pane{position:static;height:auto}.doc .lines{max-height:55vh}.flist{overflow:visible}
 .fdl{grid-template-columns:1fr}.fdl dt{padding-top:4px}h1{font-size:19px}}
+@media (max-width:600px){.tw thead{display:none}.tw table,.tw tbody,.tw tr,.tw td{display:block}
+.tw tr{border-bottom:1px solid var(--line);padding:6px 0}.tw tr:last-child{border-bottom:0}.tw td{border:0;padding:2px 12px}
+.tw td::before{content:attr(data-label);display:block;font-size:12px;color:var(--muted)}
+.tw.kv td::before{content:none}.tw.kv td:first-child{font-size:12.5px;color:var(--muted)}
+.tabs{flex-wrap:nowrap;overflow-x:auto}.tabs button{white-space:nowrap;flex:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 """
 

@@ -556,6 +556,33 @@ class MergeTextTest(unittest.TestCase):
         self.assertIn("Текст A.", kept[0].problem)
         self.assertIn("Текст B.", kept[0].problem)
 
+    def test_merged_text_that_repeats_target_is_skipped(self):
+        from reqcheck.llm import LLM
+        from reqcheck.model import Finding, Quote
+        from reqcheck.pipeline import Pipeline
+        p = Pipeline(LLM(use_cache=False), log=lambda *a: None)
+        fs = [Finding("F-01", "req", [], "complete", "важно", [Quote("x", 1, 1)],
+                      "Не указан таймаут ответа внешнего сервиса и действие при его превышении."),
+              Finding("F-02", "req", [], "complete", "важно", [Quote("x", 2, 2)],
+                      "Не указаны таймауты ответа внешнего сервиса и действия при превышении."),
+              Finding("F-03", "req", [], "complete", "важно", [Quote("x", 3, 3)],
+                      "Неясно, получает ли клиент уведомление о неудачной попытке списания.")]
+        p._llm = lambda *a: {"decisions": [{"id": "F-02", "action": "merge", "into": "F-01"},
+                                           {"id": "F-03", "action": "merge", "into": "F-01"}]}
+        kept, _ = p.critic("", fs, None)
+        kept[0].id = "D-01"
+        p.add_merged_text(kept, {"F-01": "D-01"})
+        self.assertEqual(kept[0].problem.count("Также:"), 1)
+        self.assertNotIn("Не указаны таймауты", kept[0].problem)
+        self.assertIn("уведомление о неудачной попытке списания", kept[0].problem)
+
+    def test_mostly_covered_threshold(self):
+        from reqcheck.pipeline import Pipeline
+        target = "Не описан возврат средств клиенту при отмене операции банком."
+        self.assertTrue(Pipeline.mostly_covered("Возврат средств клиенту при отмене не описан.", target))
+        self.assertFalse(Pipeline.mostly_covered("Возврат средств: срок зачисления и комиссия не указаны.", target))
+        self.assertFalse(Pipeline.mostly_covered("Не описан возврат.", target))
+
 
 class GetWriteLockTest(unittest.TestCase):
     def setUp(self):

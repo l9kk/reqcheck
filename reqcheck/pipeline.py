@@ -537,8 +537,15 @@ class Pipeline:
                 extra.setdefault(renum[k], []).extend(v)
         for f in findings:
             for text in extra.get(f.id, []):
-                if text and text not in f.problem:
+                if text and text not in f.problem and not self.mostly_covered(text, f.problem):
                     f.problem = f"{f.problem} Также: {text}"
+
+    @staticmethod
+    def mostly_covered(text: str, target: str, share: float = 0.6, min_words: int = 3) -> bool:
+        def stems(t):
+            return {w[:5] for w in re.findall(r"\w+", t.lower()) if len(w) > 3}
+        words = stems(text)
+        return len(words) >= min_words and len(words & stems(target)) / len(words) >= share
 
     def finding_table(self, findings: list[Finding]) -> str:
         return "\n".join(f"{f.id} [{f.role}; {f.criterion}; {f.severity}; {', '.join(q.loc for q in f.quotes)}] "

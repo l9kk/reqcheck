@@ -32,7 +32,7 @@ def main(argv=None) -> int:
             pass
     ap = argparse.ArgumentParser(prog="python -m reqcheck",
                                  description="Агент проверки качества требований (ISO/IEC/IEEE 29148, IEEE 830).")
-    ap.add_argument("input", help="путь к документу требований (.md, .txt, .pdf, .docx)")
+    ap.add_argument("input", help="путь к документу требований (.pdf, .docx, .xlsx, .html, .md, .txt)")
     ap.add_argument("-o", "--output", default="out/report.md", help="путь к отчёту (.md); рядом пишутся .json, .html, .pdf")
     ap.add_argument("--no-cache", action="store_true", help="не использовать кэш ответов модели")
     ap.add_argument("--replay", action="store_true",

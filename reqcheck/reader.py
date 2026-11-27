@@ -57,11 +57,19 @@ def sniff(data: bytes, suffix: str) -> str:
     if data.startswith(b"%PDF"):
         return "pdf"
     if data.startswith(b"PK\x03\x04"):
+        try:
+            names = set(zipfile.ZipFile(io.BytesIO(data)).namelist())
+        except zipfile.BadZipFile:
+            names = set()
+        if "xl/workbook.xml" in names:
+            return "xlsx"
         return "docx" if suffix != ".zip" else "zip"
     if data[:8] == b"\x89PNG\r\n\x1a\n" or data[:3] == b"\xff\xd8\xff" or data[:4] in (b"GIF8", b"RIFF"):
         return "image"
     if data[:4] == b"\xd0\xcf\x11\xe0":
         return "ole"
+    if suffix in (".html", ".htm") or data[:200].lstrip().lower().startswith((b"<!doctype html", b"<html")):
+        return "html"
     return "text"
 
 
@@ -229,6 +237,107 @@ def read_docx(data: bytes) -> list[str]:
     return out
 
 
+def _x(tag: str) -> str:
+    return "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}" + tag
+
+
+def read_xlsx(data: bytes) -> list[str]:
+    import xml.etree.ElementTree as ET
+
+    try:
+        z = zipfile.ZipFile(io.BytesIO(data))
+        shared = []
+        if "xl/sharedStrings.xml" in z.namelist():
+            for si in ET.fromstring(z.read("xl/sharedStrings.xml")).iter(_x("si")):
+                shared.append("".join(t.text or "" for t in si.iter(_x("t"))))
+        rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))
+        target = {r.get("Id"): r.get("Target", "") for r in rels}
+        book = ET.fromstring(z.read("xl/workbook.xml"))
+        rid = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+        out = []
+        for sh in book.iter(_x("sheet")):
+            path = target.get(sh.get(rid), "").lstrip("/")
+            path = path if path.startswith("xl/") else "xl/" + path
+            rows = []
+            for row in ET.fromstring(z.read(path)).iter(_x("row")):
+                cells = []
+                for c in row.iter(_x("c")):
+                    v = c.find(_x("v"))
+                    if c.get("t") == "s" and v is not None:
+                        cells.append(shared[int(v.text)])
+                    elif c.get("t") == "inlineStr":
+                        cells.append("".join(t.text or "" for t in c.iter(_x("t"))))
+                    else:
+                        cells.append(v.text if v is not None and v.text else "")
+                cells = [x.strip().replace("\n", " ") for x in cells]
+                if any(cells):
+                    rows.append(cells)
+            if not rows:
+                continue
+            out.append(f"## {sh.get('name', 'Лист')}")
+            for i, cells in enumerate(rows):
+                out.append("| " + " | ".join(cells) + " |")
+                if i == 0:
+                    out.append("|" + " --- |" * len(cells))
+            out.append("")
+        return out
+    except (KeyError, ValueError, IndexError, zipfile.BadZipFile, ET.ParseError) as e:
+        raise ReadError("xlsx_broken", f"XLSX повреждён: {type(e).__name__}.",
+                        "Пересохраните таблицу в Excel или передайте PDF/MD.")
+
+
+def read_html(text: str) -> list[str]:
+    from html.parser import HTMLParser
+
+    class P(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.out, self.buf, self.prefix, self.row, self.skip = [], [], "", None, 0
+
+        def flush(self):
+            t = re.sub(r"\s+", " ", "".join(self.buf)).strip()
+            self.buf = []
+            if t:
+                self.out.append(self.prefix + t)
+            self.prefix = ""
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ("script", "style"):
+                self.skip += 1
+            elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                self.flush(); self.prefix = "#" * int(tag[1]) + " "
+            elif tag == "li":
+                self.flush(); self.prefix = "* "
+            elif tag == "tr":
+                self.flush(); self.row = []
+            elif tag in ("td", "th"):
+                self.buf = []
+            elif tag in ("p", "div", "br", "section", "article"):
+                self.flush()
+
+        def handle_endtag(self, tag):
+            if tag in ("script", "style"):
+                self.skip = max(0, self.skip - 1)
+            elif tag in ("td", "th") and self.row is not None:
+                self.row.append(re.sub(r"\s+", " ", "".join(self.buf)).strip()); self.buf = []
+            elif tag == "tr" and self.row is not None:
+                if any(self.row):
+                    self.out.append("| " + " | ".join(self.row) + " |")
+                self.row = None
+            elif tag in ("h1", "h2", "h3", "h4", "h5", "h6", "li", "p", "div"):
+                self.flush()
+
+        def handle_data(self, d):
+            if not self.skip:
+                self.buf.append(d)
+
+    p = P()
+    p.feed(text)
+    p.close()
+    p.flush()
+    return p.out
+
+
 def assign_sections(lines: list[Line]) -> None:
     stack: list[str] = []
     for l in lines:
@@ -265,12 +374,17 @@ def read_document(path: str) -> Document:
         raw = [(t, pg) for t, pg in pairs]
     elif kind == "docx":
         raw = [(t, None) for t in read_docx(data)]
+    elif kind == "xlsx":
+        raw = [(t, None) for t in read_xlsx(data)]
+    elif kind == "html":
+        text, enc = decode_text(data)
+        raw = [(t, None) for t in read_html(text)]
     elif kind == "image":
         raise ReadError("image", "Файл является изображением, а не документом с текстом.",
                         "Нужен документ с текстовым слоем или распознавание (OCR).")
     elif kind == "ole":
         raise ReadError("old_office", "Старый формат Office (.doc/.xls) не поддерживается.",
-                        "Сохраните документ как .docx или .pdf.")
+                        "Сохраните документ как .docx, .xlsx или .pdf.")
     elif kind == "zip":
         raise ReadError("zip", "Передан архив, а не документ.", "Распакуйте архив и передайте сам документ.")
     else:

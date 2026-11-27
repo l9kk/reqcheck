@@ -142,14 +142,14 @@ python -m reqcheck input/requirements.md -o out/report.md --replay
   в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`. Без `--no-cache` агент повторит отчёт из кэша.
   Запуск: `python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache`
 
-На входе `.pdf`, `.docx`, `.md` или `.txt`. Другие провайдеры, коды выхода и проверка без сети:
+На входе `.pdf`, `.docx`, `.xlsx`, `.html`, `.md` или `.txt`. Другие провайдеры, коды выхода и проверка без сети:
 [`docs/details.md`](docs/details.md#как-посмотреть-от-готовых-отчётов-к-своему-прогону).
 
 ## Как работает
 
 ```mermaid
 flowchart TD
-    R["Reader, код: читает pdf, docx, md, txt, ставит номера строк"]
+    R["Reader, код: читает pdf, docx, xlsx, html, md, txt, ставит номера строк"]
     R --> S["Segmenter: какие фрагменты - требования"]
     S --> L["Linter, код: правила по всему тексту, язык 29148 п. 5.2.7"]
     L --> A["Auditor: каждое требование по 9 свойствам 29148 п. 5.2.5"]

@@ -702,6 +702,14 @@ class AssumptionTagTest(unittest.TestCase):
             with self.subTest(x=x):
                 self.assertEqual(normalize_tags(x), want)
 
+    def test_number_after_colon_is_not_an_ordinal(self):
+        from reqcheck.model import Finding
+        from reqcheck.pipeline import ASSUME_TAG, strip_ordinals, tag_assumptions
+        self.assertIn("5", strip_ordinals("Задать лимит: 5. Далее"))
+        fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix="Задать лимит: 5. Далее отказ.")]
+        tag_assumptions(fs, "Порог 1 000 ₸.")
+        self.assertEqual(fs[0].fix, f"Задать лимит: 5. Далее отказ. {ASSUME_TAG}")
+
     def test_list_ordinals_are_not_tagged(self):
         from reqcheck.model import Finding
         from reqcheck.pipeline import ASSUME_TAG, tag_assumptions

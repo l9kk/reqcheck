@@ -37,7 +37,7 @@ TAG_VARIANT_RE = re.compile(r"\[\s*([^\[\]]*?)[\s,;:.—–-]*\b(?:соглас�
 TAG_GENERIC = {"значение", "значения", "правило", "предложение", "число", "требует", "требуется", "нужно",
                "необходимо", "надо", "на"}
 DOUBLE_TAG_RE = re.compile(rf"{re.escape(ASSUME_TAG)}(?:[\s,;]*{re.escape(ASSUME_TAG)})+")
-DOT_ORDINAL_RE = re.compile(r"(?:^[ \t]*|(?<=[.:;!?] ))\d{1,2}\.(?=\s)", re.M)
+DOT_ORDINAL_RE = re.compile(r"(?:^[ \t]*|(?<=[.;!?] ))\d{1,2}\.(?=\s)", re.M)
 PAREN_ORDINAL_RE = re.compile(r"(?:^|(?<=[\s:;]))\d{1,2}\)")
 
 

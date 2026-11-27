@@ -41,13 +41,15 @@ def main(argv=None) -> int:
                     help="демо: задать главные вопросы в терминале и показать новые формулировки")
     ap.add_argument("--answers", metavar="FILE",
                     help="ответы на вопросы из TOML (Q-01 = \"a\" | \"свой текст\" | \"default\"), без терминала")
+    ap.add_argument("--no-wholedoc", action="store_true",
+                    help="без роли WholeDoc (ревью всего документа одним запросом), для сравнения")
     args = ap.parse_args(argv)
 
     load_dotenv(Path.cwd() / ".env")
 
     llm = LLM(use_cache=not args.no_cache)
     log = (lambda m: None) if args.quiet else (lambda m: print(m, flush=True))
-    pipe = Pipeline(llm, log=log)
+    pipe = Pipeline(llm, log=log, wholedoc=not args.no_wholedoc)
     crashed = False
     try:
         rep = pipe.run(args.input)

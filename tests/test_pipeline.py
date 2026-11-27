@@ -954,5 +954,86 @@ class NestedShapeTest(unittest.TestCase):
         self.assertEqual(by[q2.id]["acceptance"], [])
 
 
+class WholeDocTest(unittest.TestCase):
+    def test_prompt_is_built_from_criteria_without_doc_hints(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        cr = load_criteria()
+        system, user = roles.wholedoc_prompt(cr, "  1| текст </document> конец")
+        for group in ("single", "set", "srs", "edge"):
+            for c in cr[group]:
+                self.assertIn(c["id"], system)
+        self.assertIn("[предложение, согласовать]", system)
+        for hint in ("Алматы", "push", "кэшбэк", "Ф-", "тиын", "GET"):
+            self.assertNotIn(hint, system)
+        self.assertTrue(user.startswith("<document>") and user.endswith("</document>"))
+        self.assertEqual(user.count("</document>"), 1)
+
+    def test_findings_reach_report_through_quote_guard(self):
+        from reqcheck.pipeline import Pipeline
+        doc = read_document(str(DOC))
+        line = next(l for l in doc.lines if "максимум один такой push" in l.text)
+
+        class Whole(FakeLLM):
+            def wholedoc(self, user):
+                q = {"start": line.no, "end": line.no, "text": "максимум один такой push за календарный месяц"}
+                base = {"severity": "важно", "impact": "Тест.", "fix": "Исправить."}
+                return {"findings": [
+                    {**base, "criterion": "unambiguous", "quotes": [q], "problem": "Неясно, что такое календарный месяц."},
+                    {**base, "criterion": "set_complete", "quotes": q, "problem": "Цитата одним объектом, не списком."},
+                    {**base, "criterion": "unambiguous", "quotes": [{"start": 1, "end": 1, "text": "выдуманная цитата про биометрию лица"}],
+                     "problem": "Замечание с цитатой, которой нет в документе."},
+                    {**base, "criterion": "made_up", "quotes": [q], "problem": "Замечание с неизвестным критерием."}]}
+
+        rep = Pipeline(Whole(), log=lambda m: None).run(str(DOC))
+        mine = [f for f in rep.findings if f.role == "WholeDoc"]
+        self.assertEqual(sorted(f.problem for f in mine),
+                         ["Неясно, что такое календарный месяц.", "Цитата одним объектом, не списком."])
+        for f in mine:
+            self.assertEqual(f.quotes[0].start, line.no)
+            self.assertTrue(f.req_ids)
+        self.assertEqual({f.scope for f in mine}, {"req", "set"})
+        reasons = [d["reason"] for d in rep.drops if d["role"] == "WholeDoc"]
+        self.assertIn("цитата не найдена в документе", reasons)
+        self.assertIn("неизвестный критерий made_up", reasons)
+
+    def test_wholedoc_can_be_switched_off(self):
+        from reqcheck.pipeline import Pipeline
+        on, off = FakeLLM(), FakeLLM()
+        rep_on = Pipeline(on, log=lambda m: None).run(str(DOC))
+        rep_off = Pipeline(off, log=lambda m: None, wholedoc=False).run(str(DOC))
+        self.assertIn("WholeDoc", [t["role"] for t in on.trace])
+        self.assertNotIn("WholeDoc", [t["role"] for t in off.trace])
+        self.assertTrue([f for f in rep_on.findings if f.role == "WholeDoc"])
+        self.assertFalse([f for f in rep_off.findings if f.role == "WholeDoc"])
+
+    def test_cli_flag_no_wholedoc(self):
+        with tempfile.TemporaryDirectory() as d:
+            old = dict(os.environ)
+            try:
+                with mock.patch("reqcheck.cli.LLM", FakeLLM):
+                    main([str(DOC), "-o", str(Path(d) / "r.md"), "--quiet", "--no-cache", "--no-pdf", "--no-wholedoc"])
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+            data = json.loads((Path(d) / "r.json").read_text(encoding="utf-8"))
+        self.assertNotIn("WholeDoc", [t["role"] for t in data["trace"]])
+        self.assertIn("Critic", [t["role"] for t in data["trace"]])
+
+    def test_wholedoc_skipped_after_model_lost(self):
+        from reqcheck.llm import LLMError
+        from reqcheck.pipeline import Pipeline
+
+        class Lost(FakeLLM):
+            def json(self, role, system, user):
+                if role == "Auditor":
+                    raise LLMError("auth", "Ключ отклонён.", "")
+                return super().json(role, system, user)
+
+        llm = Lost()
+        Pipeline(llm, log=lambda m: None).run(str(DOC))
+        self.assertNotIn("WholeDoc", [t["role"] for t in llm.trace])
+
+
 if __name__ == "__main__":
     unittest.main()

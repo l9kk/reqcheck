@@ -89,8 +89,9 @@ def all_criteria(cr: dict) -> dict:
 
 
 class Pipeline:
-    def __init__(self, llm: LLM, log=print):
+    def __init__(self, llm: LLM, log=print, wholedoc: bool = True):
         self.llm = llm
+        self.wholedoc = wholedoc
         self.use_model = True
         self.log = log
         self.cr = load_criteria()
@@ -163,6 +164,8 @@ class Pipeline:
                 findings += self.cross(numbered, reqs, findings, rep)
             if self.use_model:
                 findings += self.edge(numbered, reqs, findings, rep)
+            if self.use_model and self.wholedoc:
+                findings += self.whole(numbered, rep)
         self.attach_reqs(findings, reqs)
         findings = self.dedupe(findings)
         for i, f in enumerate(findings, start=1):
@@ -391,6 +394,34 @@ class Pipeline:
                 f.edge = eid if eid in edge_ids else ""
                 out.append(f)
         self.step("EdgeCaser", f"замечаний: {len(out)}")
+        return out
+
+    def _ground_spans(self, raw, hint=None):
+        out = []
+        for q in raw:
+            if isinstance(q, dict):
+                start = q.get("start")
+                q, h = q.get("text"), start if isinstance(start, int) and not isinstance(start, bool) else hint
+            else:
+                h = hint
+            out += self._ground_quotes([q], h)
+        return out
+
+    def whole(self, numbered: str, rep: Report) -> list[Finding]:
+        system, user = roles.wholedoc_prompt(self.cr, numbered)
+        data = self._llm("WholeDoc", system, user, rep)
+        out = []
+        if not isinstance(data, dict):
+            return out
+        single = {c["id"] for c in self.cr["single"]}
+        for d in self._dicts(data.get("findings"), "WholeDoc"):
+            if isinstance(d.get("quotes"), dict):
+                d = {**d, "quotes": [d["quotes"]]}
+            scope = "req" if str(d.get("criterion", "")).strip() in single else "set"
+            f = self._mk(d, scope, "WholeDoc", [], ground=self._ground_spans)
+            if f:
+                out.append(f)
+        self.step("WholeDoc", f"замечаний: {len(out)}")
         return out
 
     def attach_reqs(self, findings: list[Finding], reqs: list[Requirement]) -> None:

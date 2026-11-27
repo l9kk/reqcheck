@@ -2,6 +2,7 @@ import re
 
 CAND_RE = re.compile(r"^(C\d{3}) \[(\w+), строка \d+\][^:]*: (.*)$", re.M)
 REQ_RE = re.compile(r"^(R-\d+) \[[^\]]*\]: (.*)$", re.M)
+DOC_LINE_RE = re.compile(r"^\s*(\d+)\| (.*)$", re.M)
 FINDING_RE = re.compile(r"^(F-\d+|D-\d+) \[[^\]]*\] (.*?) \| цитата: «(.*)»$", re.M)
 
 
@@ -61,6 +62,15 @@ class FakeLLM:
                "addressee": "аналитик", "finding_ids": [fid], "answered_in_doc": ""}
               for n, (fid, problem, quote) in enumerate(FINDING_RE.findall(user)[:4], start=1)]
         return {"questions": qs}
+
+    def wholedoc(self, user: str) -> dict:
+        for no, text in DOC_LINE_RE.findall(user):
+            if len(text.split()) >= 8 and "|" not in text:
+                return {"findings": [{"criterion": "srs_ranked", "severity": "мелочь",
+                                      "quotes": [{"start": int(no), "end": int(no), "text": words(text)}],
+                                      "problem": "У требований нет приоритета и признака стабильности.",
+                                      "impact": "Непонятно, что делать первым.", "fix": "Добавить приоритет."}]}
+        return {"findings": []}
 
     def edgecaser(self, user: str) -> dict:
         return {"findings": []}

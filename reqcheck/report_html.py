@@ -649,7 +649,7 @@ code{font:12.5px var(--mono)}
 .tw.kv td::before{content:none}.tw.kv td:first-child{font-size:12.5px;color:var(--muted)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media print{body{background:#fff}.bar{position:static;border:0}.tabs,.bact,.dtog,.tools,.doc,.golink,#fnone{display:none!important}
-.panel[hidden],.flist .finding[hidden]{display:block!important}.panel{margin-top:24px;animation:none}.hero{box-shadow:none}
+.panel[hidden],.flist .finding[hidden]{display:block!important}.panel{margin-top:24px}.panel,.panel:not([hidden]){animation:none!important}.hero{box-shadow:none}
 .work{display:block}.pane{position:static;height:auto;overflow:visible;border:0}.flist{overflow:visible;padding:0}.finding,.question{break-inside:avoid}}
 """
 

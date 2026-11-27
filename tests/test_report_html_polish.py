@@ -38,7 +38,7 @@ class FixFirstChipsTest(unittest.TestCase):
         self.assertEqual(ranks, sorted(ranks))
         for s, i in got:
             if s != "критично":
-                self.assertRegex(self.html, rf'<b>{re.escape(i)}</b> · <span class="clab">{s}</span>')
+                self.assertRegex(self.html, rf'<b>{re.escape(i)}</b><span class="clab">{s}</span>')
         crit = sum(1 for s, _ in got if s == "критично")
         self.assertIn(f"Критично · {crit}", self.html)
 

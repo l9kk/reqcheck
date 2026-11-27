@@ -204,8 +204,8 @@ flowchart TD
 ## Подробнее
 
 - Как мы считали и что учесть: [`RESULTS.md`](RESULTS.md#как-мы-считали).
-- Как сделаны отчёты в репозитории: модель `claude-opus-5-5` через подписку Claude Code (локальный прокси),
-  потом повтор из кэша. [Подробно](docs/details.md#как-сделаны-отчёты-в-репозитории).
+- Без ключа API, на подписке Claude Code: локальный прокси `tools/claude_proxy.py`,
+  [как запустить](docs/details.md#два-способа-подключить-claude).
 - Все детали, запуск, тесты: [`docs/details.md`](docs/details.md). Оценка: [`eval/`](eval/).
 - Отчёт на выданном ТЗ: [`report/report.md`](report/report.md), [`report.pdf`](report/report.pdf), [`report.json`](report/report.json).
 - Вопросы жюри и ответы: [`docs/qa.md`](docs/qa.md).

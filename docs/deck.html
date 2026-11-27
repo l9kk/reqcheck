@@ -114,9 +114,8 @@
   .two ul { font-size: 19px; }
 
   /* screenshot */
-  .shot { display: grid; grid-template-columns: 736px 1fr; gap: 36px; align-items: start; }
-  .shot img { width: 736px; height: 460px; display: block; border: 1px solid var(--line); }
-  .shot ul { font-size: 20px; margin-top: 4px; }
+  .shot img { width: 1120px; height: 334px; display: block; border: 1px solid var(--line); }
+  .shot ul { font-size: 20px; margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 48px; }
 </style>
 </head>
 <body>
@@ -186,13 +185,12 @@
 <section class="slide">
   <h2>Отчёт в браузере</h2>
   <div class="shot">
-    <img src="img/report-html.png" alt="report.html: ТЗ с номерами строк слева, замечания справа">
+    <img src="img/report-html-top.png" alt="report.html: вердикт, критичные замечания, счётчики">
     <ul class="plain">
-      <li>Файл <code>report.html</code> рядом с md, pdf и json.</li>
+      <li><code>report.html</code> рядом с md, pdf и json, без сервера.</li>
       <li>Слева ТЗ с номерами строк, справа замечания.</li>
-      <li>Клик по замечанию подсвечивает его цитату в тексте.</li>
+      <li>Клик по замечанию подсвечивает цитату в тексте.</li>
       <li>Фильтр по важности и поиск.</li>
-      <li>Один файл без внешних ссылок, открывается без сервера.</li>
     </ul>
   </div>
   <div class="foot"><span>reqcheck: report/report.html</span><span>4</span></div>

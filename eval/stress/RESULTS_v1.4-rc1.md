@@ -1,7 +1,7 @@
 # S2: strict hand-check of the v1.4-rc1 stress runs
 
 Date: 2026-11-27. Read-only check. Reports from claude-opus-5-5, agent 1.4 (v1.4-rc1), in `eval/stress/reports_v1.4-rc1/<name>.json`.
-Keys: `eval/stress/sN_*.key.toml`. Method as in `eval/manual_check.md` and `eval/handcheck_v1.4.md`: a defect counts only if a finding really describes it.
+Keys: `eval/stress/sN_*.key.toml`. Method as in `eval/manual_check.md`: a defect counts only if a finding really describes it.
 Sample: 25 findings per doc (all 27 for s2 minus 2), seed 20261127. Labels: key = a key defect, real = real but not in the key, dup, low = generic checklist or style, wrong.
 
 ## Per doc

@@ -3,7 +3,7 @@
 Date: 2026-11-27. Read-only check, only this file written. Checked by a separate reviewer agent, not by a human.
 Report: `eval/handcheck_v1.5_input.json` ( те же 55 замечаний, что в v1.6, кроме текстов исправлений: `python eval/same_findings.py eval/handcheck_v1.5_input.json report/report.json`) (agent "1.4 (v1.5-rc1)", claude-opus-5-5, 55 findings, 10 questions, 70 guard drops). `report.md` lists the same 55 D-ids and 10 Q-ids.
 Document: `input/requirements.md`. Golden: `eval/golden.toml` (40 defects, 13 must-find).
-Method as in `eval/manual_check.md` and `handcheck_v1.4.md`: open every finding the scorer matched and decide if one of them really describes the golden defect. Graded on my own, v1.4 verdicts not reused.
+Method as in `eval/manual_check.md`: open every finding the scorer matched and decide if one of them really describes the golden defect.
 
 ## Summary
 

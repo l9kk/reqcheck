@@ -1,0 +1,3404 @@
+{
+  "passport": {
+    "document": "s3_english.md",
+    "sha256": "d1de3b7b124b4ab6f892281d1cdf49add3b9d1cb1a96b69626e243b973628742",
+    "date": "2026-11-27 08:52",
+    "model": "claude-opus-5-5",
+    "provider": "anthropic",
+    "agent_version": "1.4 (v1.4-rc1)",
+    "llm_calls": 8,
+    "seconds": 592.2,
+    "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",
+    "format": "text",
+    "lines": 143,
+    "doc_title": "Software Requirements Specification / Loan Pre-Approval API for Partner Marketplaces",
+    "guard_drops": 58,
+    "llm_cached": 0
+  },
+  "requirements": [
+    {
+      "id": "R-01",
+      "doc_id": "",
+      "type": "business",
+      "short": "API предварительного одобрения кредита для партнёрских маркетплейсов",
+      "section": "1. Introduction / 1.1 Purpose",
+      "quote": {
+        "text": "This document specifies the requirements for a REST API that lets partner marketplaces (online electronics and furniture stores) request a non-binding pre-approval of a consumer loan for their customers before checkout. The pre-approval tells the customer the maximum amount, term and indicative rate the bank is likely to offer.",
+        "start": 15,
+        "end": 15,
+        "loc": "строка 15 (1. Introduction / 1.1 Purpose)"
+      },
+      "candidate_ids": [
+        "C006"
+      ]
+    },
+    {
+      "id": "R-02",
+      "doc_id": "REQ-001",
+      "type": "api",
+      "short": "Эндпоинт POST /v1/preapprovals с перечнем полей запроса",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-001.** The API shall expose the endpoint `POST /v1/preapprovals` that accepts a JSON body with the fields: `iin`, `phone`, `declared_monthly_income_kzt`, `requested_amount_kzt`, `requested_term_months`, `consent_id`, `partner_order_id`.",
+        "start": 47,
+        "end": 47,
+        "loc": "строка 47 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C021"
+      ]
+    },
+    {
+      "id": "R-03",
+      "doc_id": "REQ-002",
+      "type": "api",
+      "short": "Валидация ИИН: 12 цифр, контрольная цифра, ошибка INVALID_IIN",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-002.** The API shall validate that `iin` contains exactly 12 digits and that its check digit is valid. Invalid IINs shall be rejected with HTTP 400 and error code `INVALID_IIN`.",
+        "start": 49,
+        "end": 49,
+        "loc": "строка 49 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C022"
+      ]
+    },
+    {
+      "id": "R-04",
+      "doc_id": "REQ-003",
+      "type": "api",
+      "short": "Валидация телефона в формате +7XXXXXXXXXX",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-003.** The API shall validate that `phone` is in the format +7XXXXXXXXXX.",
+        "start": 51,
+        "end": 51,
+        "loc": "строка 51 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C023"
+      ]
+    },
+    {
+      "id": "R-05",
+      "doc_id": "REQ-004",
+      "type": "api",
+      "short": "Сумма запроса — целое от 50 000 до 5 000 000",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-004.** `requested_amount_kzt` shall be an integer between 50,000 and 5,000,000 inclusive.",
+        "start": 53,
+        "end": 53,
+        "loc": "строка 53 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C024"
+      ]
+    },
+    {
+      "id": "R-06",
+      "doc_id": "REQ-005",
+      "type": "api",
+      "short": "Срок запроса — одно из 3, 6, 12, 24, 36 месяцев",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-005.** `requested_term_months` shall be one of 3, 6, 12, 24, 36.",
+        "start": 55,
+        "end": 55,
+        "loc": "строка 55 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C025"
+      ]
+    },
+    {
+      "id": "R-07",
+      "doc_id": "REQ-006",
+      "type": "api",
+      "short": "consent_id ссылается на согласие не старше 30 дней",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-006.** `consent_id` shall reference a consent record for credit bureau access that the partner registered through `POST /v1/consents` no earlier than 30 days before the pre-approval request.",
+        "start": 57,
+        "end": 57,
+        "loc": "строка 57 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C026"
+      ]
+    },
+    {
+      "id": "R-08",
+      "doc_id": "REQ-007",
+      "type": "functional",
+      "short": "Обработка дублирующих запросов",
+      "section": "3. Functional Requirements / 3.1 Request",
+      "quote": {
+        "text": "**REQ-007.** Duplicate requests should be handled appropriately.",
+        "start": 59,
+        "end": 59,
+        "loc": "строка 59 (3. Functional Requirements / 3.1 Request)"
+      },
+      "candidate_ids": [
+        "C027"
+      ]
+    },
+    {
+      "id": "R-09",
+      "doc_id": "REQ-010",
+      "type": "business",
+      "short": "Возраст заявителя 21–65 лет, определяется по ИИН",
+      "section": "3. Functional Requirements / 3.2 Eligibility",
+      "quote": {
+        "text": "**REQ-010.** The applicant shall be between 21 and 65 years old on the date of the request. Age is derived from the IIN.",
+        "start": 63,
+        "end": 63,
+        "loc": "строка 63 (3. Functional Requirements / 3.2 Eligibility)"
+      },
+      "candidate_ids": [
+        "C028"
+      ]
+    },
+    {
+      "id": "R-10",
+      "doc_id": "REQ-011",
+      "type": "business",
+      "short": "Заявитель — резидент Республики Казахстан",
+      "section": "3. Functional Requirements / 3.2 Eligibility",
+      "quote": {
+        "text": "**REQ-011.** The applicant shall be a resident of the Republic of Kazakhstan.",
+        "start": 65,
+        "end": 65,
+        "loc": "строка 65 (3. Functional Requirements / 3.2 Eligibility)"
+      },
+      "candidate_ids": [
+        "C029"
+      ]
+    },
+    {
+      "id": "R-11",
+      "doc_id": "REQ-012",
+      "type": "business",
+      "short": "Нет просрочек более 30 дней за 12 месяцев",
+      "section": "3. Functional Requirements / 3.2 Eligibility",
+      "quote": {
+        "text": "**REQ-012.** The applicant shall not have any overdue obligation of more than 30 days in the last 12 months according to the credit bureau.",
+        "start": 67,
+        "end": 67,
+        "loc": "строка 67 (3. Functional Requirements / 3.2 Eligibility)"
+      },
+      "candidate_ids": [
+        "C030"
+      ]
+    },
+    {
+      "id": "R-12",
+      "doc_id": "REQ-013",
+      "type": "functional",
+      "short": "Заявители без кредитной истории — на альтернативную скоринговую модель",
+      "section": "3. Functional Requirements / 3.2 Eligibility",
+      "quote": {
+        "text": "**REQ-013.** Thin-file applicants shall be routed to the alternative scoring model.",
+        "start": 69,
+        "end": 69,
+        "loc": "строка 69 (3. Functional Requirements / 3.2 Eligibility)"
+      },
+      "candidate_ids": [
+        "C031"
+      ]
+    },
+    {
+      "id": "R-13",
+      "doc_id": "REQ-014",
+      "type": "business",
+      "short": "Отказ EXISTING_EXPOSURE при остатке долга в банке свыше 3 млн",
+      "section": "3. Functional Requirements / 3.2 Eligibility",
+      "quote": {
+        "text": "**REQ-014.** Applicants who already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT shall be declined with reason code `EXISTING_EXPOSURE`.",
+        "start": 71,
+        "end": 71,
+        "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+      },
+      "candidate_ids": [
+        "C032"
+      ]
+    },
+    {
+      "id": "R-14",
+      "doc_id": "REQ-020",
+      "type": "integration",
+      "short": "Запрос кредитного отчёта в бюро по ИИН и consent_id",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-020.** For each eligible applicant the API shall request the credit report from the credit bureau using the IIN and the `consent_id`.",
+        "start": 75,
+        "end": 75,
+        "loc": "строка 75 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C033"
+      ]
+    },
+    {
+      "id": "R-15",
+      "doc_id": "REQ-021",
+      "type": "functional",
+      "short": "Расчёт DTI по доходу, платежам из бюро и новому платежу",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-021.** The decision engine shall calculate DTI using declared income and the monthly payments reported by the credit bureau plus the estimated monthly payment of the requested loan.",
+        "start": 77,
+        "end": 77,
+        "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C034"
+      ]
+    },
+    {
+      "id": "R-16",
+      "doc_id": "REQ-022",
+      "type": "business",
+      "short": "Одобрение при DTI ниже 50%, отказ HIGH_DTI выше 50%",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-022.** If DTI is below 50%, the applicant is approved. If DTI is above 50%, the applicant is declined with reason code `HIGH_DTI`.",
+        "start": 79,
+        "end": 79,
+        "loc": "строка 79 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C035"
+      ]
+    },
+    {
+      "id": "R-17",
+      "doc_id": "REQ-023",
+      "type": "functional",
+      "short": "Максимальная сумма при DTI ниже 50%, не выше 5 млн",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-023.** The maximum pre-approved amount shall be the largest amount for which DTI stays below 50%, capped at 5,000,000 KZT, and rounded.",
+        "start": 81,
+        "end": 81,
+        "loc": "строка 81 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C036"
+      ]
+    },
+    {
+      "id": "R-18",
+      "doc_id": "REQ-024",
+      "type": "functional",
+      "short": "Ставка из таблицы ставок по скоринговому диапазону и сроку",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-024.** The indicative annual rate shall be taken from the rate table maintained by the Risk analyst in the decision engine for the applicant's score band and term.",
+        "start": 83,
+        "end": 83,
+        "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C037"
+      ]
+    },
+    {
+      "id": "R-19",
+      "doc_id": "REQ-025",
+      "type": "business",
+      "short": "Срок действия предодобрения (не определён, TBD)",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-025.** The pre-approval shall be valid for TBD days from the moment of issue.",
+        "start": 85,
+        "end": 85,
+        "loc": "строка 85 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C038"
+      ]
+    },
+    {
+      "id": "R-20",
+      "doc_id": "REQ-026",
+      "type": "business",
+      "short": "Заявители от 18 лет — предодобрение до 500 000",
+      "section": "3. Functional Requirements / 3.3 Scoring and Decision",
+      "quote": {
+        "text": "**REQ-026.** Applicants aged 18 and over who pass the credit bureau check may receive a pre-approval with a reduced maximum amount of 500,000 KZT.",
+        "start": 87,
+        "end": 87,
+        "loc": "строка 87 (3. Functional Requirements / 3.3 Scoring and Decision)"
+      },
+      "candidate_ids": [
+        "C039"
+      ]
+    },
+    {
+      "id": "R-21",
+      "doc_id": "REQ-030",
+      "type": "api",
+      "short": "Успешный ответ HTTP 200 с перечнем полей предодобрения",
+      "section": "3. Functional Requirements / 3.4 Response",
+      "quote": {
+        "text": "**REQ-030.** On success the API shall return HTTP 200 with: `preapproval_id`, `decision` (`APPROVED` or `DECLINED`), `max_amount_kzt`, `term_options_months`, `indicative_rate_percent`, `valid_until`, `reason_codes`.",
+        "start": 91,
+        "end": 91,
+        "loc": "строка 91 (3. Functional Requirements / 3.4 Response)"
+      },
+      "candidate_ids": [
+        "C040"
+      ]
+    },
+    {
+      "id": "R-22",
+      "doc_id": "REQ-031",
+      "type": "api",
+      "short": "При отказе поля оффера null, минимум один код причины",
+      "section": "3. Functional Requirements / 3.4 Response",
+      "quote": {
+        "text": "**REQ-031.** For declined applications `max_amount_kzt`, `term_options_months` and `indicative_rate_percent` shall be null and `reason_codes` shall contain at least one code.",
+        "start": 93,
+        "end": 93,
+        "loc": "строка 93 (3. Functional Requirements / 3.4 Response)"
+      },
+      "candidate_ids": [
+        "C041"
+      ]
+    },
+    {
+      "id": "R-23",
+      "doc_id": "REQ-032",
+      "type": "api",
+      "short": "Только опубликованные коды причин, без внутренних идентификаторов правил",
+      "section": "3. Functional Requirements / 3.4 Response",
+      "quote": {
+        "text": "**REQ-032.** Reason codes returned to the partner shall be from the published list: `HIGH_DTI`, `AGE`, `NON_RESIDENT`, `OVERDUE_HISTORY`, `EXISTING_EXPOSURE`, `OTHER`. Internal rule identifiers shall never be returned.",
+        "start": 95,
+        "end": 95,
+        "loc": "строка 95 (3. Functional Requirements / 3.4 Response)"
+      },
+      "candidate_ids": [
+        "C042"
+      ]
+    },
+    {
+      "id": "R-24",
+      "doc_id": "REQ-033",
+      "type": "nonfunctional",
+      "short": "Ответ не содержит кредитную историю, доход и обязательства",
+      "section": "3. Functional Requirements / 3.4 Response",
+      "quote": {
+        "text": "**REQ-033.** The response shall not contain the applicant's credit history, income or existing obligations.",
+        "start": 97,
+        "end": 97,
+        "loc": "строка 97 (3. Functional Requirements / 3.4 Response)"
+      },
+      "candidate_ids": [
+        "C043"
+      ]
+    },
+    {
+      "id": "R-25",
+      "doc_id": "REQ-040",
+      "type": "api",
+      "short": "HTTP 401 без валидного токена партнёра",
+      "section": "3. Functional Requirements / 3.5 Errors",
+      "quote": {
+        "text": "**REQ-040.** Requests without a valid partner access token shall be rejected with HTTP 401.",
+        "start": 101,
+        "end": 101,
+        "loc": "строка 101 (3. Functional Requirements / 3.5 Errors)"
+      },
+      "candidate_ids": [
+        "C044"
+      ]
+    },
+    {
+      "id": "R-26",
+      "doc_id": "REQ-041",
+      "type": "api",
+      "short": "HTTP 422 CONSENT_INVALID при просроченном или отсутствующем согласии",
+      "section": "3. Functional Requirements / 3.5 Errors",
+      "quote": {
+        "text": "**REQ-041.** Requests with an expired or missing consent shall be rejected with HTTP 422 and error code `CONSENT_INVALID`.",
+        "start": 103,
+        "end": 103,
+        "loc": "строка 103 (3. Functional Requirements / 3.5 Errors)"
+      },
+      "candidate_ids": [
+        "C045"
+      ]
+    },
+    {
+      "id": "R-27",
+      "doc_id": "REQ-042",
+      "type": "api",
+      "short": "HTTP 400 со списком полей и кодов ошибок",
+      "section": "3. Functional Requirements / 3.5 Errors",
+      "quote": {
+        "text": "**REQ-042.** Validation errors shall return HTTP 400 with a list of field names and error codes.",
+        "start": 105,
+        "end": 105,
+        "loc": "строка 105 (3. Functional Requirements / 3.5 Errors)"
+      },
+      "candidate_ids": [
+        "C046"
+      ]
+    },
+    {
+      "id": "R-28",
+      "doc_id": "REQ-043",
+      "type": "api",
+      "short": "Лимит 100 запросов в минуту на партнёра, иначе HTTP 429",
+      "section": "3. Functional Requirements / 3.5 Errors",
+      "quote": {
+        "text": "**REQ-043.** Each partner shall be limited to 100 requests per minute. Requests above the limit shall receive HTTP 429.",
+        "start": 107,
+        "end": 107,
+        "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+      },
+      "candidate_ids": [
+        "C047"
+      ]
+    },
+    {
+      "id": "R-29",
+      "doc_id": "REQ-050",
+      "type": "nonfunctional",
+      "short": "Ответ за 3 секунды для 95% запросов",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-050.** The API shall return a response within 3 seconds for 95% of requests, measured at the bank's API gateway over a calendar day.",
+        "start": 111,
+        "end": 111,
+        "loc": "строка 111 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C048"
+      ]
+    },
+    {
+      "id": "R-30",
+      "doc_id": "REQ-051",
+      "type": "nonfunctional",
+      "short": "Доступность 99,5% в календарный месяц",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-051.** The API shall be available 99.5% of the time per calendar month, excluding announced maintenance windows.",
+        "start": 113,
+        "end": 113,
+        "loc": "строка 113 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C049"
+      ]
+    },
+    {
+      "id": "R-31",
+      "doc_id": "REQ-052",
+      "type": "nonfunctional",
+      "short": "Нагрузка 1000 запросов в минуту на партнёра",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-052.** The API shall sustain 1,000 requests per minute per partner without degradation.",
+        "start": 115,
+        "end": 115,
+        "loc": "строка 115 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C050"
+      ]
+    },
+    {
+      "id": "R-32",
+      "doc_id": "REQ-053",
+      "type": "nonfunctional",
+      "short": "TLS 1.2+, OAuth 2.0 client credentials, токен 15 минут",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-053.** All traffic shall use TLS 1.2 or higher. Partners authenticate with OAuth 2.0 client credentials; access tokens are valid for 15 minutes.",
+        "start": 117,
+        "end": 117,
+        "loc": "строка 117 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C051"
+      ]
+    },
+    {
+      "id": "R-33",
+      "doc_id": "REQ-054",
+      "type": "data",
+      "short": "Хранение запросов и ответов для аудита",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-054.** Request and response payloads shall be stored for as long as necessary for audit purposes.",
+        "start": 119,
+        "end": 119,
+        "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C052"
+      ]
+    },
+    {
+      "id": "R-34",
+      "doc_id": "REQ-055",
+      "type": "nonfunctional",
+      "short": "Маскирование ИИН и телефона в логах",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-055.** IIN and phone shall be masked in application logs (first 4 and last 2 digits visible).",
+        "start": 121,
+        "end": 121,
+        "loc": "строка 121 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C053"
+      ]
+    },
+    {
+      "id": "R-35",
+      "doc_id": "REQ-056",
+      "type": "nonfunctional",
+      "short": "Удобная документация API",
+      "section": "Software Requirements Specification / 4. Non-Functional Requirements",
+      "quote": {
+        "text": "**REQ-056.** The API documentation shall be user-friendly.",
+        "start": 123,
+        "end": 123,
+        "loc": "строка 123 (Software Requirements Specification / 4. Non-Functional Requirements)"
+      },
+      "candidate_ids": [
+        "C054"
+      ]
+    },
+    {
+      "id": "R-36",
+      "doc_id": "REQ-060",
+      "type": "integration",
+      "short": "Интеграция с бюро через SOAP GetCreditReport с mTLS",
+      "section": "Software Requirements Specification / 5. External Interfaces",
+      "quote": {
+        "text": "**REQ-060.** Credit bureau integration uses the bureau's SOAP service `GetCreditReport` with mutual TLS.",
+        "start": 127,
+        "end": 127,
+        "loc": "строка 127 (Software Requirements Specification / 5. External Interfaces)"
+      },
+      "candidate_ids": [
+        "C055"
+      ]
+    },
+    {
+      "id": "R-37",
+      "doc_id": "REQ-061",
+      "type": "integration",
+      "short": "Синхронный вызов движка решений через POST /decide",
+      "section": "Software Requirements Specification / 5. External Interfaces",
+      "quote": {
+        "text": "**REQ-061.** The decision engine is invoked synchronously over the internal REST interface `POST /decide`.",
+        "start": 129,
+        "end": 129,
+        "loc": "строка 129 (Software Requirements Specification / 5. External Interfaces)"
+      },
+      "candidate_ids": [
+        "C056"
+      ]
+    },
+    {
+      "id": "R-38",
+      "doc_id": "AC-01",
+      "type": "acceptance",
+      "short": "DTI 30% — APPROVED с ненулевой суммой",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-01.** A request with a valid IIN, consent and DTI of 30% returns `APPROVED` with a non-null `max_amount_kzt`.",
+        "start": 133,
+        "end": 133,
+        "loc": "строка 133 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C057"
+      ]
+    },
+    {
+      "id": "R-39",
+      "doc_id": "AC-02",
+      "type": "acceptance",
+      "short": "DTI 65% — DECLINED с кодом HIGH_DTI",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-02.** A request with DTI of 65% returns `DECLINED` with reason code `HIGH_DTI`.",
+        "start": 135,
+        "end": 135,
+        "loc": "строка 135 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C058"
+      ]
+    },
+    {
+      "id": "R-40",
+      "doc_id": "AC-03",
+      "type": "acceptance",
+      "short": "Неверная контрольная цифра ИИН — HTTP 400 INVALID_IIN",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-03.** A request with an IIN whose check digit is wrong returns HTTP 400 and `INVALID_IIN`.",
+        "start": 137,
+        "end": 137,
+        "loc": "строка 137 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C059"
+      ]
+    },
+    {
+      "id": "R-41",
+      "doc_id": "AC-04",
+      "type": "acceptance",
+      "short": "Согласие старше 30 дней — HTTP 422 CONSENT_INVALID",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-04.** A request with a consent older than 30 days returns HTTP 422 and `CONSENT_INVALID`.",
+        "start": 139,
+        "end": 139,
+        "loc": "строка 139 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C060"
+      ]
+    },
+    {
+      "id": "R-42",
+      "doc_id": "AC-05",
+      "type": "acceptance",
+      "short": "101-й запрос партнёра за минуту — HTTP 429",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-05.** The 101st request from the same partner within one minute returns HTTP 429.",
+        "start": 141,
+        "end": 141,
+        "loc": "строка 141 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C061"
+      ]
+    },
+    {
+      "id": "R-43",
+      "doc_id": "AC-06",
+      "type": "acceptance",
+      "short": "Отказ без суммы, срока, ставки, с кодом причины",
+      "section": "Software Requirements Specification / 6. Acceptance Criteria",
+      "quote": {
+        "text": "**AC-06.** A declined response contains no amount, term or rate and at least one reason code.",
+        "start": 143,
+        "end": 143,
+        "loc": "строка 143 (Software Requirements Specification / 6. Acceptance Criteria)"
+      },
+      "candidate_ids": [
+        "C062"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "D-01",
+      "scope": "req",
+      "req_ids": [
+        "R-07",
+        "R-26"
+      ],
+      "criterion": "complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "shall reference a consent record for credit bureau access that the partner registered",
+          "start": 57,
+          "end": 57,
+          "loc": "строка 57 (3. Functional Requirements / 3.1 Request)"
+        },
+        {
+          "text": "expired or missing consent shall be rejected with HTTP 422",
+          "start": 103,
+          "end": 103,
+          "loc": "строка 103 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Нет требования, что согласие относится к тому же ИИН, что и запрос, и к тому же партнёру. Не описаны отозванное согласие и повторное использование одного consent_id. Сам эндпоинт POST /v1/consents нигде не специфицирован и не входит в Scope (п. 1.2). Также: Не описаны три случая. Первый: consent_id принадлежит другому партнёру или выдан на другой IIN. Второй: согласие отозвано заявителем. Третий: граница «30 дней» (календарные дни или 720 часов, часовой пояс, точный момент регистрации и момент запроса). Также: Эндпоинт POST /v1/consents упомянут, но не специфицирован: нет полей, ответа, формата consent_id, хранения и отзыва согласия. Не требуется, чтобы согласие относилось к тому же IIN и тому же партнёру. Также: Не описаны отзыв согласия заявителем и судьба выданного предодобрения и сохранённых данных бюро при отзыве. Не описана повторная заявка того же IIN через другого партнёра (общий или раздельный учёт, повторный запрос в бюро).",
+      "impact": "Партнёр сможет запросить кредитный отчёт по любому ИИН с согласием другого клиента. Это нарушение законодательства о персональных данных и кредитных бюро. Тестировщик не может проверить привязку согласия.",
+      "fix": "REQ-006. consent_id ссылается на запись согласия на доступ к кредитному бюро, которая зарегистрирована через POST /v1/consents тем же партнёром, для того же iin, не отозвана и создана не ранее чем за 30 суток (30×24 часа) до момента получения запроса API-шлюзом. При невыполнении любого условия API возвращает HTTP 422 с error code CONSENT_INVALID (REQ-041).",
+      "test_hint": "Согласие для другого ИИН. Согласие другого партнёра. Отозванное согласие. Несуществующий consent_id. Повторное использование одного consent_id для двух ИИН.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-02",
+      "scope": "set",
+      "req_ids": [
+        "R-07"
+      ],
+      "criterion": "set_complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "a consent record for credit bureau access that the partner registered through",
+          "start": 57,
+          "end": 57,
+          "loc": "строка 57 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Согласие на доступ к кредитному бюро регистрирует сам партнёр. В документе нет требования, как банк убеждается, что согласие дал именно субъект ИИН: подтверждение по OTP на телефон, eGov, ЭЦП или иной механизм. При такой схеме партнёр может зарегистрировать «согласие» на любой ИИН и получить через reason codes сведения о кредитном поведении любого человека.",
+      "impact": "Нарушение законодательства о персональных данных и кредитных бюро, а также возможность массового зондирования клиентов.",
+      "fix": "Добавить требование к подтверждению согласия субъектом, например одноразовым кодом на phone из запроса [предложение, согласовать], и хранению доказательства согласия. Дополнительно ввести мониторинг аномалий: доля отказов и число уникальных ИИН на партнёра [предложение, согласовать].",
+      "test_hint": "Попытаться зарегистрировать согласие без подтверждения субъектом и проверить, что запрос предодобрения с ним отклоняется.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-03",
+      "scope": "req",
+      "req_ids": [
+        "R-08"
+      ],
+      "criterion": "verifiable",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Duplicate requests should be handled appropriately.",
+          "start": 59,
+          "end": 59,
+          "loc": "строка 59 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Слово «appropriately» не задаёт ожидаемого поведения, поэтому тест с однозначным результатом написать нельзя. Также: Термин «duplicate» не определён. Непонятно, что считать дублем: тот же partner_order_id, тот же ИИН или то же тело запроса, и в каком окне времени. Также: Не описаны параллельные дубли, окно хранения ключа, поведение при повторе запроса, который ранее завершился ошибкой, и код ответа. Также: Используется «should», а остальные требования документа написаны через «shall». Требование выглядит необязательным. Также: «Handled appropriately» не задаёт поведения. Не определено, что считать дубликатом (partner_order_id? тот же iin?), окно идемпотентности, ответ на повтор и поведение при повторе с другим телом. Модальный глагол «should» вместо «shall».",
+      "impact": "Повторный запрос партнёра (ретрай по таймауту) может создать второй preapproval и второй запрос в кредитное бюро. Каждый запрос в бюро платный и отражается в кредитной истории.",
+      "fix": "REQ-007. Запрос считается повторным, если от того же партнёра уже поступал запрос с тем же partner_order_id не более 24 часов [предложение, согласовать] назад. Если тело запроса совпадает, API возвращает тот же ответ с тем же preapproval_id и не обращается в кредитное бюро. Если тело отличается, API возвращает HTTP 409 [предложение, согласовать] с error code DUPLICATE_ORDER_ID [предложение, согласовать].",
+      "test_hint": "Два одинаковых запроса подряд: одинаковый preapproval_id и один вызов бюро. Тот же partner_order_id с другой суммой: 409. Тот же partner_order_id от другого партнёра: новый запрос. Повтор через 24 ч + 1 с. Два параллельных одинаковых запроса.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-04",
+      "scope": "req",
+      "req_ids": [
+        "R-10",
+        "R-13"
+      ],
+      "criterion": "feasible",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "The applicant shall be a resident of the Republic of Kazakhstan.",
+          "start": 65,
+          "end": 65,
+          "loc": "строка 65 (3. Functional Requirements / 3.2 Eligibility)"
+        },
+        {
+          "text": "Applicants who already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT shall be declined with reason code `EXISTING_EXPOSURE`.",
+          "start": 71,
+          "end": 71,
+          "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Признак резидентства не передаётся в запросе (REQ-001), не следует из ИИН (ИИН выдаётся и нерезидентам) и не возвращается ни одним описанным интерфейсом (п. 5). Также: Для REQ-014 нужны данные о кредитах в самом банке, а для REQ-011 — данные о резидентстве. В разделе 5 нет интеграций с кредитной системой банка или с источником резидентства. Для REQ-014 не сказано, суммируется ли остаток по нескольким кредитам. Для REQ-011 не указан код ответа при нерезиденте (в REQ-032 есть NON_RESIDENT, но связь не указана).",
+      "impact": "Проверку невозможно реализовать на имеющихся данных, и reason code NON_RESIDENT никогда не будет возвращён.",
+      "fix": "REQ-011. API определяет резидентство заявителя по источник: ГБД ФЛ / кредитное бюро / поле запроса [предложение, согласовать]. Если заявитель не является резидентом РК, API возвращает HTTP 200, decision = DECLINED, reason_codes содержит NON_RESIDENT.",
+      "test_hint": "Резидент: проверка пройдена. Нерезидент с ИИН: DECLINED, NON_RESIDENT. Источник недоступен: ожидаемая ошибка.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-05",
+      "scope": "req",
+      "req_ids": [
+        "R-12"
+      ],
+      "criterion": "unambiguous",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Thin-file applicants shall be routed to the alternative scoring model.",
+          "start": 69,
+          "end": 69,
+          "loc": "строка 69 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Термины «thin-file» и «alternative scoring model» не определены ни в п. 1.3, ни в другом месте документа. Неясно, сколько записей в бюро делают историю «тонкой». Также: Не описано, что возвращает альтернативная модель, как её результат влияет на сумму и ставку и связан ли с ней лимит 500 000 KZT из REQ-026. Также: Факт маршрутизации не виден в ответе API, и способ проверки не указан. Также: Термин «thin-file» не определён в 1.3. «Alternative scoring model» не описана ни в акторах, ни в интерфейсах. Неясно, что она возвращает и как её результат влияет на решение, лимит и коды отказа.",
+      "impact": "Требование нельзя реализовать или проверить без додумывания критериев.",
+      "fix": "REQ-013. Заявитель считается thin-file, если в кредитном отчёте менее 2 [предложение, согласовать] обязательств или кредитная история короче 6 месяцев [предложение, согласовать]. Для таких заявителей decision engine рассчитывает score band по модели название модели [предложение, согласовать] вместо основной. Остальные правила разделов 3.2–3.3 применяются без изменений.",
+      "test_hint": "0, 1 и 2 обязательства. История 5 и 6 месяцев. Проверить по логу движка, какая модель применена.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-06",
+      "scope": "req",
+      "req_ids": [
+        "R-14",
+        "R-36",
+        "R-37"
+      ],
+      "criterion": "complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "the API shall request the credit report from the credit bureau using the IIN",
+          "start": 75,
+          "end": 75,
+          "loc": "строка 75 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "Credit bureau integration uses the bureau's SOAP service",
+          "start": 127,
+          "end": 127,
+          "loc": "строка 127 (Software Requirements Specification / 5. External Interfaces)"
+        },
+        {
+          "text": "The decision engine is invoked synchronously over the internal REST interface",
+          "start": 129,
+          "end": 129,
+          "loc": "строка 129 (Software Requirements Specification / 5. External Interfaces)"
+        }
+      ],
+      "problem": "Нет поведения при таймауте, ошибке или отказе бюро (например, бюро не принимает согласие). При этом общий SLA ответа составляет 3 секунды (REQ-050). Также: Не описано поведение при недоступности бюро, таймауте, ошибке SOAP и при отсутствии кредитной истории (thin-file, REQ-013). Не задан таймаут вызова, хотя на весь ответ отводится 3 секунды (REQ-050). Не указано, допустимы ли повторы и какой ответ получит партнёр. Также: Не заданы таймаут синхронного вызова, поведение при ошибке или недоступности decision engine и ответ партнёру в этом случае. Это важно при бюджете 3 секунды (REQ-050) и последовательном вызове бюро. Также: Не описано поведение при недоступности, таймауте или ошибке бюро и decision engine. Нет таймаутов, повторных попыток, кода ответа партнёру. Не описан случай, когда бюро не нашло заявителя. Синхронные вызовы ничем не согласованы с SLA 3 секунды из REQ-050.",
+      "impact": "Обязательный сценарий не описан, и ответ партнёру не определён.",
+      "fix": "Дополнить: если бюро не ответило за 2 секунды [предложение, согласовать] или вернуло техническую ошибку, API возвращает HTTP 503 [предложение, согласовать] с error code BUREAU_UNAVAILABLE [предложение, согласовать]. Повторный запрос в бюро в рамках того же вызова не выполняется.",
+      "test_hint": "Эмуляция таймаута бюро 2,1 с. Эмуляция SOAP fault. Отказ бюро по согласию.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-07",
+      "scope": "req",
+      "req_ids": [
+        "R-15",
+        "R-18"
+      ],
+      "criterion": "unambiguous",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "plus the estimated monthly payment of the requested loan",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "for the applicant's score band and term",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Не задан метод расчёта платежа (аннуитет или дифференцированный) и ставка, по которой он считается. Ставка зависит от score band по REQ-024, и порядок вычислений не определён. Также: Не задана формула оценочного платежа (аннуитет или иное) и ставка, по которой он считается. Ставка зависит от score band, а score band нигде не определён. Возникает циклическая зависимость: DTI нужен для решения, а ставка для DTI берётся из таблицы, которая зависит от неописанного скоринга.",
+      "impact": "DTI, а значит и решение, будет разным у разработчика, риск-аналитика и тестировщика.",
+      "fix": "REQ-021. Ежемесячный платёж по запрашиваемому кредиту рассчитывается по аннуитетной формуле [предложение, согласовать] для requested_amount_kzt, requested_term_months и ставки из REQ-024. DTI = (сумма ежемесячных платежей по отчёту бюро + рассчитанный платёж) / declared_monthly_income_kzt × 100%, с округлением до 0,01 п.п. [предложение, согласовать].",
+      "test_hint": "Эталонный пример: 1 000 000 KZT на 12 мес по ставке X%, ожидаемый платёж P, ожидаемый DTI. Сверить с расчётом риск-аналитика.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-08",
+      "scope": "req",
+      "req_ids": [
+        "R-16",
+        "R-17"
+      ],
+      "criterion": "complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "If DTI is below 50%, the applicant is approved. If DTI is above 50%, the applicant is declined",
+          "start": 79,
+          "end": 79,
+          "loc": "строка 79 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "The maximum pre-approved amount shall be the largest amount for which DTI stays below 50%, capped at 5,000,000 KZT, and rounded.",
+          "start": 81,
+          "end": 81,
+          "loc": "строка 81 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Случай DTI ровно 50% не описан. Также: Не указана точность сравнения DTI, то есть до какого знака округляется значение перед сравнением. Также: Не определён результат при DTI ровно 50%. Не задана точность расчёта DTI и её округление. «Approved» в REQ-022 противоречит прочим правилам отказа (REQ-010–014): по тексту низкий DTI сам по себе означает одобрение. Не описан случай, когда declared_monthly_income_kzt равен 0.",
+      "impact": "Для граничного значения нет ожидаемого результата, и тест на границу не написать.",
+      "fix": "REQ-022. Если DTI < 50,00%, решение APPROVED. Если DTI ≥ 50,00%, решение DECLINED с reason code HIGH_DTI. [предложение, согласовать]",
+      "test_hint": "DTI 49,99%, 50,00%, 50,01%, 30% (AC-01), 65% (AC-02).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-09",
+      "scope": "req",
+      "req_ids": [
+        "R-16"
+      ],
+      "criterion": "correct",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "If DTI is below 50%, the applicant is approved.",
+          "start": 79,
+          "end": 79,
+          "loc": "строка 79 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Формулировка подразумевает одобрение только по DTI и игнорирует отказы по REQ-010–REQ-014. Кроме того, она противоречит REQ-023: при DTI по запрошенной сумме выше 50% REQ-023 позволяет предложить меньшую сумму, а REQ-022 требует отказа.",
+      "impact": "Неясно, отказывать ли заявителю, которому можно одобрить меньшую сумму. От этого напрямую зависит конверсия партнёров.",
+      "fix": "REQ-022. Заявитель, прошедший проверки REQ-010–REQ-014, получает решение APPROVED, если максимальная сумма по REQ-023 не меньше 50 000 KZT [предложение, согласовать]. Иначе решение DECLINED с reason code HIGH_DTI.",
+      "test_hint": "DTI по запрошенной сумме 60%, но сумма 200 000 даёт DTI 40%: проверить ожидаемое решение. DTI 30% при возрасте 20 лет: DECLINED, AGE.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-10",
+      "scope": "req",
+      "req_ids": [
+        "R-19"
+      ],
+      "criterion": "complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "The pre-approval shall be valid for TBD days from the moment of issue.",
+          "start": 85,
+          "end": 85,
+          "loc": "строка 85 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Срок действия не определён (TBD), хотя поле valid_until обязательно в ответе (REQ-030). Не определён «moment of issue» и часовой пояс valid_until. Также: Без значения срока проверку выполнить нельзя. Также: Заглушка TBD: срок действия предодобрения не задан. Он нужен для поля valid_until из REQ-030. Не указан часовой пояс и формат valid_until.",
+      "impact": "valid_until нельзя рассчитать, а реализацию и тест нельзя завершить.",
+      "fix": "REQ-025. valid_until = момент формирования ответа API + 7 суток [предложение, согласовать]. Значение возвращается в формате ISO 8601 с указанием смещения UTC.",
+      "test_hint": "Проверить, что valid_until − время ответа = 7 суток ± 1 с. Проверить формат и смещение.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-11",
+      "scope": "req",
+      "req_ids": [
+        "R-20",
+        "R-09"
+      ],
+      "criterion": "correct",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Applicants aged 18 and over who pass the credit bureau check may receive a pre-approval",
+          "start": 87,
+          "end": 87,
+          "loc": "строка 87 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "The applicant shall be between 21 and 65 years old on the date of the request.",
+          "start": 63,
+          "end": 63,
+          "loc": "строка 63 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Требование противоречит REQ-010 (возраст от 21 до 65 лет). По REQ-026 заявителю 18–20 лет можно одобрить заявку, а по REQ-010 его нужно отклонить с кодом AGE. Верхней границы возраста здесь тоже нет. Также: «May» не задаёт обязательного результата: неясно, когда заявитель получает одобрение, а когда нет. Также: REQ-010 отклоняет заявителей младше 21 года. REQ-026 разрешает предодобрение с 18 лет со сниженным лимитом. Верхняя граница в REQ-026 не указана, поэтому заявителю 70 лет формально тоже положен лимит 500 000. Слово «may» не задаёт, когда сниженный лимит выдаётся, а когда нет.",
+      "impact": "Для заявителя 19 лет взаимоисключающие ожидаемые результаты, и разработку правил возраста не начать.",
+      "fix": "Согласовать с бизнесом одно правило. Например, REQ-026: заявителям от 18 до 20 лет включительно [предложение, согласовать], прошедшим проверки REQ-011–REQ-014 и REQ-022, предварительное одобрение выдаётся с max_amount_kzt не более 500 000 KZT. Соответственно уточнить REQ-010.",
+      "test_hint": "Возраст 17 лет 364 дня, ровно 18 лет, 20 лет, 21 год, 66 лет. Проверить решение и max_amount_kzt.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-12",
+      "scope": "req",
+      "req_ids": [
+        "R-28",
+        "R-31"
+      ],
+      "criterion": "correct",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Each partner shall be limited to 100 requests per minute",
+          "start": 107,
+          "end": 107,
+          "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+        },
+        {
+          "text": "The API shall sustain 1,000 requests per minute per partner without degradation",
+          "start": 115,
+          "end": 115,
+          "loc": "строка 115 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Требование противоречит REQ-052: «The API shall sustain 1,000 requests per minute per partner». Если лимит 100 запросов в минуту на партнёра, то 1 000 запросов в минуту от одного партнёра система должна отклонять с HTTP 429. Нагрузочный тест по REQ-052 при этом невыполним. AC-05 опирается на значение 100. Также: Требование противоречит REQ-043 и AC-05: один партнёр не может отправить более 100 запросов в минуту, 101-й получает HTTP 429. Значение 1 000 на одного партнёра недостижимо при действующем лимите. Также: REQ-043 ограничивает партнёра 100 запросами в минуту и требует отвечать HTTP 429 сверх лимита. REQ-052 требует выдерживать 1 000 запросов в минуту от одного партнёра. Требования несовместимы. Кроме того, не определено «without degradation», не сказано, скользящее окно или календарная минута, и не задана общая нагрузка по всем партнёрам.",
+      "impact": "Нельзя одновременно пройти AC-05 и нагрузочный тест REQ-052. Неясно, какой лимит настраивать на API gateway.",
+      "fix": "REQ-043. Каждому партнёру разрешено не более 100 запросов к POST /v1/preapprovals в минуту. Запросы сверх лимита отклоняются с HTTP 429. Исправить REQ-052 так, чтобы оно задавало суммарную нагрузку по всем партнёрам, а не нагрузку на одного партнёра.",
+      "test_hint": "После согласования значения: 100 запросов за минуту (все обработаны), 101-й запрос (HTTP 429). Отдельно нагрузочный тест суммарной нагрузки по нескольким партнёрам.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-13",
+      "scope": "set",
+      "req_ids": [
+        "R-28"
+      ],
+      "criterion": "set_complete",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Each partner shall be limited to 100 requests per minute.",
+          "start": 107,
+          "end": 107,
+          "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Лимит задан только на партнёра. Нет ограничения частоты по ИИН и по consent_id. Партнёр или сотрудник партнёра может перебирать declared_monthly_income_kzt и requested_amount_kzt для одного ИИН (например, 100 запросов за минуту с шагом дохода 10 000 KZT). По смене APPROVED/HIGH_DTI и max_amount_kzt он восстановит платежи клиента из бюро и пороги банка. Это обходит запрет REQ-033 на раскрытие обязательств. Подгонка заявленного дохода до одобрения тоже ничем не ограничена.",
+      "impact": "Утечка сведений о кредитных обязательствах клиента и параметров кредитной политики. Систематическое завышение дохода для получения одобрения. Каждая итерация — новый вызов бюро.",
+      "fix": "Ввести лимит запросов на один ИИН, например не более 3 за 24 часа на всех партнёров [предложение, согласовать]. Определить поведение при превышении: HTTP 429 с кодом IIN_RATE_LIMIT [предложение, согласовать] или возврат ранее выданного решения. Требовать мониторинг изменений дохода по одному ИИН.",
+      "test_hint": "Серия запросов с одним ИИН и меняющимся доходом. После лимита ожидать отказ по заданному коду; вызовы бюро после лимита не выполняются.",
+      "role": "EdgeCaser",
+      "edge": "E08"
+    },
+    {
+      "id": "D-14",
+      "scope": "req",
+      "req_ids": [
+        "R-31"
+      ],
+      "criterion": "verifiable",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "1,000 requests per minute per partner without degradation",
+          "start": 115,
+          "end": 115,
+          "loc": "строка 115 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "«Without degradation» не измеримо. Не указано, относительно какого базового уровня и по каким метрикам (время ответа, доля ошибок) оценивается деградация. Не указана длительность теста.",
+      "impact": "Нельзя сформулировать критерий прохождения нагрузочного теста.",
+      "fix": "См. исправление выше: заменить «without degradation» на «выполняет REQ-050, доля HTTP 5xx не выше 0,1% [предложение, согласовать] в течение 60 минут [предложение, согласовать] непрерывной нагрузки».",
+      "test_hint": "Сравнение p95 и доли 5xx на целевой нагрузке с порогами REQ-050. Тест длительностью не меньше согласованного окна.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-15",
+      "scope": "req",
+      "req_ids": [
+        "R-33"
+      ],
+      "criterion": "verifiable",
+      "severity": "критично",
+      "quotes": [
+        {
+          "text": "Request and response payloads shall be stored for as long as necessary for audit purposes",
+          "start": 119,
+          "end": 119,
+          "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Срок хранения «as long as necessary» не задан. Нельзя проверить, что данные хранятся нужное время и удаляются после него. Для банковских данных и ПДн (IIN, телефон, доход) срок обычно задают нормативные требования. Также: «As long as necessary» — непроверяемый срок. Не описаны маскирование ПДн в хранимых payload (IIN, доход), доступ к ним, удаление, а также состав аудит-лога, хотя audit logging входит в scope.",
+      "impact": "Невозможно настроить политику хранения и удаления. Возникает риск нарушения законодательства о персональных данных или требований регулятора к аудиту.",
+      "fix": "REQ-054. Тела запросов и ответов POST /v1/preapprovals хранятся в аудиторском хранилище 5 лет [предложение, согласовать] с момента запроса и удаляются в течение 30 дней [предложение, согласовать] после истечения срока.",
+      "test_hint": "Проверить наличие записи сразу после запроса. Проверить конфигурацию политики хранения. Тест удаления на записи с подменённой датой создания старше срока.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-16",
+      "scope": "set",
+      "req_ids": [
+        "R-01",
+        "R-18",
+        "R-21"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The pre-approval tells the customer the maximum amount, term and indicative rate the bank is likely to offer.",
+          "start": 15,
+          "end": 15,
+          "loc": "строка 15 (1. Introduction / 1.1 Purpose)"
+        },
+        {
+          "text": "A set of maximum amount, term options and indicative annual rate",
+          "start": 33,
+          "end": 33,
+          "loc": "строка 33 (1. Introduction / 1.3 Definitions)"
+        },
+        {
+          "text": "The indicative annual rate shall be taken from the rate table maintained by the Risk analyst",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "`max_amount_kzt`, `term_options_months`, `indicative_rate_percent`, `valid_until`, `reason_codes`.",
+          "start": 91,
+          "end": 91,
+          "loc": "строка 91 (3. Functional Requirements / 3.4 Response)"
+        }
+      ],
+      "problem": "Цель и определение Offer обещают варианты срока, и ответ REQ-030 содержит term_options_months. При этом ни одно функциональное требование не говорит, как формируется этот список. Возможные варианты: все значения из REQ-005; только сроки, при которых max_amount_kzt проходит DTI < 50%; только requested_term_months. REQ-023 и REQ-024 вычисляют одну сумму и одну ставку, а правила отбора сроков нет. Также: Ставка зависит от срока, а ответ по REQ-030 содержит несколько сроков (term_options_months) и только одну ставку indicative_rate_percent. Также: Не определено, как формируется term_options_months (запрошен один срок, а возвращается список) и одна ли ставка на все сроки, если ставка зависит от срока (REQ-024). Нет типов и формата полей, неясно содержимое reason_codes при APPROVED (например, при сниженном лимите по REQ-026).",
+      "impact": "Разработчик decision engine сам придумает правило отбора сроков. Партнёр может показать клиенту срок, на котором предложенная сумма не проходит DTI.",
+      "fix": "Добавить требование REQ-027 [предложение, согласовать]: «term_options_months shall contain each term from REQ-005 for which max_amount_kzt satisfies DTI < 50%, sorted ascending» [предложение, согласовать]. Либо явно перейти на структуру «срок → сумма → ставка».",
+      "test_hint": "При доходе, когда DTI < 50% достигается только на сроках 24 и 36, проверить, что term_options_months = [24, 36].",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-17",
+      "scope": "set",
+      "req_ids": [
+        "R-33"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "pre-approval endpoint, eligibility checks, credit bureau lookup, decisioning, offer generation, partner authentication, audit logging",
+          "start": 19,
+          "end": 19,
+          "loc": "строка 19 (1. Introduction / 1.2 Scope)"
+        },
+        {
+          "text": "Request and response payloads shall be stored for as long as necessary for audit purposes.",
+          "start": 119,
+          "end": 119,
+          "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Scope обещает audit logging, но единственное требование REQ-054 говорит только о хранении тел запроса и ответа. Не сказано, что фиксируется в аудите: партнёр, client_id, время, версия правил, факт и результат вызова бюро, consent_id, итоговое решение. Аудит изменений правил и таблицы ставок риск-аналитиком тоже не описан.",
+      "impact": "По аудиту нельзя будет восстановить, почему клиенту отказали и на основании какого согласия было обращение в бюро.",
+      "fix": "Добавить требование со списком обязательных атрибутов аудиторской записи и требование к аудиту изменений правил в decision engine (кто, когда, старое и новое значение).",
+      "test_hint": "Выполнить запрос с отказом и проверить, что аудиторская запись содержит все обязательные атрибуты.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-18",
+      "scope": "set",
+      "req_ids": [
+        "R-32"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "A marketplace that has signed a partnership agreement with the bank and received API credentials",
+          "start": 27,
+          "end": 27,
+          "loc": "строка 27 (1. Introduction / 1.3 Definitions)"
+        },
+        {
+          "text": "Partners authenticate with OAuth 2.0 client credentials; access tokens are valid for 15 minutes.",
+          "start": 117,
+          "end": 117,
+          "loc": "строка 117 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Не описан жизненный цикл партнёрских учётных данных: выпуск client_id/secret, плановая ротация секрета, отзыв при расторжении договора или компрометации. Не сказано, продолжают ли работать уже выданные 15-минутные токены после отзыва и можно ли временно приостановить партнёра без удаления данных.",
+      "impact": "При компрометации секрета банк не сможет гарантированно и быстро отключить партнёра. Процесс подключения новых партнёров не специфицирован.",
+      "fix": "Добавить требования: ротация секрета без простоя (два активных секрета) [предложение, согласовать]; отзыв учётных данных делает недействительными и выданные токены не позже чем через 1 минуту [предложение, согласовать]; статус партнёра «suspended» отклоняет запросы с HTTP 403 [предложение, согласовать].",
+      "test_hint": "Отозвать учётные данные партнёра, затем повторить запрос с ранее выданным токеном и убедиться, что он отклонён в оговорённое время.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-19",
+      "scope": "set",
+      "req_ids": [
+        "R-15"
+      ],
+      "criterion": "set_consistent",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "total monthly debt payments, including the requested loan, divided by declared monthly net income",
+          "start": 31,
+          "end": 31,
+          "loc": "строка 31 (1. Introduction / 1.3 Definitions)"
+        },
+        {
+          "text": "The decision engine shall calculate DTI using declared income and the monthly payments reported by the credit bureau",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Определение DTI делит на чистый доход (net income). Поле запроса declared_monthly_income_kzt и REQ-021 говорят просто о заявленном доходе. Партнёр, скорее всего, передаст доход, который ввёл клиент, без уточнения, до вычета налогов он или после. При передаче дохода до вычета DTI будет занижен примерно на величину налогов.",
+      "impact": "Систематически завышенные суммы предодобрения и расхождение с финальным одобрением.",
+      "fix": "Переименовать поле в declared_monthly_net_income_kzt [предложение, согласовать] или явно написать в REQ-001, что передаётся доход после налогов, и включить это в текст, который видит клиент.",
+      "test_hint": "Проверить спецификацию OpenAPI: описание поля дохода совпадает с определением DTI.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-20",
+      "scope": "set",
+      "req_ids": [],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Applicant gives consent on the partner's website and sees the result.",
+          "start": 38,
+          "end": 38,
+          "loc": "строка 38 (Software Requirements Specification / 2. Actors)"
+        },
+        {
+          "text": "A non-binding indicative offer returned by the API",
+          "start": 30,
+          "end": 30,
+          "loc": "строка 30 (1. Introduction / 1.3 Definitions)"
+        }
+      ],
+      "problem": "Заявитель видит результат на сайте партнёра, но в документе нет ни одного требования к тому, что ему показывается. Не заданы: текст согласия на запрос в кредитное бюро; обязательная оговорка, что предложение необязывающее и ставка индикативная; формулировки для каждого reason code; языки (казахский, русский); подставляемые значения (сумма, сроки, ставка, valid_until); запрет показывать клиенту детали отказа, если они запрещены (см. REQ-033).",
+      "impact": "Каждый партнёр составит тексты сам. Клиент может воспринять предодобрение как одобрение кредита, а это регуляторный и репутационный риск.",
+      "fix": "Добавить раздел «Тексты для заявителя». В нём: обязательный текст согласия, обязательный дисклеймер «предварительное необязывающее предложение» [предложение, согласовать], таблица «reason code → текст на kz/ru» [предложение, согласовать], список подставляемых полей и их формат. В договоре с партнёром закрепить обязанность использовать эти тексты.",
+      "test_hint": "Ревью витрины партнёра на тестовом стенде: дисклеймер и текст причины совпадают с таблицей для каждого reason code.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-21",
+      "scope": "set",
+      "req_ids": [
+        "R-16"
+      ],
+      "criterion": "srs_modifiable",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Risk analyst maintains decision rules and thresholds in the decision engine.",
+          "start": 41,
+          "end": 41,
+          "loc": "строка 41 (Software Requirements Specification / 2. Actors)"
+        },
+        {
+          "text": "If DTI is below 50%, the applicant is approved.",
+          "start": 79,
+          "end": 79,
+          "loc": "строка 79 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "По разделу 2 пороги и правила ведёт риск-аналитик в decision engine, то есть они изменяемые. В SRS при этом жёстко записаны значения 50% (REQ-022, REQ-023), 3 000 000 KZT (REQ-014), 30 дней (REQ-012), 500 000 KZT (REQ-026). Не определено, какие из этих значений являются настраиваемыми параметрами, каковы их значения по умолчанию, и что происходит с уже выданными предодобрениями, если порог или таблица ставок изменились до valid_until. Не требуется фиксировать версию правил в выданном решении.",
+      "impact": "После первого изменения порога SRS и AC-02 устареют. Решения нельзя будет воспроизвести при разборе жалобы.",
+      "fix": "Выделить таблицу настраиваемых параметров: имя, значение по умолчанию, допустимый диапазон, владелец. В требованиях ссылаться на параметры. Добавить требование: в решении сохраняется версия правил и таблицы ставок, а изменения не влияют на выданные предодобрения до valid_until [предложение, согласовать].",
+      "test_hint": "Изменить порог DTI в стенде decision engine и проверить, что ранее выданное решение и сохранённая версия правил не изменились.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-22",
+      "scope": "req",
+      "req_ids": [
+        "R-02",
+        "R-05"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "accepts a JSON body with the fields",
+          "start": 47,
+          "end": 47,
+          "loc": "строка 47 (3. Functional Requirements / 3.1 Request)"
+        },
+        {
+          "text": "`requested_amount_kzt` shall be an integer between 50,000 and 5,000,000 inclusive.",
+          "start": 53,
+          "end": 53,
+          "loc": "строка 53 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Перечислены только имена полей. Не указаны типы, обязательность и форматы. Для declared_monthly_income_kzt и partner_order_id в документе нет ни одного правила валидации, хотя для iin, phone, суммы и срока такие правила есть (REQ-002..REQ-006). Доход стоит в знаменателе DTI (п. 1.3), поэтому при доходе 0 расчёт REQ-021 делит на ноль. Не сказано, как обрабатывать лишние поля. Также: Не указаны типы, обязательность и ограничения для declared_monthly_income_kzt (ноль, отрицательное, дробное, максимум), consent_id и partner_order_id (формат, длина). Нет примера запроса и ответа. Не задан тип iin: строка или число (ведущие нули).",
+      "impact": "Разработчик сам выберет типы и правила. Нулевой или отрицательный доход и пустой partner_order_id пройдут в движок решений. Тестировщик не знает ожидаемого результата для таких значений.",
+      "fix": "REQ-001. API предоставляет POST /v1/preapprovals. Тело запроса JSON, все поля обязательны: iin (string, 12 цифр), phone (string), declared_monthly_income_kzt (integer, от 1 [предложение, согласовать] до 100 000 000 [предложение, согласовать]), requested_amount_kzt (integer), requested_term_months (integer), consent_id (string, UUID [предложение, согласовать]), partner_order_id (string, 1–64 символа [предложение, согласовать]). Отсутствие обязательного поля или неверный тип приводит к HTTP 400 по REQ-042. Неизвестные поля игнорируются [предложение, согласовать].",
+      "test_hint": "Для каждого поля по отдельности: поле отсутствует, null, неверный тип (строка вместо числа). declared_monthly_income_kzt = 0, -1, 1, дробное 1000.5. partner_order_id пустой и длиной 65 символов. Запрос с лишним полем.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-23",
+      "scope": "req",
+      "req_ids": [
+        "R-03"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "contains exactly 12 digits and that its check digit is valid",
+          "start": 49,
+          "end": 49,
+          "loc": "строка 49 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Не указан алгоритм контрольного разряда ИИН и нет ссылки на нормативный документ. Не сказано, проверяется ли корректность даты рождения (позиции 1–6) и разряда века/пола (позиция 7). От них зависит вычисление возраста в REQ-010. Тип поля тоже не задан: если передать число, ведущий ноль потеряется.",
+      "impact": "ИИН с правильной контрольной суммой, но с датой 991340 пройдёт валидацию, и возраст по REQ-010 вычислить не получится. Реализации могут разойтись по алгоритму контрольной суммы.",
+      "fix": "REQ-002. API проверяет, что iin является строкой ровно из 12 цифр, позиции 1–6 образуют существующую дату ГГММДД, позиция 7 принимает допустимое значение разряда века и пола, а 12-я цифра совпадает с контрольным разрядом по алгоритму из ссылка на нормативный документ [предложение, согласовать]. При нарушении любого условия API возвращает HTTP 400 с error code INVALID_IIN.",
+      "test_hint": "11 и 13 цифр. Буква в строке. Неверная контрольная цифра (AC-03). Корректная контрольная сумма при дате 991340. Недопустимый 7-й разряд. ИИН с ведущим нулём, переданный числом. Валидный ИИН.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-24",
+      "scope": "req",
+      "req_ids": [
+        "R-04"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "is in the format +7XXXXXXXXXX",
+          "start": 51,
+          "end": 51,
+          "loc": "строка 51 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Не сказано, что X означает цифру. Не определено, допускаются ли пробелы, скобки, дефисы и префикс 8. Не задан код ошибки: REQ-042 требует error codes, но для phone код не определён.",
+      "impact": "Номера «+7 701 123 45 67» и «87011234567» одна реализация примет, другая отклонит. Партнёр не знает, какой код ошибки обрабатывать.",
+      "fix": "REQ-003. API проверяет, что phone соответствует регулярному выражению ^\\+7\\d{10}$ (без пробелов и разделителей). При несоответствии API возвращает HTTP 400 с error code INVALID_PHONE [предложение, согласовать] для поля phone.",
+      "test_hint": "+77011234567 (валидно). 87011234567. +7701123456 (9 цифр). +770112345678 (11 цифр). «+7 701 123 45 67». +7701123456a. Пустая строка.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-25",
+      "scope": "set",
+      "req_ids": [
+        "R-04"
+      ],
+      "criterion": "set_consistent",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The API shall validate that `phone` is in the format +7XXXXXXXXXX.",
+          "start": 51,
+          "end": 51,
+          "loc": "строка 51 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Телефон собирается, валидируется, хранится (REQ-054) и маскируется (REQ-055), но ни одно правило его не использует: он не участвует в решении, не используется для подтверждения согласия и уведомлений. Сбор персональных данных без назначения противоречит принципу минимизации.",
+      "impact": "Лишние ПДн в хранилище увеличивают регуляторный риск. Разработчик не понимает, что делать с полем.",
+      "fix": "Указать назначение phone, например подтверждение согласия или связь банка с клиентом [предложение, согласовать]. Либо удалить поле из REQ-001.",
+      "test_hint": "Проверить по матрице данных, что у каждого поля запроса указана цель обработки.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-26",
+      "scope": "req",
+      "req_ids": [
+        "R-07",
+        "R-41"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "no earlier than 30 days before the pre-approval request",
+          "start": 57,
+          "end": 57,
+          "loc": "строка 57 (3. Functional Requirements / 3.1 Request)"
+        },
+        {
+          "text": "A request with a consent older than 30 days returns HTTP 422",
+          "start": 139,
+          "end": 139,
+          "loc": "строка 139 (Software Requirements Specification / 6. Acceptance Criteria)"
+        }
+      ],
+      "problem": "Не определено, как считаются 30 дней: календарными днями или по 24 часа, в каком часовом поясе и от какого момента. Неясно, действительно ли согласие, которому ровно 30 дней (AC-04 говорит «older than 30 days»). Также: «Older than 30 days» не уточнено: календарные дни или 720 часов, в каком часовом поясе, от какого момента (регистрация согласия в POST /v1/consents) до какого (получение запроса). Не покрыта граница «ровно 30 дней», которая по REQ-006 («no earlier than 30 days») должна проходить. Также: Граница «30 дней» не определена: 30×24 часа или календарные дни, в каком часовом поясе, валидно ли согласие ровно 30-дневной давности. Формулировки REQ-006 и AC-04 расходятся.",
+      "impact": "Согласие на границе срока одна реализация примет, другая отклонит. Тест на границу невозможно однозначно оценить.",
+      "fix": "Согласие действительно, если (момент получения запроса API-шлюзом − момент регистрации согласия) ≤ 30×24 часа. Оба момента фиксируются в UTC [предложение, согласовать].",
+      "test_hint": "Возраст согласия 29 д 23:59:59, ровно 30 д 00:00:00, 30 д 00:00:01. Регистрация около полуночи по Asia/Almaty.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-27",
+      "scope": "req",
+      "req_ids": [
+        "R-09"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The applicant shall be between 21 and 65 years old on the date of the request.",
+          "start": 63,
+          "end": 63,
+          "loc": "строка 63 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "«Between» не говорит, включены ли границы. Человек, которому уже исполнилось 65, но ещё не 66, может считаться и подходящим, и нет. Часовой пояс для «date of the request» не указан. Требование противоречит REQ-026 (18 лет и старше). Также: Возраст считается по дате рождения из ИИН. Не описан заявитель, родившийся 29 февраля. В невисокосный год он может считаться достигшим 21 года 28 февраля или 1 марта, и так же неоднозначна граница 65 лет. Кроме того, проверка делается на дату запроса, а предодобрение действует до valid_until. Заявитель, которому в этот период исполнится 66 лет, получит действующее предложение после выхода за возрастную границу. Правило для этого случая не задано. Также: Неясно, включаются ли границы: 65 лет и 6 месяцев — допустимо? Не указан часовой пояс «date of the request». Не описано, как обрабатывать день рождения 29 февраля.",
+      "impact": "Заявители в день 21-летия и в возрасте 65 лет обрабатываются по-разному в разных реализациях.",
+      "fix": "REQ-010. Полное число лет заявителя на дату получения запроса по времени Asia/Almaty (UTC+5) [предложение, согласовать] должно быть от 21 до 65 включительно, то есть с дня 21-летия по день, предшествующий 66-летию. Дата рождения определяется из позиций 1–7 ИИН.",
+      "test_hint": "За день до 21-летия, в день 21-летия, 65 лет и 364 дня, в день 66-летия. Рождённый 29 февраля. Запрос в 23:30 UTC накануне дня рождения по Алматы.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-28",
+      "scope": "req",
+      "req_ids": [
+        "R-11"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "any overdue obligation of more than 30 days in the last 12 months according to the credit bureau",
+          "start": 67,
+          "end": 67,
+          "loc": "строка 67 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Неясно, что проверяется: максимальная длительность просрочки за период или текущая просрочка. Не задан порог суммы (просрочка в 1 тенге считается?). «Last 12 months» не определён: от даты запроса или от даты отчёта, календарные месяцы или 365 дней.",
+      "impact": "Решения для одинаковых кредитных историй будут разными в зависимости от трактовки.",
+      "fix": "REQ-012. Заявитель отклоняется, если в кредитном отчёте есть хотя бы одна просрочка по любому обязательству длительностью 31 день и более и суммой свыше 0 KZT [предложение, согласовать], которая имела место в любой момент в течение 365 дней [предложение, согласовать] до даты запроса. Результат: HTTP 200, decision = DECLINED, reason_codes содержит OVERDUE_HISTORY.",
+      "test_hint": "Просрочка 30 дней: одобрение. Просрочка 31 день: отказ. Просрочка 31 день, закончившаяся 366 дней назад: одобрение. Просрочка 31 день, закончившаяся 364 дня назад: отказ. Текущая открытая просрочка 31 день.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-29",
+      "scope": "req",
+      "req_ids": [
+        "R-13"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT",
+          "start": 71,
+          "end": 71,
+          "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Не сказано, суммируются ли остатки по нескольким кредитам. Не определено, что входит в outstanding balance (только основной долг или с процентами и пенёй) и учитываются ли кредитные карты.",
+      "impact": "Клиент с двумя кредитами по 2 000 000 KZT будет одобрен или отклонён в зависимости от трактовки.",
+      "fix": "REQ-014. Если суммарный остаток основного долга [предложение, согласовать] по всем активным потребительским кредитам заявителя в Teniz Bank на момент запроса превышает 3 000 000 KZT, API возвращает HTTP 200, decision = DECLINED, reason_codes содержит EXISTING_EXPOSURE.",
+      "test_hint": "Остаток 3 000 000 (не отказ), 3 000 001 (отказ). Два кредита по 1 600 000. Закрытый кредит на 4 000 000. Кредитная карта.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-30",
+      "scope": "req",
+      "req_ids": [
+        "R-13"
+      ],
+      "criterion": "feasible",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT",
+          "start": 71,
+          "end": 71,
+          "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "В п. 5 нет интерфейса к внутренней кредитной системе банка. Брать данные из кредитного бюро ненадёжно, потому что они приходят с задержкой.",
+      "impact": "Источник данных для правила не определён.",
+      "fix": "Добавить в п. 5 интерфейс получения остатков по кредитам из core banking system [предложение, согласовать] либо явно указать, что данные берутся из отчёта бюро.",
+      "test_hint": "Недоступность источника. Кредит, выданный сегодня.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-31",
+      "scope": "req",
+      "req_ids": [
+        "R-14",
+        "R-11"
+      ],
+      "criterion": "correct",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "For each eligible applicant the API shall request the credit report from the credit bureau",
+          "start": 75,
+          "end": 75,
+          "loc": "строка 75 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "The applicant shall not have any overdue obligation of more than 30 days in the last 12 months according to the credit bureau.",
+          "start": 67,
+          "end": 67,
+          "loc": "строка 67 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Возникает циклическая зависимость. Отчёт запрашивается только для «eligible» заявителей, но сама eligibility по REQ-012 определяется из данных кредитного бюро. Порядок проверок не задан. Также: Отчёт бюро запрашивается только для уже eligible-заявителя (REQ-020). Но сама eligibility (REQ-012) определяется по данным бюро. Порядок шагов замкнут.",
+      "impact": "Неясно, какие проверки выполняются до запроса в бюро (возраст, резидентство, EXISTING_EXPOSURE), а какие после.",
+      "fix": "REQ-020. Если заявитель прошёл проверки REQ-010, REQ-011 и REQ-014, API запрашивает кредитный отчёт в кредитном бюро по iin и consent_id. Проверка REQ-012 и расчёт DTI выполняются по полученному отчёту.",
+      "test_hint": "Заявитель 20 лет: вызова бюро нет. Валидный заявитель: ровно один вызов бюро.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-32",
+      "scope": "set",
+      "req_ids": [
+        "R-14"
+      ],
+      "criterion": "set_feasible",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "For each eligible applicant the API shall request the credit report from the credit bureau using the IIN",
+          "start": 75,
+          "end": 75,
+          "loc": "строка 75 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "REQ-020 требует запрос в бюро на каждый запрос. Значит, повтор партнёра после таймаута, повторный запрос по тому же клиенту в пределах valid_until и дубли (REQ-007) порождают новые платные обращения в бюро. Каждое обращение может фиксироваться в истории субъекта как запрос кредитора. Правил переиспользования ранее полученного отчёта (кэш, срок годности отчёта, привязка к consent_id) нет.",
+      "impact": "Растут затраты на бюро. В истории клиента появляются множественные запросы, что ухудшает его скоринг в других банках. Сокращается бюджет времени в 3 секунды.",
+      "fix": "Добавить требование: полученный отчёт бюро переиспользуется для того же IIN и consent_id в течение 24 часов [предложение, согласовать]. Повторный запрос с тем же partner_order_id не инициирует новый вызов GetCreditReport.",
+      "test_hint": "Отправить два запроса подряд с тем же IIN и consent_id и проверить по логам стаба бюро, что GetCreditReport вызван один раз.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-33",
+      "scope": "req",
+      "req_ids": [
+        "R-15"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "calculate DTI using declared income and the monthly payments reported by the credit bureau",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Не сказано, какие обязательства из отчёта бюро учитываются (кредитные карты, поручительства, закрытые кредиты). Поведение при нулевом доходе не определено.",
+      "impact": "Возможно деление на ноль, и состав долговой нагрузки трактуется по-разному.",
+      "fix": "Дополнить перечнем учитываемых типов обязательств [согласовать с риск-подразделением]. Доход должен быть больше 0 (валидация по REQ-001).",
+      "test_hint": "Отчёт с кредитной картой без платежа. Отчёт с поручительством. Отчёт с закрытым кредитом.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-34",
+      "scope": "set",
+      "req_ids": [
+        "R-15",
+        "R-13"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "the monthly payments reported by the credit bureau plus the estimated monthly payment of the requested loan",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "Applicants who already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT",
+          "start": 71,
+          "end": 71,
+          "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "DTI и EXISTING_EXPOSURE учитывают только уже выданные кредиты: платежи из бюро и активные займы банка. Действующие предодобрения того же ИИН не учитываются, в том числе выданные через других партнёров. Заявитель может за минуту получить у партнёров A, B и C по 5 000 000 KZT, и каждое предложение будет рассчитано так, будто других нет. Не сказано, действует ли правило на один ИИН во всей системе или в разрезе партнёра.",
+      "impact": "Суммарная индикативная экспозиция по клиенту многократно превышает порог DTI 50% и лимит 3 000 000 KZT. При финальном одобрении придётся отказывать по уже обещанным предложениям, и клиент получит негативный опыт у партнёров.",
+      "fix": "Определить область действия: учитывать ли действующие (valid_until не истёк) предодобрения по ИИН во всех партнёрах при расчёте DTI и экспозиции. Вариант: новое предодобрение отзывает предыдущие [предложение, согласовать], либо они суммируются в расчёте.",
+      "test_hint": "Один ИИН, два партнёра, запросы подряд по 5 000 000 KZT. Проверить, что второе решение учитывает первое предодобрение согласно правилу.",
+      "role": "EdgeCaser",
+      "edge": "E03"
+    },
+    {
+      "id": "D-35",
+      "scope": "set",
+      "req_ids": [
+        "R-15"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "calculate DTI using declared income and the monthly payments reported by the credit bureau",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Доход передаётся в KZT, а обязательства в кредитном бюро могут быть в другой валюте (USD, RUB, EUR). Не заданы курс пересчёта (курс Нацбанка РК, курс банка), дата курса (дата запроса или дата отчёта) и правило округления пересчитанного платежа. Не сказано, что делать с платежами без указанной валюты или с нулевым платежом по кредитной линии.",
+      "impact": "При валютном обязательстве DTI можно посчитать неверно, если сложить USD с KZT как числа, или посчитать по-разному у разных сервисов. Это меняет решение APPROVED/HIGH_DTI и max_amount_kzt.",
+      "fix": "Требование: все платежи из отчёта бюро пересчитываются в KZT по официальному курсу НБ РК на дату запроса [предложение, согласовать]. Округление до 1 тенге [предложение, согласовать]. Платёж без валюты приводит к decision DECLINED с кодом OTHER [предложение, согласовать].",
+      "test_hint": "Ответ бюро-заглушки с платежом 200 USD. Проверить, что DTI посчитан с пересчётом по заданному курсу, а решение на границе 50% меняется в соответствии с курсом.",
+      "role": "EdgeCaser",
+      "edge": "E05"
+    },
+    {
+      "id": "D-36",
+      "scope": "req",
+      "req_ids": [
+        "R-17"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "the largest amount for which DTI stays below 50%, capped at 5,000,000 KZT, and rounded",
+          "start": 81,
+          "end": 81,
+          "loc": "строка 81 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "«Rounded» не определено: шаг и направление округления не указаны. Округление вверх может нарушить условие DTI < 50%. Не указано, для какого срока считается сумма, хотя в ответе несколько term_options_months. Также: Не описано, что делать, если расчётная сумма меньше минимальной 50 000 (REQ-004). Не учтены лимит 500 000 из REQ-026 и связь с requested_amount_kzt: может ли предложенная сумма быть больше запрошенной. Также: Не сказано, как округлять: шаг, направление, единицы. Не указано, для какого срока и ставки считается максимум. Неясна связь max_amount_kzt с requested_amount_kzt. Не описано, что делать, если максимум получился меньше 50 000 (минимум из REQ-004).",
+      "impact": "Суммы будут отличаться между реализациями, а сумма после округления может нарушить порог DTI.",
+      "fix": "REQ-023. max_amount_kzt — наибольшая сумма, кратная 10 000 KZT [предложение, согласовать] (округление вниз), при которой DTI < 50% для максимального срока из term_options_months [предложение, согласовать], но не более 5 000 000 KZT.",
+      "test_hint": "Расчётная сумма 1 234 567: ожидается 1 230 000. Расчёт выше 5 000 000: ожидается 5 000 000. Проверить DTI для возвращённой суммы.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-37",
+      "scope": "req",
+      "req_ids": [
+        "R-18"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "for the applicant's score band and term",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Термин «score band» не определён: не сказано, как он вычисляется и какие значения принимает. «Term» неоднозначен: это requested_term_months или каждый из term_options_months.",
+      "impact": "Невозможно подготовить тестовые данные и проверить ставку.",
+      "fix": "REQ-024. Индикативная годовая ставка берётся из таблицы ставок decision engine по score band заявителя (значения: перечень [предложение, согласовать]) и сроку requested_term_months. Используется версия таблицы, действующая на момент получения запроса.",
+      "test_hint": "Для каждой пары score band × срок сверить ставку с таблицей. Смена таблицы во время обработки запроса.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-38",
+      "scope": "req",
+      "req_ids": [
+        "R-18"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The indicative annual rate shall be taken from the rate table maintained by the Risk analyst",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Не описано, что делать, если для комбинации score band и срока нет строки в таблице. Точность ставки не указана.",
+      "impact": "Возможны падение или ответ с null-ставкой при решении APPROVED.",
+      "fix": "Дополнить: при отсутствии ставки решение DECLINED с reason code OTHER [предложение, согласовать]. Ставка возвращается с точностью 0,01% [предложение, согласовать].",
+      "test_hint": "Удалить строку таблицы для пары score band × срок и выполнить запрос.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-39",
+      "scope": "set",
+      "req_ids": [
+        "R-18"
+      ],
+      "criterion": "set_consistent",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The indicative annual rate shall be taken from the rate table",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Определения говорят о «indicative annual rate», поле ответа называется indicative_rate_percent. Не сказано, номинальная это ставка или годовая эффективная ставка вознаграждения, которую обязательно раскрывать клиенту. Формат процентов тоже не задан: 24.5 или 0.245.",
+      "impact": "Партнёр может показать клиенту номинальную ставку как эффективную или неправильно интерпретировать формат.",
+      "fix": "Явно указать тип ставки (номинальная или эффективная), формат (проценты, 24.5) и при необходимости добавить второе поле для эффективной ставки [предложение, согласовать].",
+      "test_hint": "Сверить значение в ответе со строкой таблицы ставок для заданных score band и срока.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-40",
+      "scope": "set",
+      "req_ids": [
+        "R-18"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The indicative annual rate shall be taken from the rate table maintained by the Risk analyst",
+          "start": 83,
+          "end": 83,
+          "loc": "строка 83 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Риск-аналитик меняет таблицу ставок и пороги решений, но не описаны роли и права: кто может изменять, требуется ли второе подтверждение (принцип четырёх глаз), кто может читать правила, как разграничены тестовое и боевое окружения.",
+      "impact": "Одна ошибочная или злонамеренная правка таблицы сразу меняет предложения для всех партнёров.",
+      "fix": "Добавить требования: изменения правил и ставок вступают в силу только после подтверждения вторым уполномоченным сотрудником [предложение, согласовать]; доступ по ролям Risk analyst (правка) и Risk approver (подтверждение) [предложение, согласовать]; аудит изменений.",
+      "test_hint": "Попытаться применить изменение таблицы без подтверждения и убедиться, что оно не вступает в силу.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-41",
+      "scope": "req",
+      "req_ids": [
+        "R-20"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Applicants aged 18 and over who pass the credit bureau check may receive a pre-approval",
+          "start": 87,
+          "end": 87,
+          "loc": "строка 87 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "«Pass the credit bureau check» не определено: только REQ-012 или ещё DTI и EXISTING_EXPOSURE. «Reduced maximum amount of 500,000» можно прочитать как фиксированную сумму 500 000 или как потолок. Также: Не описано, как лимит 500 000 сочетается с минимальной суммой 50 000 и с requested_amount_kzt выше 500 000 (запрос допустим по REQ-004).",
+      "impact": "Разные реализации выдадут разные суммы.",
+      "fix": "Указать перечень проверок и формулировку «max_amount_kzt = min(значение по REQ-023, 500 000 KZT)». [предложение, согласовать]",
+      "test_hint": "Заявитель 19 лет с расчётной суммой 300 000: ожидается 300 000, а не 500 000.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-42",
+      "scope": "req",
+      "req_ids": [
+        "R-21"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "On success the API shall return HTTP 200 with:",
+          "start": 91,
+          "end": 91,
+          "loc": "строка 91 (3. Functional Requirements / 3.4 Response)"
+        }
+      ],
+      "problem": "Не заданы типы и форматы полей: valid_until (формат, часовой пояс), indicative_rate_percent (точность), term_options_months (массив каких значений). Не сказано, что содержит reason_codes при APPROVED (пустой массив или null). Не определено, что входит в «success»: из REQ-031 следует, что DECLINED тоже возвращается с HTTP 200, но явно это не сказано.",
+      "impact": "Партнёры и тесты будут по-разному разбирать ответ, и контрактные тесты не написать.",
+      "fix": "REQ-030. При завершённой обработке, включая отказ, API возвращает HTTP 200 с полями: preapproval_id (string, UUID [предложение, согласовать]), decision (APPROVED | DECLINED), max_amount_kzt (integer | null), term_options_months (array of integer из {3,6,12,24,36} | null), indicative_rate_percent (number, 2 знака | null), valid_until (ISO 8601 с указанием смещения UTC), reason_codes (array of string; пустой массив при APPROVED [предложение, согласовать]).",
+      "test_hint": "Проверка JSON-схемы ответа для APPROVED и DECLINED. reason_codes при APPROVED. Формат valid_until.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-43",
+      "scope": "set",
+      "req_ids": [
+        "R-21",
+        "R-19"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "On success the API shall return HTTP 200 with: `preapproval_id`, `decision`",
+          "start": 91,
+          "end": 91,
+          "loc": "строка 91 (3. Functional Requirements / 3.4 Response)"
+        },
+        {
+          "text": "The pre-approval shall be valid for TBD days from the moment of issue.",
+          "start": 85,
+          "end": 85,
+          "loc": "строка 85 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "Предодобрение получает идентификатор и срок действия, то есть является хранимым объектом. При этом нет метода чтения (например GET /v1/preapprovals/{preapproval_id}) и метода отмены. Если партнёр не получил ответ из-за таймаута, он не может узнать уже принятое решение и вынужден отправлять новый запрос с новым обращением в бюро. Не сказано, как preapproval_id используется дальше, в процессе финального одобрения.",
+      "impact": "Растут дубли и затраты на бюро. Срок действия valid_until нечем воспользоваться.",
+      "fix": "Добавить метод GET /v1/preapprovals/{preapproval_id} [предложение, согласовать] с проверкой владельца-партнёра и кодом 404 для чужого или несуществующего id [предложение, согласовать]. Описать назначение preapproval_id в следующем процессе.",
+      "test_hint": "Создать предодобрение, затем прочитать его по id своим токеном (200) и токеном другого партнёра (404).",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-44",
+      "scope": "req",
+      "req_ids": [
+        "R-23",
+        "R-09",
+        "R-10",
+        "R-11"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Reason codes returned to the partner shall be from the published list",
+          "start": 95,
+          "end": 95,
+          "loc": "строка 95 (3. Functional Requirements / 3.4 Response)"
+        },
+        {
+          "text": "The applicant shall be between 21 and 65 years old on the date of the request.",
+          "start": 63,
+          "end": 63,
+          "loc": "строка 63 (3. Functional Requirements / 3.2 Eligibility)"
+        },
+        {
+          "text": "The applicant shall be a resident of the Republic of Kazakhstan.",
+          "start": 65,
+          "end": 65,
+          "loc": "строка 65 (3. Functional Requirements / 3.2 Eligibility)"
+        },
+        {
+          "text": "any overdue obligation of more than 30 days in the last 12 months according to the credit bureau",
+          "start": 67,
+          "end": 67,
+          "loc": "строка 67 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "Не задано соответствие правил отказа и кодов. Явно привязаны только EXISTING_EXPOSURE (REQ-014) и HIGH_DTI (REQ-022). Для REQ-010, REQ-011 и REQ-012 код приходится угадывать по названию. Не сказано, когда возвращается OTHER: отказ альтернативной модели скоринга (REQ-013), сбой бюро или decision engine. Не сказано, каким должно быть reason_codes при APPROVED (пустой массив, null или поле отсутствует), какой порядок кодов при нескольких причинах и где опубликован список. Также: Не сказано, что происходит при несоответствии: HTTP 200 с DECLINED и reason code AGE или ошибка. Код AGE есть только в списке REQ-032 и с этим правилом не связан. Не указано, делается ли проверка до запроса в бюро. Также: Не описаны результат проверки (код NON_RESIDENT с правилом не связан) и поведение, если источник данных недоступен. Также: Правило не связано с reason code OVERDUE_HISTORY. Не описано поведение, если в бюро нет данных о заявителе или бюро недоступно. Также: Не задано соответствие правил и кодов: REQ-012 → OVERDUE_HISTORY, REQ-010 → AGE явно не указаны. Нет кода для отказа альтернативной модели (REQ-013). Не сказано, когда используется OTHER и возвращаются ли все сработавшие коды или только первый. «Published list» не указывает, где этот список опубликован.",
+      "impact": "Разработчик сам сопоставит правила и коды. Партнёр не сможет корректно показывать причину отказа. Тестировщик не знает ожидаемого кода для отказа по возрасту, резидентству, просрочке и thin-file, а также значения reason_codes при одобрении.",
+      "fix": "REQ-032. Поле reason_codes содержит только коды из списка: HIGH_DTI (REQ-022), AGE (REQ-010), NON_RESIDENT (REQ-011), OVERDUE_HISTORY (REQ-012), EXISTING_EXPOSURE (REQ-014), OTHER (отказ альтернативной модели скоринга REQ-013 и любые иные правила decision engine). Если сработало несколько правил, возвращаются все соответствующие коды без повторов. При decision = APPROVED reason_codes является пустым массивом [предложение, согласовать]. Внутренние идентификаторы правил decision engine в ответ не включаются.",
+      "test_hint": "По одному негативному кейсу на каждое правило: возраст 20 лет, нерезидент, просрочка 31 день за последние 12 месяцев, остаток 3 000 001 KZT, DTI 65%, отказ альтернативной модели. Кейс с двумя причинами одновременно (возраст 66 и DTI 65%). Проверка reason_codes при APPROVED. Проверка, что в ответе нет значений вне списка, в том числе внутренних идентификаторов правил.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-45",
+      "scope": "set",
+      "req_ids": [
+        "R-24",
+        "R-13"
+      ],
+      "criterion": "set_consistent",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The response shall not contain the applicant's credit history, income or existing obligations.",
+          "start": 97,
+          "end": 97,
+          "loc": "строка 97 (3. Functional Requirements / 3.4 Response)"
+        },
+        {
+          "text": "Applicants who already have an active consumer loan with Teniz Bank with an outstanding balance above 3,000,000 KZT",
+          "start": 71,
+          "end": 71,
+          "loc": "строка 71 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "problem": "REQ-033 запрещает передавать партнёру кредитную историю и существующие обязательства. REQ-014 и REQ-032 требуют вернуть партнёру reason code. EXISTING_EXPOSURE прямо сообщает, что у клиента есть потребкредит в Teniz Bank с остатком выше 3 000 000 KZT. OVERDUE_HISTORY сообщает, что у клиента была просрочка больше 30 дней. Пример: клиент с остатком 4 000 000 KZT получает отказ. Выполнить REQ-014 (вернуть EXISTING_EXPOSURE) и REQ-033 (не раскрывать обязательства) одновременно нельзя.",
+      "impact": "Риск раскрытия банковской тайны и кредитной истории третьему лицу, то есть маркетплейсу. Разработчик не знает, какое из требований приоритетно.",
+      "fix": "Решить с юристами и комплаенс и зафиксировать. Вариант А: партнёру всегда возвращается обобщённый код, например OTHER или DECLINED_CREDIT_POLICY [предложение, согласовать], а детальная причина доступна только клиенту в канале банка. Вариант Б: в REQ-033 явно разрешить перечисленные коды и указать правовое основание в тексте согласия.",
+      "test_hint": "Для клиента с просрочкой больше 30 дней проверить, что ответ партнёру соответствует выбранному варианту и не содержит кодов, раскрывающих историю.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-46",
+      "scope": "req",
+      "req_ids": [
+        "R-25"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Requests without a valid partner access token shall be rejected with HTTP 401",
+          "start": 101,
+          "end": 101,
+          "loc": "строка 101 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Термин «valid» не раскрыт. Неясно, покрывает ли он токен с истёкшим 15-минутным сроком (REQ-053), отозванный токен, токен чужого клиента и токен партнёра с расторгнутым договором. Не задан код ошибки и тело ответа, хотя для остальных ошибок коды есть (INVALID_IIN, CONSENT_INVALID). Не указан порядок проверок: проверяется ли токен раньше валидации тела запроса и раньше лимита REQ-043.",
+      "impact": "Партнёр не отличит истёкший токен от неверных учётных данных и не сможет автоматически перевыпустить токен. Тестировщик не знает ожидаемого тела ответа и того, что вернётся на запрос без токена с невалидным телом: 400 или 401.",
+      "fix": "REQ-040. Запрос отклоняется с HTTP 401 и кодом ошибки UNAUTHORIZED [предложение, согласовать], если заголовок Authorization отсутствует, токен не выпущен сервером авторизации банка, срок действия токена истёк (REQ-053) или токен отозван. Проверка токена выполняется до валидации тела запроса и до учёта лимита REQ-043.",
+      "test_hint": "Кейсы: без заголовка Authorization; с произвольной строкой; с токеном через 15 мин 01 с после выпуска; с токеном за 1 с до истечения (ожидается не 401); с отозванным токеном; без токена и с невалидным iin (ожидается 401, не 400).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-47",
+      "scope": "set",
+      "req_ids": [
+        "R-25"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Requests without a valid partner access token shall be rejected with HTTP 401.",
+          "start": 101,
+          "end": 101,
+          "loc": "строка 101 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Scope включает partner authentication, REQ-053 требует OAuth 2.0 client credentials, но эндпоинт выдачи токена, его параметры (scope, audience) и формат токена не описаны. Не сказано, выдаёт токен API или отдельный сервер авторизации банка.",
+      "impact": "Партнёры не смогут интегрироваться по документу. Нельзя проверить REQ-040 и 15-минутный срок жизни токена.",
+      "fix": "Указать token endpoint (например POST /oauth/token [предложение, согласовать]), обязательный scope preapproval:create [предложение, согласовать] и формат ответа. Либо дать ссылку на спецификацию сервера авторизации.",
+      "test_hint": "Получить токен по client credentials, дождаться 15 минут и убедиться, что запрос возвращает 401.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-48",
+      "scope": "req",
+      "req_ids": [
+        "R-26",
+        "R-27"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Requests with an expired or missing consent",
+          "start": 103,
+          "end": 103,
+          "loc": "строка 103 (3. Functional Requirements / 3.5 Errors)"
+        },
+        {
+          "text": "Validation errors shall return HTTP 400 with a list of field names and error codes.",
+          "start": 105,
+          "end": 105,
+          "loc": "строка 105 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Слова «missing consent» читаются двумя способами. Первый: в теле нет поля consent_id. Второй: consent_id передан, но записи согласия нет. В первом случае это ошибка валидации, и по REQ-042 нужен HTTP 400, а не 422. Слово «expired» тоже не определено: в REQ-006 есть только правило «no earlier than 30 days before» от даты регистрации, термина «истечение» в документе нет. Также: Отсутствующий consent_id — это одновременно ошибка валидации (400 по REQ-042) и «missing consent» (422 по REQ-041). Для REQ-003, REQ-004, REQ-005 не заданы коды ошибок полей. Нет формата тела ошибки и описания приоритета нескольких ошибок.",
+      "impact": "Разные разработчики вернут на отсутствие поля 400 или 422. Тесты на REQ-041 и REQ-042 будут противоречить друг другу.",
+      "fix": "REQ-041. Если поле consent_id отсутствует или пустое, запрос отклоняется по REQ-042 (HTTP 400). Если consent_id передан, но согласие не найдено, зарегистрировано более 30 дней назад (REQ-006), отозвано, зарегистрировано другим партнёром или выдано на другой IIN, запрос отклоняется с HTTP 422 и кодом ошибки CONSENT_INVALID.",
+      "test_hint": "Тело без consent_id (ожидается 400). Несуществующий consent_id (ожидается 422). Согласие ровно 30 дней, 30 дней + 1 с и 29 дней 23:59. Согласие, зарегистрированное другим партнёром. Согласие на другой IIN. Отозванное согласие.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-49",
+      "scope": "req",
+      "req_ids": [
+        "R-27",
+        "R-05",
+        "R-06"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Validation errors shall return HTTP 400 with a list of field names and error codes",
+          "start": 105,
+          "end": 105,
+          "loc": "строка 105 (3. Functional Requirements / 3.5 Errors)"
+        },
+        {
+          "text": "shall be an integer between 50,000 and 5,000,000 inclusive",
+          "start": 53,
+          "end": 53,
+          "loc": "строка 53 (3. Functional Requirements / 3.1 Request)"
+        },
+        {
+          "text": "shall be one of 3, 6, 12, 24, 36",
+          "start": 55,
+          "end": 55,
+          "loc": "строка 55 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "problem": "Определён только код INVALID_IIN (REQ-002). Нет кодов для ошибок phone (REQ-003), requested_amount_kzt (REQ-004), requested_term_months (REQ-005), отсутствующих полей, неверного типа и некорректного JSON. Не задана структура ответа: имена полей JSON и формат элемента списка. Не сказано, возвращаются все ошибки сразу или только первая. Также: Границы заданы чётко. Не указан error code для поля, хотя REQ-042 требует возвращать коды ошибок. Также: Набор значений задан. Не указан error code для недопустимого значения (см. REQ-042).",
+      "impact": "Партнёры не смогут автоматически разбирать ошибки и показывать их клиенту. Тестировщик не может проверить тело ответа: ожидаемый код ошибки неизвестен.",
+      "fix": "REQ-042. При ошибках валидации API возвращает HTTP 400 с телом {\"errors\": [{\"field\": \"<имя поля>\", \"code\": \"<код>\"}]} [предложение, согласовать]. В списке перечисляются все ошибочные поля. Коды: INVALID_IIN (REQ-002), INVALID_PHONE, AMOUNT_OUT_OF_RANGE, INVALID_TERM, FIELD_REQUIRED, INVALID_TYPE [предложение, согласовать]. Синтаксически некорректный JSON возвращает code MALFORMED_JSON без поля field [предложение, согласовать].",
+      "test_hint": "Значения requested_amount_kzt: 49 999, 50 000, 5 000 000, 5 000 001, 100000.5, строка \"100000\". Значения requested_term_months: 0, 4, 48. Телефоны +7123456789 (10 цифр) и 87012345678. Отсутствует phone. Битый JSON. Три ошибки одновременно (ожидаются три элемента списка).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-50",
+      "scope": "req",
+      "req_ids": [
+        "R-28",
+        "R-42"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Requests above the limit shall receive HTTP 429",
+          "start": 107,
+          "end": 107,
+          "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+        },
+        {
+          "text": "The 101st request from the same partner within one minute returns HTTP 429",
+          "start": 141,
+          "end": 141,
+          "loc": "строка 141 (Software Requirements Specification / 6. Acceptance Criteria)"
+        }
+      ],
+      "problem": "Не определено окно: фиксированная календарная минута или скользящие 60 секунд. Не сказано, учитываются ли в лимите запросы, отклонённые с 401, 400 и 429. Не задан заголовок Retry-After и тело ответа. Не указано, действует ли лимит на POST /v1/consents. Также: «Within one minute» допускает фиксированную календарную минуту и скользящее окно 60 секунд. Результат теста зависит от реализации, а в REQ-043 тип окна не задан. Не сказано, считаются ли в составе первых 100 запросы с ошибками 400 и 422.",
+      "impact": "При фиксированном окне партнёр может отправить 200 запросов за 2 секунды на стыке минут. Тест AC-05 даст разный результат в зависимости от реализации.",
+      "fix": "REQ-043. Лимит считается в скользящем окне 60 секунд [предложение, согласовать] по client_id партнёра. В лимите учитываются все запросы, прошедшие аутентификацию, включая отклонённые с 400 и 422 [предложение, согласовать]. Ответ HTTP 429 содержит заголовок Retry-After в секундах [предложение, согласовать].",
+      "test_hint": "100 запросов в 00:59.9 и 100 запросов в 01:00.1 (разные результаты для фиксированного и скользящего окна). Запросы с ошибкой 400 в составе первых 100. Наличие Retry-After. Независимость лимитов двух партнёров.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-51",
+      "scope": "set",
+      "req_ids": [
+        "R-28"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Each partner shall be limited to 100 requests per minute.",
+          "start": 107,
+          "end": 107,
+          "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+        }
+      ],
+      "problem": "Есть только постоянный лимит на партнёра. Нет механизма оперативного отключения: выключить приём заявок для конкретного партнёра или целиком (feature flag, kill switch), например при инциденте с бюро или мошенничестве. Не описан откат изменения правил decision engine. Не описана политика версий /v1: обратная совместимость, срок поддержки старой версии, уведомление партнёров.",
+      "impact": "При инциденте единственный способ остановить поток заявок — выключить весь API. Изменения контракта сломают интеграции партнёров.",
+      "fix": "Добавить требования: флаг включения API по каждому партнёру с ответом HTTP 503 [предложение, согласовать] при выключении; откат на предыдущую версию правил за 15 минут [предложение, согласовать]; политика версионирования с уведомлением за 90 дней [предложение, согласовать].",
+      "test_hint": "Выключить флаг для партнёра A и проверить, что запросы A отклоняются, а запросы партнёра B обрабатываются.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-52",
+      "scope": "req",
+      "req_ids": [
+        "R-29",
+        "R-01",
+        "R-30"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "measured at the bank's API gateway over a calendar day",
+          "start": 111,
+          "end": 111,
+          "loc": "строка 111 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        },
+        {
+          "text": "request a non-binding pre-approval of a consumer loan for their customers before checkout",
+          "start": 15,
+          "end": 15,
+          "loc": "строка 15 (1. Introduction / 1.1 Purpose)"
+        },
+        {
+          "text": "The API shall be available 99.5% of the time per calendar month, excluding announced maintenance windows.",
+          "start": 113,
+          "end": 113,
+          "loc": "строка 113 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Не указан часовой пояс календарного дня. Не сказано, входят ли в выборку быстрые отказы 400, 401 и 429: они снижают 95-й перцентиль и маскируют медленные решения. Не задан уровень нагрузки, при котором действует порог. Нет требования к таймаутам вызовов кредитного бюро и decision engine, которые расходуют этот бюджет. Также: Бизнес-сценарий синхронный: клиент ждёт на странице оформления заказа. REQ-050 ограничивает только 95-й перцентиль. Для остальных 5% запросов верхней границы времени ответа нет, и нет требования, что API должен вернуть партнёру по истечении предельного времени. Обещание «до checkout» на этих запросах не проверяется. Также: Не сказано, что происходит после 3 секунд (таймаут, ответ). Не определено, учитываются ли 4xx и 429 в 95%. Для доступности не задано, что считается недоступностью и как и за сколько объявляются окна обслуживания.",
+      "impact": "Целевой показатель можно формально выполнить за счёт отказов 4xx. Мониторинг и нагрузочный тест посчитают перцентиль по-разному.",
+      "fix": "REQ-050. Время ответа POST /v1/preapprovals, измеренное на API gateway банка от получения запроса до отправки последнего байта ответа, не превышает 3 секунд для 95% запросов с HTTP 200 за календарные сутки по времени Астаны (UTC+5) [предложение, согласовать]. Порог действует при нагрузке до значения REQ-052.",
+      "test_hint": "Нагрузочный тест на уровне REQ-052 с заглушкой бюро, отвечающей за 2,5 с и 3,5 с. Расчёт p95 отдельно по 200-ответам и по всем ответам. Проверка границы суток в отчёте мониторинга.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-53",
+      "scope": "set",
+      "req_ids": [
+        "R-29",
+        "R-30"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "measured at the bank's API gateway over a calendar day",
+          "start": 111,
+          "end": 111,
+          "loc": "строка 111 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        },
+        {
+          "text": "The API shall be available 99.5% of the time per calendar month",
+          "start": 113,
+          "end": 113,
+          "loc": "строка 113 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "SLA заданы, но нет требований к мониторингу и алертингу. Не описано, какие метрики собираются: латентность по партнёру, доля ошибок, доля ответов бюро с таймаутом, доля одобрений. Не заданы пороги алертов, получатели и отчётность по SLA для партнёров. Не задана трассировка запроса через API, бюро и decision engine (correlation id).",
+      "impact": "Нарушение REQ-050/REQ-051 обнаружится по жалобам партнёров. Аномалию в решениях, например резкий рост отказов после изменения правил, никто не заметит.",
+      "fix": "Добавить НФТ: метрики по каждому партнёру и интеграции; алерт при p95 > 3 с в течение 5 минут [предложение, согласовать] и при доле 5xx > 1% [предложение, согласовать]; сквозной correlation id в логах и заголовке ответа [предложение, согласовать].",
+      "test_hint": "Искусственно замедлить стаб бюро и проверить срабатывание алерта и наличие correlation id в логах всех компонентов.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-54",
+      "scope": "req",
+      "req_ids": [
+        "R-30"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The API shall be available 99.5% of the time per calendar month",
+          "start": 113,
+          "end": 113,
+          "loc": "строка 113 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Не определено, что считается недоступностью: ответы 5xx, превышение таймаута, недоступность кредитного бюро (тогда API отвечает, но не выдаёт решение). Не указан способ измерения: синтетические проверки или доля успешных запросов, интервал опроса.",
+      "impact": "Банк и партнёры по-разному посчитают доступность. Требование нельзя однозначно проверить по данным мониторинга.",
+      "fix": "REQ-051. API считается недоступным в минуту, когда синтетическая проверка с интервалом 1 минута [предложение, согласовать] получает HTTP 5xx или не получает ответ за 10 секунд [предложение, согласовать]. Доля доступных минут за календарный месяц не ниже 99,5%.",
+      "test_hint": "Проверка расчёта по журналу мониторинга: месяц с 216 минутами простоя (99,5% при 30 днях) проходит, 217 минут не проходит. Кейс недоступности бюро: проверить, как он учитывается.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-55",
+      "scope": "req",
+      "req_ids": [
+        "R-30"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "per calendar month, excluding announced maintenance windows",
+          "start": 113,
+          "end": 113,
+          "loc": "строка 113 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Объявленные окна обслуживания ничем не ограничены: ни суммарной длительностью, ни сроком уведомления, ни допустимым временем суток. Неясно, кому и по какому каналу их объявляют.",
+      "impact": "Любой простой можно объявить окном обслуживания, и требование 99,5% теряет смысл. Партнёры не узнают о простое заранее.",
+      "fix": "Дополнить REQ-051: окна обслуживания объявляются партнёрам не позднее чем за 5 рабочих дней [предложение, согласовать], проводятся с 01:00 до 05:00 UTC+5 [предложение, согласовать] и в сумме не превышают 4 часов в месяц [предложение, согласовать].",
+      "test_hint": "Проверка расчёта доступности при окне, объявленном за 1 день (не исключается), и при окне длиной 5 часов (исключаются только 4 часа).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-56",
+      "scope": "req",
+      "req_ids": [
+        "R-33"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Request and response payloads shall be stored",
+          "start": 119,
+          "end": 119,
+          "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Не указаны: какие поля хранятся (полный IIN, телефон, доход), маскируются ли они, как в логах по REQ-055, кто имеет доступ к хранилищу, защищена ли запись от изменения, хранятся ли запросы, отклонённые с 400, 401 и 429.",
+      "impact": "Аудиторские данные могут оказаться неполными или, наоборот, содержать незащищённые ПДн.",
+      "fix": "Дополнить REQ-054: хранятся все запросы, включая отклонённые, вместе с partner_id, временем получения и кодом ответа. Записи неизменяемы, IIN и телефон хранятся в зашифрованном виде [предложение, согласовать], доступ имеют только роли аудита и безопасности [предложение, согласовать].",
+      "test_hint": "Отправить запросы с ответами 200, 400, 401, 422 и 429 и проверить наличие записей. Попытка изменить запись (отказ). Попытка чтения пользователем без роли аудита.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-57",
+      "scope": "set",
+      "req_ids": [
+        "R-33"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Request and response payloads shall be stored for as long as necessary for audit purposes.",
+          "start": 119,
+          "end": 119,
+          "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Запись запроса и ответа в аудит-хранилище — отдельный шаг. Не описано, что делать, если хранилище недоступно или запись завершилась ошибкой уже после получения решения от decision engine. Можно вернуть решение без аудиторской записи, вернуть ошибку при уже выполненном запросе в бюро или писать асинхронно с риском потери. Не сказано, допустимы ли повторы записи и как исключить её задвоение.",
+      "impact": "Возможны выданные предодобрения без следа в аудите или потеря решения для клиента при успешно выполненном (и, вероятно, платном) запросе в бюро.",
+      "fix": "Задать правило: решение не возвращается партнёру без подтверждённой записи в аудит, при сбое возвращается HTTP 503 [предложение, согласовать]. Либо гарантированная доставка через очередь с идемпотентной записью по preapproval_id [предложение, согласовать].",
+      "test_hint": "Отключить аудит-хранилище и отправить валидный запрос. Проверить ответ партнёру и наличие записи после восстановления хранилища; повтор не создаёт дубль.",
+      "role": "EdgeCaser",
+      "edge": "E09"
+    },
+    {
+      "id": "D-58",
+      "scope": "set",
+      "req_ids": [
+        "R-33"
+      ],
+      "criterion": "set_complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Request and response payloads shall be stored for as long as necessary for audit purposes.",
+          "start": 119,
+          "end": 119,
+          "loc": "строка 119 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "В хранимых телах запроса содержатся ИИН, телефон и заявленный доход. Не описано, что происходит, если заявитель отзывает согласие или требует удалить персональные данные. Можно удалить, обезличить или сохранить на основании аудиторской обязанности. Не сказано, распространяется ли удаление на данные отчёта бюро, использованные в расчёте, и на копии у партнёра.",
+      "impact": "Без правила запрос субъекта ПДн нельзя исполнить единообразно и в срок. Возникает риск нарушения законодательства РК о персональных данных или, наоборот, потери аудиторских доказательств.",
+      "fix": "Определить процедуру обработки запроса субъекта на удаление: какие поля обезличиваются (телефон, доход), какие сохраняются для аудита (ИИН в хэшированном виде [предложение, согласовать]), срок исполнения запроса 10 рабочих дней [предложение, согласовать], ответственный за исполнение.",
+      "test_hint": "Создать предодобрение, затем инициировать запрос на удаление ПДн. Проверить, что в хранилище и логах телефон и доход обезличены, а аудиторская запись осталась в согласованном объёме.",
+      "role": "EdgeCaser",
+      "edge": "E12"
+    },
+    {
+      "id": "D-59",
+      "scope": "req",
+      "req_ids": [
+        "R-34"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "IIN and phone shall be masked in application logs (first 4 and last 2 digits visible)",
+          "start": 121,
+          "end": 121,
+          "loc": "строка 121 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "Для телефона в формате +7XXXXXXXXXX (REQ-003) неясно, считается ли «+» и входит ли «7» в первые 4 цифры. Возможные варианты: +701*****67 или +7701*****67. Не задан символ маски, неизвестно, сохраняется ли длина. Не сказано, распространяется ли маскирование на трассировки, сообщения об ошибках и логи интеграции с бюро. Также: Позиции 1–6 ИИН содержат дату рождения. Открытые первые 4 цифры раскрывают год и месяц рождения, последние 2 включают контрольный разряд. В итоге видны 6 из 12 разрядов, и вместе с другими атрибутами лога (время, партнёр, partner_order_id) это облегчает повторную идентификацию. Также: Для телефона +7XXXXXXXXXX неясно, входит ли «+7» в первые 4 символа. Для IIN первые 4 и последние 2 открытые цифры раскрывают год, месяц рождения и часть номера. Не сказано про маскирование в трассировках и ошибках.",
+      "impact": "Разработчики реализуют разную маску. Автотест на формат маски нельзя написать однозначно.",
+      "fix": "REQ-055. Во всех журналах приложения, включая трассировки и логи обмена с кредитным бюро и decision engine, IIN выводится как первые 4 и последние 2 цифры, остальные цифры заменяются символом «*» с сохранением длины (например, 9001******23). Телефон выводится как «+7», затем первые 4 цифры после «7», затем «*» и последние 2 цифры [предложение, согласовать] (например, +77011*****67).",
+      "test_hint": "Поиск полного IIN и телефона в логах после успешного запроса, отказа, ошибки 400 с невалидным IIN и таймаута бюро. Проверка формата маски регулярным выражением.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-60",
+      "scope": "req",
+      "req_ids": [
+        "R-35"
+      ],
+      "criterion": "verifiable",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "The API documentation shall be user-friendly",
+          "start": 123,
+          "end": 123,
+          "loc": "строка 123 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "«User-friendly» нельзя измерить. Нет критерия приёмки документации. Также: Не определено, для кого документация должна быть удобной (разработчики партнёров, бизнес-пользователи), на каком языке и в каком формате она выпускается. Также: Субъективное «user-friendly» нельзя проверить.",
+      "impact": "Документацию невозможно принять или отклонить объективно.",
+      "fix": "REQ-056. Документация API публикуется в формате OpenAPI 3.0 [предложение, согласовать] и содержит для каждого эндпоинта: схемы запроса и ответа, все HTTP-коды и коды ошибок из REQ-040…REQ-043, список reason_codes из REQ-032, пример запроса и ответа для APPROVED и DECLINED.",
+      "test_hint": "Валидация спецификации линтером OpenAPI. Чек-лист наличия каждого кода ошибки и reason code. Контрактный тест соответствия реализации спецификации.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-61",
+      "scope": "set",
+      "req_ids": [
+        "R-36",
+        "R-37"
+      ],
+      "criterion": "set_comprehensible",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "Credit bureau integration uses the bureau's SOAP service",
+          "start": 127,
+          "end": 127,
+          "loc": "строка 127 (Software Requirements Specification / 5. External Interfaces)"
+        },
+        {
+          "text": "The decision engine is invoked synchronously over the internal REST interface",
+          "start": 129,
+          "end": 129,
+          "loc": "строка 129 (Software Requirements Specification / 5. External Interfaces)"
+        }
+      ],
+      "problem": "Названы только имена интерфейсов. Не описано, какие поля GetCreditReport используются: ежемесячные платежи (REQ-021), просрочки (REQ-012), признак thin-file (REQ-013). Не описан контракт POST /decide: входные поля, выходные поля (решение, сумма, сроки, ставка, score band, внутренние идентификаторы правил, которые нужно отфильтровать по REQ-032). Нет ссылки на дочернюю спецификацию.",
+      "impact": "Команды API и decision engine будут согласовывать контракт уже в разработке. Маппинг внутренних правил в reason codes не закреплён.",
+      "fix": "Добавить приложение со схемами GetCreditReport (используемые элементы) и POST /decide (запрос и ответ, типы, обязательность), а также таблицу «внутреннее правило → reason code».",
+      "test_hint": "Контрактные тесты по схемам приложения для обеих интеграций.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-62",
+      "scope": "req",
+      "req_ids": [
+        "R-38",
+        "R-17"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "A request with a valid IIN, consent and DTI of 30% returns",
+          "start": 133,
+          "end": 133,
+          "loc": "строка 133 (Software Requirements Specification / 6. Acceptance Criteria)"
+        },
+        {
+          "text": "The maximum pre-approved amount shall be the largest amount for which DTI stays below 50%",
+          "start": 81,
+          "end": 81,
+          "loc": "строка 81 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "problem": "DTI не является входным полем, его вычисляет decision engine (REQ-021). Нужны исходные данные: declared_monthly_income_kzt, платежи из ответа бюро, requested_amount_kzt и requested_term_months. Не заданы остальные предусловия одобрения: возраст 21–65 лет, резидентство, отсутствие просрочки, отсутствие экспозиции выше 3 000 000 KZT. Проверяется только max_amount_kzt; term_options_months, indicative_rate_percent и valid_until не проверяются, а срок действия в REQ-025 вообще TBD. Также: Ни для одного критерия приёмки нельзя вычислить конкретное ожидаемое значение max_amount_kzt и indicative_rate_percent. В документе нет ни одного числового примера с полным набором входов: доход, платежи из бюро, ставка, срок, ожидаемая сумма. AC-01 проверяет только, что сумма «non-null». Если сумма посчитана неверно, например DTI проверяется по сроку 3 месяца вместо 36 или округление идёт вверх, AC-01 всё равно пройдёт. Расчёт по REQ-021/REQ-023 фактически не проверяется.",
+      "impact": "Тест нельзя воспроизвести без додумывания входных данных. Ошибки в остальных полях успешного ответа не будут обнаружены.",
+      "fix": "AC-01. Дано: заявитель 30 лет, резидент, без просрочек, без кредитов в Teniz Bank; действующее согласие; declared_monthly_income_kzt = 500 000; платежи по данным бюро 100 000 KZT в месяц; requested_amount_kzt и requested_term_months подобраны так, что расчётный DTI = 30% [предложение, согласовать]. Ожидается: HTTP 200, decision = APPROVED, непустые max_amount_kzt, term_options_months, indicative_rate_percent и valid_until, reason_codes по REQ-032.",
+      "test_hint": "Заглушка бюро с фиксированными платежами. Проверить все поля ответа и отсутствие кредитной истории в ответе (REQ-033).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-63",
+      "scope": "req",
+      "req_ids": [
+        "R-39"
+      ],
+      "criterion": "complete",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "A request with DTI of 65% returns",
+          "start": 135,
+          "end": 135,
+          "loc": "строка 135 (Software Requirements Specification / 6. Acceptance Criteria)"
+        }
+      ],
+      "problem": "Не заданы исходные данные для получения DTI 65% и не сказано, что остальные критерии выполнены. Без этого отказ может прийти по другой причине. Не уточнено, считается ли DTI по requested_amount_kzt. Если да, то по REQ-023 заявителю можно предложить меньшую сумму, и неясно, отказ это или одобрение со сниженной суммой. Не проверяется, что max_amount_kzt, term_options_months и indicative_rate_percent равны null (REQ-031).",
+      "impact": "Тест может пройти случайно. Неопределённость между REQ-022 и REQ-023 переходит в критерий приёмки.",
+      "fix": "AC-02. Дано: заявитель удовлетворяет REQ-010–REQ-014, declared_monthly_income_kzt = 200 000, платежи по данным бюро 130 000 KZT в месяц [предложение, согласовать], то есть DTI с учётом запрошенного кредита не ниже 65% и уже без нового кредита превышает 50%. Ожидается: HTTP 200, decision = DECLINED, reason_codes = [\"HIGH_DTI\"], max_amount_kzt, term_options_months и indicative_rate_percent равны null.",
+      "test_hint": "Дополнительные кейсы: DTI 49,99%, 50,00% и 50,01% (граница из REQ-022 не определена). Кейс, где DTI по запрошенной сумме 65%, а по меньшей сумме ниже 50%.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-64",
+      "scope": "set",
+      "req_ids": [
+        "R-39",
+        "R-42",
+        "R-38"
+      ],
+      "criterion": "set_validatable",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "A request with DTI of 65% returns DECLINED with reason code HIGH_DTI.",
+          "start": 135,
+          "end": 135,
+          "loc": "строка 135 (Software Requirements Specification / 6. Acceptance Criteria)"
+        },
+        {
+          "text": "The 101st request from the same partner within one minute returns HTTP 429.",
+          "start": 141,
+          "end": 141,
+          "loc": "строка 141 (Software Requirements Specification / 6. Acceptance Criteria)"
+        },
+        {
+          "text": "A request with a valid IIN, consent and DTI of 30% returns `APPROVED` with a non-null `max_amount_kzt`.",
+          "start": 133,
+          "end": 133,
+          "loc": "строка 133 (Software Requirements Specification / 6. Acceptance Criteria)"
+        }
+      ],
+      "problem": "Шесть критериев покрывают только REQ-002, REQ-006/REQ-041, REQ-022, REQ-031 и REQ-043. Ни одним критерием не проверяются: валидация phone, суммы и срока (REQ-003, REQ-004, REQ-005, REQ-042); дубли (REQ-007); правила отказа AGE, NON_RESIDENT, OVERDUE_HISTORY, EXISTING_EXPOSURE (REQ-010, REQ-011, REQ-012, REQ-014); маршрутизация thin-file (REQ-013); вызов бюро (REQ-020); расчёт суммы и ставки (REQ-023, REQ-024); срок действия (REQ-025); правило 18+ (REQ-026); запрет внутренних идентификаторов правил (REQ-032); отсутствие кредитной истории и дохода в ответе (REQ-033); HTTP 401 (REQ-040); все НФТ REQ-050…REQ-056; интерфейсы REQ-060 и REQ-061. Также: Критерии приёмки не покрывают REQ-007, 010–014, 023–026, 032, 033, 050–055, 060, 061 и граничные значения: DTI 50%, суммы 49 999 и 5 000 001, возраст 21 и 65. AC-01 не проверяет значение max_amount_kzt, только его ненулевость. Цель в 1.1 не содержит измеримого бизнес-показателя.",
+      "impact": "Большая часть набора не имеет формального условия приёмки. Нельзя доказать, что система реализует правила отказа и НФТ.",
+      "fix": "Добавить критерии минимум на каждый reason code из REQ-032, на HTTP 401 с истёкшим токеном, на HTTP 400 для каждого поля из REQ-003…REQ-005, на повтор запроса с тем же partner_order_id, на отсутствие дохода и истории в ответе, а также нагрузочный критерий для REQ-050/REQ-052 и проверку маскирования REQ-055.",
+      "test_hint": "Построить матрицу трассировки «REQ → AC» и считать требования без AC блокером для начала разработки.",
+      "role": "CrossChecker",
+      "edge": ""
+    },
+    {
+      "id": "D-65",
+      "scope": "req",
+      "req_ids": [
+        "R-43",
+        "R-22"
+      ],
+      "criterion": "unambiguous",
+      "severity": "важно",
+      "quotes": [
+        {
+          "text": "A declined response contains no amount, term or rate and at least one reason code",
+          "start": 143,
+          "end": 143,
+          "loc": "строка 143 (Software Requirements Specification / 6. Acceptance Criteria)"
+        },
+        {
+          "text": "For declined applications `max_amount_kzt`, `term_options_months` and `indicative_rate_percent` shall be null",
+          "start": 93,
+          "end": 93,
+          "loc": "строка 93 (3. Functional Requirements / 3.4 Response)"
+        }
+      ],
+      "problem": "«Contains no amount, term or rate» можно понять как отсутствие полей в JSON. REQ-031 же требует, чтобы поля max_amount_kzt, term_options_months и indicative_rate_percent присутствовали со значением null. От трактовки зависит контрактная схема ответа и парсер партнёра. Также: REQ-031 требует, чтобы поля присутствовали со значением null. AC-06 говорит «contains no amount», что можно понять как отсутствие полей.",
+      "impact": "Тест, проверяющий отсутствие полей, упадёт на реализации по REQ-031, и наоборот.",
+      "fix": "AC-06. В ответе с decision = DECLINED поля max_amount_kzt, term_options_months и indicative_rate_percent присутствуют и равны null, а reason_codes содержит не менее одного кода из списка REQ-032.",
+      "test_hint": "Проверка JSON-схемой: наличие ключей со значением null. reason_codes не пустой и все значения входят в список REQ-032. Прогон на каждой причине отказа.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-66",
+      "scope": "set",
+      "req_ids": [],
+      "criterion": "srs_ranked",
+      "severity": "мелочь",
+      "quotes": [
+        {
+          "text": "In scope: the pre-approval endpoint, eligibility checks, credit bureau lookup, decisioning, offer generation, partner authentication, audit logging.",
+          "start": 19,
+          "end": 19,
+          "loc": "строка 19 (1. Introduction / 1.2 Scope)"
+        }
+      ],
+      "problem": "У требований нет приоритета и признака стабильности. Документ в статусе draft 0.9, а REQ-013 и REQ-026 явно не согласованы.",
+      "impact": "Непонятно, что входит в MVP и что можно отложить.",
+      "fix": "Добавить к каждому REQ атрибуты «Приоритет: Must/Should/Could» и «Стабильность: стабильно/может измениться».",
+      "test_hint": "",
+      "role": "WholeDoc",
+      "edge": ""
+    },
+    {
+      "id": "D-67",
+      "scope": "req",
+      "req_ids": [
+        "R-22"
+      ],
+      "criterion": "complete",
+      "severity": "мелочь",
+      "quotes": [
+        {
+          "text": "For declined applications `max_amount_kzt`, `term_options_months` and `indicative_rate_percent` shall be null",
+          "start": 93,
+          "end": 93,
+          "loc": "строка 93 (3. Functional Requirements / 3.4 Response)"
+        }
+      ],
+      "problem": "Не указано, заполняется ли valid_until у отказа и в течение какого времени партнёр может повторно запросить решение по тому же клиенту.",
+      "impact": "Значение valid_until в ответе DECLINED не определено.",
+      "fix": "REQ-031. Для отказа поля max_amount_kzt, term_options_months и indicative_rate_percent равны null, valid_until равен null [предложение, согласовать], reason_codes содержит не менее одного кода из списка REQ-032.",
+      "test_hint": "Ответ DECLINED: все три поля null, valid_until null, reason_codes не пуст и содержит только коды из REQ-032 (AC-06).",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-68",
+      "scope": "req",
+      "req_ids": [
+        "R-32"
+      ],
+      "criterion": "singular",
+      "severity": "мелочь",
+      "quotes": [
+        {
+          "text": "All traffic shall use TLS 1.2 or higher. Partners authenticate with OAuth 2.0 client credentials",
+          "start": 117,
+          "end": 117,
+          "loc": "строка 117 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "problem": "В одном пункте три независимых правила: версия TLS, схема аутентификации OAuth 2.0 client credentials и срок жизни токена 15 минут. Их проверяют разными тестами: сканированием TLS, интеграционным тестом выдачи токена и тестом истечения токена. Также: В одном пункте три независимых правила: TLS, способ аутентификации, срок жизни токена. Не описано, как выдаются и отзываются учётные данные партнёра, что делать при расторжении договора или приостановке партнёра.",
+      "impact": "Трассировка тестов к требованию неточна. При изменении одного правила придётся переутверждать весь пункт.",
+      "fix": "REQ-053a. Весь внешний и внутренний трафик API использует TLS 1.2 или выше; соединения TLS 1.0/1.1 отклоняются. REQ-053b. Партнёры аутентифицируются по OAuth 2.0 client credentials. REQ-053c. Срок действия access token составляет 15 минут с момента выдачи. [предложение, согласовать]",
+      "test_hint": "Попытка подключения по TLS 1.1 (отказ) и по TLS 1.2/1.3 (успех). Получение токена с неверным client_secret. Запрос через 14:59 и через 15:01 после выдачи токена.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-69",
+      "scope": "req",
+      "req_ids": [
+        "R-36",
+        "R-37"
+      ],
+      "criterion": "conforming",
+      "severity": "мелочь",
+      "quotes": [
+        {
+          "text": "Credit bureau integration uses the bureau's SOAP service",
+          "start": 127,
+          "end": 127,
+          "loc": "строка 127 (Software Requirements Specification / 5. External Interfaces)"
+        },
+        {
+          "text": "The decision engine is invoked synchronously over the internal REST interface",
+          "start": 129,
+          "end": 129,
+          "loc": "строка 129 (Software Requirements Specification / 5. External Interfaces)"
+        }
+      ],
+      "problem": "Требование написано в описательной форме «uses», а не в принятой в документе форме «shall». По такой формулировке нельзя понять, обязательное это требование или констатация факта. Также: Описательная формулировка «is invoked» вместо «shall». Нарушен стиль обязательных требований документа.",
+      "impact": "Статус обязательности неочевиден при приёмке.",
+      "fix": "REQ-060. The API shall obtain the credit report via the bureau's SOAP service GetCreditReport using mutual TLS.",
+      "test_hint": "Не требуется отдельно; покрывается интеграционными тестами выше.",
+      "role": "Auditor",
+      "edge": ""
+    },
+    {
+      "id": "D-70",
+      "scope": "set",
+      "req_ids": [
+        "R-40",
+        "R-42"
+      ],
+      "criterion": "srs_traceable",
+      "severity": "мелочь",
+      "quotes": [
+        {
+          "text": "A request with an IIN whose check digit is wrong returns HTTP 400 and INVALID_IIN.",
+          "start": 137,
+          "end": 137,
+          "loc": "строка 137 (Software Requirements Specification / 6. Acceptance Criteria)"
+        },
+        {
+          "text": "The 101st request from the same partner within one minute returns HTTP 429.",
+          "start": 141,
+          "end": 141,
+          "loc": "строка 141 (Software Requirements Specification / 6. Acceptance Criteria)"
+        }
+      ],
+      "problem": "Критерии приёмки не ссылаются на идентификаторы требований, которые они проверяют. У цели в п. 1.1 нет идентификатора. Связь «требование → критерий → API» приходится восстанавливать вручную. Также: AC не ссылаются на идентификаторы REQ. Нет матрицы трассировки «требование → AC → метод API». У требований не указан источник.",
+      "impact": "При изменении требования трудно найти критерии, которые нужно обновить.",
+      "fix": "В каждом AC указать проверяемые требования, например «AC-03 (REQ-002, REQ-042)». Цели присвоить идентификатор BR-01 [предложение, согласовать].",
+      "test_hint": "Проверить, что у каждого AC есть хотя бы одна ссылка на REQ.",
+      "role": "CrossChecker",
+      "edge": ""
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q-01",
+      "text": "REQ-006: согласие на запрос в бюро регистрирует сам партнёр. Каким механизмом банк подтверждает, что согласие дал именно владелец ИИН из запроса?",
+      "quotes": [
+        {
+          "text": "a consent record for credit bureau access that the partner registered through",
+          "start": 57,
+          "end": 57,
+          "loc": "строка 57 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "blocks": "Нельзя спроектировать POST /v1/consents. Нельзя написать негативный тест «партнёр регистрирует согласие на чужой ИИН». Нельзя проверить привязку consent_id к ИИН и партнёру: запрос с consent_id, выданным на другой ИИН или другому партнёру, должен получать 422 CONSENT_INVALID.",
+      "options": [
+        "OTP-код от банка на телефон из запроса, подтверждённый в течение 5 минут. consent_id привязан к паре ИИН + client_id партнёра. При несовпадении ответ 422 CONSENT_INVALID",
+        "Подтверждение через eGov (сервис согласий) с проверкой ИИН на стороне банка. consent_id привязан к ИИН и партнёру",
+        "Подпись ЭЦП заявителя, проверяемая банком при регистрации согласия"
+      ],
+      "default": "OTP на телефон из запроса: даёт назначение полю phone, не требует от партнёра интеграции с eGov и проверяется автотестом.",
+      "addressee": "ИБ",
+      "finding_ids": [
+        "D-02",
+        "D-01",
+        "D-25"
+      ]
+    },
+    {
+      "id": "Q-02",
+      "text": "REQ-022 требует отказа при DTI выше 50%, а REQ-023 вычисляет максимальную сумму с DTI ниже 50%. Что возвращается, если DTI по запрошенной сумме не меньше 50%?",
+      "quotes": [
+        {
+          "text": "If DTI is below 50%, the applicant is approved. If DTI is above 50%, the applicant is declined with reason code",
+          "start": 79,
+          "end": 79,
+          "loc": "строка 79 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "The maximum pre-approved amount shall be the largest amount for which DTI stays below 50%",
+          "start": 81,
+          "end": 81,
+          "loc": "строка 81 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "blocks": "Ожидаемый результат AC-02 и граничный тест DTI = 50,00%. Нельзя выбрать реализацию decision engine: отказ или контрпредложение со сниженной суммой.",
+      "options": [
+        "При DTI ≥ 50% по requested_amount_kzt ответ DECLINED с HIGH_DTI. max_amount_kzt считается только для одобренных и не меньше requested_amount_kzt",
+        "При DTI ≥ 50% по запрошенной сумме ответ APPROVED с max_amount_kzt < requested_amount_kzt (DTI < 50%), если max_amount_kzt ≥ 50 000 KZT. Иначе DECLINED с HIGH_DTI"
+      ],
+      "default": "Контрпредложение (вариант 2): соответствует REQ-023 и цели «maximum amount». Граница 50% включается в отказ.",
+      "addressee": "бизнес",
+      "finding_ids": [
+        "D-09",
+        "D-08",
+        "D-63"
+      ]
+    },
+    {
+      "id": "Q-03",
+      "text": "REQ-010 задаёт возраст 21–65 лет, а REQ-026 допускает предодобрение с 18 лет. Какой возрастной диапазон действует на дату запроса?",
+      "quotes": [
+        {
+          "text": "The applicant shall be between 21 and 65 years old on the date of the request.",
+          "start": 63,
+          "end": 63,
+          "loc": "строка 63 (3. Functional Requirements / 3.2 Eligibility)"
+        },
+        {
+          "text": "Applicants aged 18 and over who pass the credit bureau check may receive a pre-approval",
+          "start": 87,
+          "end": 87,
+          "loc": "строка 87 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "blocks": "Граничные тесты на возраст 18, 20, 21, 65 и 66 лет с ожидаемым кодом AGE. Нельзя решить, удалять ли REQ-026.",
+      "options": [
+        "Только 21–65 полных лет включительно (на дату запроса по времени Астаны). REQ-026 удаляется. Возраст 20 лет или 66 лет даёт DECLINED с AGE",
+        "21–65 лет: стандартное предложение. 18–20 лет: max_amount_kzt не больше 500 000 KZT при прохождении REQ-012, REQ-014 и DTI < 50%. Старше 65 лет: AGE"
+      ],
+      "default": "Вариант 1: REQ-026 выглядит несогласованным черновиком (D-66), а отдельный продукт для 18–20 лет требует отдельного решения риска.",
+      "addressee": "бизнес",
+      "finding_ids": [
+        "D-11",
+        "D-27",
+        "D-41"
+      ]
+    },
+    {
+      "id": "Q-04",
+      "text": "REQ-043 ограничивает партнёра 100 запросами в минуту, а REQ-052 требует выдерживать 1 000 запросов в минуту на партнёра. Какой лимит на одного партнёра действует?",
+      "quotes": [
+        {
+          "text": "Each partner shall be limited to 100 requests per minute.",
+          "start": 107,
+          "end": 107,
+          "loc": "строка 107 (3. Functional Requirements / 3.5 Errors)"
+        },
+        {
+          "text": "The API shall sustain 1,000 requests per minute per partner without degradation.",
+          "start": 115,
+          "end": 115,
+          "loc": "строка 115 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "blocks": "Нагрузочный тест REQ-052 и тест AC-05 на 101-й запрос. Нельзя выбрать ёмкость шлюза и квоты бюро.",
+      "options": [
+        "Лимит 100 запросов за скользящие 60 секунд на client_id. Нагрузка REQ-052: 1 000 запросов в минуту суммарно по всем партнёрам в течение 30 минут, p95 ≤ 3 с, доля 5xx < 0,5%",
+        "Лимит 1 000 запросов в минуту на client_id. AC-05 меняется на 1 001-й запрос. Нагрузка 1 000 запросов в минуту на каждого партнёра одновременно"
+      ],
+      "default": "Вариант 1: сохраняет AC-05 и стоимость обращений в бюро, а «without degradation» становится измеримым.",
+      "addressee": "архитектор",
+      "finding_ids": [
+        "D-12",
+        "D-14"
+      ]
+    },
+    {
+      "id": "Q-05",
+      "text": "REQ-020 и REQ-060: поведение при таймауте или ошибке кредитного бюро не задано, а бюджет ответа 3 секунды (REQ-050). Что API возвращает партнёру при недоступности бюро?",
+      "quotes": [
+        {
+          "text": "For each eligible applicant the API shall request the credit report from the credit bureau using the IIN",
+          "start": 75,
+          "end": 75,
+          "loc": "строка 75 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        },
+        {
+          "text": "The API shall return a response within 3 seconds for 95% of requests",
+          "start": 111,
+          "end": 111,
+          "loc": "строка 111 (Software Requirements Specification / 4. Non-Functional Requirements)"
+        }
+      ],
+      "blocks": "Тест с заглушкой бюро, которая отвечает с задержкой или ошибкой. Нельзя настроить таймаут клиента SOAP. Нельзя определить, попадает ли такой случай в доступность REQ-051.",
+      "options": [
+        "Таймаут бюро 2 с. При таймауте или SOAP Fault ответ HTTP 503, код BUREAU_UNAVAILABLE, заголовок Retry-After: 30. Решение не создаётся",
+        "Таймаут бюро 2 с. Ответ HTTP 200, DECLINED, reason_codes [OTHER], preapproval_id создаётся"
+      ],
+      "default": "Вариант 1: не выдаёт клиенту ложный отказ и позволяет партнёру повторить запрос.",
+      "addressee": "архитектор",
+      "finding_ids": [
+        "D-06",
+        "D-52"
+      ]
+    },
+    {
+      "id": "Q-06",
+      "text": "REQ-007 не задаёт, что считается дублем. По какому ключу и в каком окне повторный запрос считается дублем?",
+      "quotes": [
+        {
+          "text": "Duplicate requests should be handled appropriately.",
+          "start": 59,
+          "end": 59,
+          "loc": "строка 59 (3. Functional Requirements / 3.1 Request)"
+        }
+      ],
+      "blocks": "Тест идемпотентности: повтор после таймаута не должен создавать новое решение и новое платное обращение в бюро. Нельзя спроектировать хранилище решений.",
+      "options": [
+        "Ключ: client_id + partner_order_id, окно 24 часа. Повтор с тем же телом возвращает HTTP 200 с тем же preapproval_id без вызова бюро. С другим телом: HTTP 409, код DUPLICATE_ORDER",
+        "Ключ: заголовок Idempotency-Key, окно 24 часа, поведение то же. partner_order_id только информационный"
+      ],
+      "default": "Вариант 1: partner_order_id уже есть в запросе (REQ-001), новое поле не нужно.",
+      "addressee": "архитектор",
+      "finding_ids": [
+        "D-03",
+        "D-32",
+        "D-43"
+      ]
+    },
+    {
+      "id": "Q-07",
+      "text": "REQ-021 включает в DTI оценочный платёж по запрошенному кредиту, но метод его расчёта не задан. По какой формуле и по какой ставке считается этот платёж?",
+      "quotes": [
+        {
+          "text": "plus the estimated monthly payment of the requested loan",
+          "start": 77,
+          "end": 77,
+          "loc": "строка 77 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "blocks": "Эталонные расчёты для AC-01 и AC-02, а также для REQ-023. Тестировщик не может вычислить ожидаемый DTI из входных данных.",
+      "options": [
+        "Аннуитет по ставке из таблицы REQ-024 для score band заявителя и requested_term_months, округление платежа до 1 KZT вверх",
+        "Аннуитет по фиксированной консервативной ставке 40% годовых для всех заявителей, независимо от score band"
+      ],
+      "default": "Вариант 1: точнее отражает реальный платёж. Порядок фиксируется так: сначала score band, затем ставка, затем DTI.",
+      "addressee": "аналитик",
+      "finding_ids": [
+        "D-07"
+      ]
+    },
+    {
+      "id": "Q-08",
+      "text": "REQ-011: признак резидентства не передаётся в запросе (REQ-001) и не возвращается интерфейсами раздела 5. Из какого источника определяется резидентство заявителя?",
+      "quotes": [
+        {
+          "text": "The applicant shall be a resident of the Republic of Kazakhstan.",
+          "start": 65,
+          "end": 65,
+          "loc": "строка 65 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "blocks": "Тест отказа с кодом NON_RESIDENT. Нельзя решить, нужно ли расширять REQ-001 или добавлять интеграцию в раздел 5.",
+      "options": [
+        "Признак резидентства из ответа GetCreditReport бюро. Если он отсутствует, ответ DECLINED с NON_RESIDENT",
+        "Новое обязательное поле is_resident (boolean) в REQ-001. При значении false ответ DECLINED с NON_RESIDENT",
+        "Запрос в государственную базу физлиц по ИИН через новый интерфейс REQ-062"
+      ],
+      "default": "Вариант 3: самоотметке партнёра доверять нельзя, а наличие признака в бюро не подтверждено. Если интеграцию с госбазой отложить, требование нужно удалить из MVP.",
+      "addressee": "бизнес",
+      "finding_ids": [
+        "D-04"
+      ]
+    },
+    {
+      "id": "Q-09",
+      "text": "REQ-025: срок действия предодобрения указан как TBD, а поле valid_until обязательно в ответе (REQ-030). Какой срок действия и от какого момента он отсчитывается?",
+      "quotes": [
+        {
+          "text": "The pre-approval shall be valid for TBD days from the moment of issue.",
+          "start": 85,
+          "end": 85,
+          "loc": "строка 85 (3. Functional Requirements / 3.3 Scoring and Decision)"
+        }
+      ],
+      "blocks": "Проверка значения valid_until в AC-01. Нельзя решить вопрос о переиспользовании решения при повторном запросе.",
+      "options": [
+        "7 календарных суток от момента формирования ответа. valid_until в ISO 8601 с часовым поясом +05:00",
+        "30 календарных суток от момента формирования ответа, формат тот же",
+        "До 23:59:59 по времени Астаны третьего календарного дня после выдачи"
+      ],
+      "default": "Вариант 1: короткий срок снижает риск устаревания данных бюро и изменения ставок.",
+      "addressee": "бизнес",
+      "finding_ids": [
+        "D-10"
+      ]
+    },
+    {
+      "id": "Q-10",
+      "text": "REQ-013: термин thin-file нигде не определён. При каком количестве записей в отчёте бюро заявитель маршрутизируется в альтернативную модель скоринга?",
+      "quotes": [
+        {
+          "text": "Thin-file applicants shall be routed to the alternative scoring model.",
+          "start": 69,
+          "end": 69,
+          "loc": "строка 69 (3. Functional Requirements / 3.2 Eligibility)"
+        }
+      ],
+      "blocks": "Граничный тест маршрутизации в альтернативную модель. Нельзя выбрать reason code при отказе этой модели.",
+      "options": [
+        "Менее 2 кредитных договоров (открытых или закрытых) в отчёте бюро за последние 24 месяца",
+        "Отсутствие любых кредитных договоров в отчёте бюро",
+        "Признак thin-file, который возвращает сам GetCreditReport"
+      ],
+      "default": "Вариант 1: порог проверяется на тестовых отчётах бюро и типичен для розничного скоринга. Окончательное значение подтверждает риск-аналитик.",
+      "addressee": "бизнес",
+      "finding_ids": [
+        "D-05"
+      ]
+    }
+  ],
+  "checklist": [],
+  "verdict": {
+    "status": "Нет",
+    "fix_first": [
+      "D-12",
+      "D-11",
+      "D-09",
+      "D-08",
+      "D-10",
+      "D-03",
+      "D-06"
+    ],
+    "text": "Начинать разработку и тестирование нельзя: 15 критичных дефектов (противоречия, непроверяемые или неполные требования). Сначала исправить их и ответить на уточняющие вопросы."
+  },
+  "set_summary": [
+    {
+      "criterion": "set_complete",
+      "status": "fail",
+      "comment": "Не определены срок действия (REQ-025 TBD), правило формирования term_options_months, обработка сбоев бюро и decision engine, подтверждение согласия, мониторинг, аудит и методы чтения предодобрения."
+    },
+    {
+      "criterion": "set_consistent",
+      "status": "fail",
+      "comment": "REQ-043 (100 запросов в минуту) противоречит REQ-052 (1 000), REQ-026 (18+) противоречит REQ-010 (21–65), а reason codes REQ-032 раскрывают данные, запрещённые REQ-033."
+    },
+    {
+      "criterion": "set_feasible",
+      "status": "partial",
+      "comment": "Нагрузку REQ-052 нельзя выдержать при лимите REQ-043, а бюджет 3 секунды REQ-050 не согласован с обязательным синхронным запросом в бюро на каждый вызов (REQ-020)."
+    },
+    {
+      "criterion": "set_comprehensible",
+      "status": "partial",
+      "comment": "Структура разделов понятна, но порядок проверок REQ-010…REQ-020, контракты GetCreditReport и POST /decide и эндпоинт POST /v1/consents не описаны."
+    },
+    {
+      "criterion": "set_validatable",
+      "status": "fail",
+      "comment": "Шесть критериев AC-01…AC-06 не покрывают правила отказа, расчёт суммы и ставки и все НФТ, а для AC-01 нельзя вычислить ожидаемое значение max_amount_kzt."
+    },
+    {
+      "criterion": "srs_ranked",
+      "status": "fail",
+      "comment": "Ни у одного требования REQ-001…REQ-061 нет приоритета или признака стабильности, хотя пороги по разделу 2 меняет риск-аналитик."
+    },
+    {
+      "criterion": "srs_modifiable",
+      "status": "partial",
+      "comment": "Требования пронумерованы и разделены, но изменяемые пороги (50%, 3 000 000, 500 000) вписаны в текст требований и в AC-02, а REQ-053 объединяет три независимых правила."
+    },
+    {
+      "criterion": "srs_traceable",
+      "status": "partial",
+      "comment": "У требований есть идентификаторы REQ и AC, но критерии не ссылаются на проверяемые требования, а у цели п. 1.1 нет идентификатора."
+    }
+  ],
+  "diagnostics": [],
+  "trace": [
+    {
+      "role": "Segmenter",
+      "cached": false,
+      "seconds": 25.9,
+      "in_tokens": 5142,
+      "out_tokens": 2964
+    },
+    {
+      "role": "Auditor",
+      "cached": false,
+      "seconds": 154.2,
+      "in_tokens": 7872,
+      "out_tokens": 17415
+    },
+    {
+      "role": "Auditor",
+      "cached": false,
+      "seconds": 163.2,
+      "in_tokens": 8162,
+      "out_tokens": 18818
+    },
+    {
+      "role": "CrossChecker",
+      "cached": false,
+      "seconds": 203.9,
+      "in_tokens": 18783,
+      "out_tokens": 22334
+    },
+    {
+      "role": "EdgeCaser",
+      "cached": false,
+      "seconds": 56.0,
+      "in_tokens": 22227,
+      "out_tokens": 5539
+    },
+    {
+      "role": "WholeDoc",
+      "cached": false,
+      "seconds": 122.3,
+      "in_tokens": 8491,
+      "out_tokens": 14449
+    },
+    {
+      "role": "Critic",
+      "cached": false,
+      "seconds": 85.5,
+      "in_tokens": 29335,
+      "out_tokens": 10803
+    },
+    {
+      "role": "Clarifier",
+      "cached": false,
+      "seconds": 57.6,
+      "in_tokens": 19877,
+      "out_tokens": 6464
+    }
+  ],
+  "req_checks": {
+    "R-01": [
+      "complete"
+    ],
+    "R-02": [
+      "complete"
+    ],
+    "R-03": [
+      "complete"
+    ],
+    "R-04": [
+      "complete"
+    ],
+    "R-05": [
+      "complete",
+      "complete"
+    ],
+    "R-06": [
+      "complete"
+    ],
+    "R-07": [
+      "complete",
+      "unambiguous"
+    ],
+    "R-08": [
+      "verifiable"
+    ],
+    "R-09": [
+      "correct",
+      "unambiguous",
+      "complete"
+    ],
+    "R-10": [
+      "feasible",
+      "complete"
+    ],
+    "R-11": [
+      "unambiguous",
+      "correct",
+      "complete"
+    ],
+    "R-12": [
+      "unambiguous"
+    ],
+    "R-13": [
+      "feasible",
+      "complete",
+      "feasible"
+    ],
+    "R-14": [
+      "complete",
+      "correct"
+    ],
+    "R-15": [
+      "unambiguous",
+      "complete"
+    ],
+    "R-16": [
+      "complete",
+      "correct"
+    ],
+    "R-17": [
+      "complete",
+      "unambiguous",
+      "complete"
+    ],
+    "R-18": [
+      "unambiguous",
+      "unambiguous",
+      "complete"
+    ],
+    "R-19": [
+      "complete"
+    ],
+    "R-20": [
+      "correct",
+      "unambiguous"
+    ],
+    "R-21": [
+      "complete"
+    ],
+    "R-22": [
+      "unambiguous",
+      "complete"
+    ],
+    "R-23": [
+      "complete"
+    ],
+    "R-24": [],
+    "R-25": [
+      "complete"
+    ],
+    "R-26": [
+      "complete",
+      "unambiguous"
+    ],
+    "R-27": [
+      "unambiguous",
+      "complete"
+    ],
+    "R-28": [
+      "correct",
+      "complete"
+    ],
+    "R-29": [
+      "complete"
+    ],
+    "R-30": [
+      "complete",
+      "unambiguous",
+      "complete"
+    ],
+    "R-31": [
+      "correct",
+      "verifiable"
+    ],
+    "R-32": [
+      "singular"
+    ],
+    "R-33": [
+      "verifiable",
+      "complete"
+    ],
+    "R-34": [
+      "unambiguous"
+    ],
+    "R-35": [
+      "verifiable"
+    ],
+    "R-36": [
+      "complete",
+      "conforming"
+    ],
+    "R-37": [
+      "complete",
+      "conforming"
+    ],
+    "R-38": [
+      "complete"
+    ],
+    "R-39": [
+      "complete"
+    ],
+    "R-40": [],
+    "R-41": [
+      "unambiguous"
+    ],
+    "R-42": [
+      "complete"
+    ],
+    "R-43": [
+      "unambiguous"
+    ]
+  },
+  "drops": [
+    {
+      "role": "Critic",
+      "reason": "+7XXXXXXXXXX задаёт маску формата и не является заглушкой шаблона, а смысл X разобран в F-06.",
+      "item": "Шаблонная заглушка «xxx» не заменена содержанием."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-10",
+      "item": "Шаблонная заглушка «TBD» не заменена содержанием."
+    },
+    {
+      "role": "Critic",
+      "reason": "Номер версии в документе есть: 0.9 (draft).",
+      "item": "У документа нет номера версии."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-49",
+      "item": "Границы заданы чётко. Не указан error code для поля, хотя REQ-042 требует возвращать коды ошибок."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-49",
+      "item": "Набор значений задан. Не указан error code для недопустимого значения (см. REQ-042)."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-03",
+      "item": "Термин «duplicate» не определён. Непонятно, что считать дублем: тот же partner_order_id, тот же ИИН или то же тело запроса, и в каком окне времени."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-03",
+      "item": "Не описаны параллельные дубли, окно хранения ключа, поведение при повторе запроса, который ранее завершился ошибкой, и код ответа."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-03",
+      "item": "Используется «should», а остальные требования документа написаны через «shall». Требование выглядит необязательным."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-44",
+      "item": "Не сказано, что происходит при несоответствии: HTTP 200 с DECLINED и reason code AGE или ошибка. Код AGE есть только в списке REQ-032 и с этим правилом не связа"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-44",
+      "item": "Не описаны результат проверки (код NON_RESIDENT с правилом не связан) и поведение, если источник данных недоступен."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-44",
+      "item": "Правило не связано с reason code OVERDUE_HISTORY. Не описано поведение, если в бюро нет данных о заявителе или бюро недоступно."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-05",
+      "item": "Не описано, что возвращает альтернативная модель, как её результат влияет на сумму и ставку и связан ли с ней лимит 500 000 KZT из REQ-026."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-05",
+      "item": "Факт маршрутизации не виден в ответе API, и способ проверки не указан."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-08",
+      "item": "Не указана точность сравнения DTI, то есть до какого знака округляется значение перед сравнением."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-36",
+      "item": "Не описано, что делать, если расчётная сумма меньше минимальной 50 000 (REQ-004). Не учтены лимит 500 000 из REQ-026 и связь с requested_amount_kzt: может ли пр"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-16",
+      "item": "Ставка зависит от срока, а ответ по REQ-030 содержит несколько сроков (term_options_months) и только одну ставку indicative_rate_percent."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-10",
+      "item": "Без значения срока проверку выполнить нельзя."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-11",
+      "item": "«May» не задаёт обязательного результата: неясно, когда заявитель получает одобрение, а когда нет."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-41",
+      "item": "Не описано, как лимит 500 000 сочетается с минимальной суммой 50 000 и с requested_amount_kzt выше 500 000 (запрос допустим по REQ-004)."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-01",
+      "item": "Не описаны три случая. Первый: consent_id принадлежит другому партнёру или выдан на другой IIN. Второй: согласие отозвано заявителем. Третий: граница «30 дней» "
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-12",
+      "item": "Требование противоречит REQ-043 и AC-05: один партнёр не может отправить более 100 запросов в минуту, 101-й получает HTTP 429. Значение 1 000 на одного партнёра"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-60",
+      "item": "Не определено, для кого документация должна быть удобной (разработчики партнёров, бизнес-пользователи), на каком языке и в каком формате она выпускается."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-06",
+      "item": "Не описано поведение при недоступности бюро, таймауте, ошибке SOAP и при отсутствии кредитной истории (thin-file, REQ-013). Не задан таймаут вызова, хотя на вес"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-06",
+      "item": "Не заданы таймаут синхронного вызова, поведение при ошибке или недоступности decision engine и ответ партнёру в этом случае. Это важно при бюджете 3 секунды (RE"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-69",
+      "item": "Описательная формулировка «is invoked» вместо «shall». Нарушен стиль обязательных требований документа."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-26",
+      "item": "«Older than 30 days» не уточнено: календарные дни или 720 часов, в каком часовом поясе, от какого момента (регистрация согласия в POST /v1/consents) до какого ("
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-50",
+      "item": "«Within one minute» допускает фиксированную календарную минуту и скользящее окно 60 секунд. Результат теста зависит от реализации, а в REQ-043 тип окна не задан"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-62",
+      "item": "Ни для одного критерия приёмки нельзя вычислить конкретное ожидаемое значение max_amount_kzt и indicative_rate_percent. В документе нет ни одного числового прим"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-52",
+      "item": "Бизнес-сценарий синхронный: клиент ждёт на странице оформления заказа. REQ-050 ограничивает только 95-й перцентиль. Для остальных 5% запросов верхней границы вр"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-59",
+      "item": "Позиции 1–6 ИИН содержат дату рождения. Открытые первые 4 цифры раскрывают год и месяц рождения, последние 2 включают контрольный разряд. В итоге видны 6 из 12 "
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-27",
+      "item": "Возраст считается по дате рождения из ИИН. Не описан заявитель, родившийся 29 февраля. В невисокосный год он может считаться достигшим 21 года 28 февраля или 1 "
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-11",
+      "item": "REQ-010 отклоняет заявителей младше 21 года. REQ-026 разрешает предодобрение с 18 лет со сниженным лимитом. Верхняя граница в REQ-026 не указана, поэтому заявит"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-12",
+      "item": "REQ-043 ограничивает партнёра 100 запросами в минуту и требует отвечать HTTP 429 сверх лимита. REQ-052 требует выдерживать 1 000 запросов в минуту от одного пар"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-08",
+      "item": "Не определён результат при DTI ровно 50%. Не задана точность расчёта DTI и её округление. «Approved» в REQ-022 противоречит прочим правилам отказа (REQ-010–014)"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-36",
+      "item": "Не сказано, как округлять: шаг, направление, единицы. Не указано, для какого срока и ставки считается максимум. Неясна связь max_amount_kzt с requested_amount_k"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-07",
+      "item": "Не задана формула оценочного платежа (аннуитет или иное) и ставка, по которой он считается. Ставка зависит от score band, а score band нигде не определён. Возни"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-31",
+      "item": "Отчёт бюро запрашивается только для уже eligible-заявителя (REQ-020). Но сама eligibility (REQ-012) определяется по данным бюро. Порядок шагов замкнут."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-03",
+      "item": "«Handled appropriately» не задаёт поведения. Не определено, что считать дубликатом (partner_order_id? тот же iin?), окно идемпотентности, ответ на повтор и пове"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-10",
+      "item": "Заглушка TBD: срок действия предодобрения не задан. Он нужен для поля valid_until из REQ-030. Не указан часовой пояс и формат valid_until."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-05",
+      "item": "Термин «thin-file» не определён в 1.3. «Alternative scoring model» не описана ни в акторах, ни в интерфейсах. Неясно, что она возвращает и как её результат влия"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-04",
+      "item": "Для REQ-014 нужны данные о кредитах в самом банке, а для REQ-011 — данные о резидентстве. В разделе 5 нет интеграций с кредитной системой банка или с источником"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-06",
+      "item": "Не описано поведение при недоступности, таймауте или ошибке бюро и decision engine. Нет таймаутов, повторных попыток, кода ответа партнёру. Не описан случай, ко"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-01",
+      "item": "Эндпоинт POST /v1/consents упомянут, но не специфицирован: нет полей, ответа, формата consent_id, хранения и отзыва согласия. Не требуется, чтобы согласие относ"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-26",
+      "item": "Граница «30 дней» не определена: 30×24 часа или календарные дни, в каком часовом поясе, валидно ли согласие ровно 30-дневной давности. Формулировки REQ-006 и AC"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-48",
+      "item": "Отсутствующий consent_id — это одновременно ошибка валидации (400 по REQ-042) и «missing consent» (422 по REQ-041). Для REQ-003, REQ-004, REQ-005 не заданы коды"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-22",
+      "item": "Не указаны типы, обязательность и ограничения для declared_monthly_income_kzt (ноль, отрицательное, дробное, максимум), consent_id и partner_order_id (формат, д"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-16",
+      "item": "Не определено, как формируется term_options_months (запрошен один срок, а возвращается список) и одна ли ставка на все сроки, если ставка зависит от срока (REQ-"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-65",
+      "item": "REQ-031 требует, чтобы поля присутствовали со значением null. AC-06 говорит «contains no amount», что можно понять как отсутствие полей."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-44",
+      "item": "Не задано соответствие правил и кодов: REQ-012 → OVERDUE_HISTORY, REQ-010 → AGE явно не указаны. Нет кода для отказа альтернативной модели (REQ-013). Не сказано"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-27",
+      "item": "Неясно, включаются ли границы: 65 лет и 6 месяцев — допустимо? Не указан часовой пояс «date of the request». Не описано, как обрабатывать день рождения 29 февра"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-15",
+      "item": "«As long as necessary» — непроверяемый срок. Не описаны маскирование ПДн в хранимых payload (IIN, доход), доступ к ним, удаление, а также состав аудит-лога, хот"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-59",
+      "item": "Для телефона +7XXXXXXXXXX неясно, входит ли «+7» в первые 4 символа. Для IIN первые 4 и последние 2 открытые цифры раскрывают год, месяц рождения и часть номера"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-60",
+      "item": "Субъективное «user-friendly» нельзя проверить."
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-52",
+      "item": "Не сказано, что происходит после 3 секунд (таймаут, ответ). Не определено, учитываются ли 4xx и 429 в 95%. Для доступности не задано, что считается недоступност"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-68",
+      "item": "В одном пункте три независимых правила: TLS, способ аутентификации, срок жизни токена. Не описано, как выдаются и отзываются учётные данные партнёра, что делать"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-01",
+      "item": "Не описаны отзыв согласия заявителем и судьба выданного предодобрения и сохранённых данных бюро при отзыве. Не описана повторная заявка того же IIN через другог"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-64",
+      "item": "Критерии приёмки не покрывают REQ-007, 010–014, 023–026, 032, 033, 050–055, 060, 061 и граничные значения: DTI 50%, суммы 49 999 и 5 000 001, возраст 21 и 65. A"
+    },
+    {
+      "role": "Critic",
+      "reason": "объединено с D-70",
+      "item": "AC не ссылаются на идентификаторы REQ. Нет матрицы трассировки «требование → AC → метод API». У требований не указан источник."
+    }
+  ]
+}

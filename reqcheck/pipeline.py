@@ -31,10 +31,36 @@ def numbers(text: str) -> set[str]:
     return out
 
 
+TAG_VARIANT_RE = re.compile(r"\[\s*([^\[\]]*?)[\s,;:.—–-]*\b(?:согласова\w*|уточн\w*)\s*\]", re.I)
+TAG_GENERIC = {"значение", "значения", "правило", "предложение", "число", "требует", "требуется", "нужно",
+               "необходимо", "надо", "на"}
+DOUBLE_TAG_RE = re.compile(rf"{re.escape(ASSUME_TAG)}(?:[\s,;]*{re.escape(ASSUME_TAG)})+")
+DOT_ORDINAL_RE = re.compile(r"(?:^[ \t]*|(?<=[.:;!?] ))\d{1,2}\.(?=\s)", re.M)
+PAREN_ORDINAL_RE = re.compile(r"(?:^|(?<=[\s:;]))\d{1,2}\)")
+
+
+def normalize_tags(text: str) -> str:
+    def canon(m):
+        x = m.group(1).strip(" ,;:.—–-")
+        if not x or all(w in TAG_GENERIC for w in x.lower().split()):
+            return ASSUME_TAG
+        return f"{x} {ASSUME_TAG}"
+    return DOUBLE_TAG_RE.sub(ASSUME_TAG, TAG_VARIANT_RE.sub(canon, text))
+
+
+def strip_ordinals(text: str) -> str:
+    text = DOT_ORDINAL_RE.sub(" ", text)
+    return PAREN_ORDINAL_RE.sub(lambda m: m.group(0) if text[:m.start()].count("(") > text[:m.start()].count(")")
+                                else " ", text)
+
+
 def tag_assumptions(findings: list[Finding], doc_text: str) -> None:
     known = numbers(doc_text)
     for f in findings:
-        if f.fix and ASSUME_TAG not in f.fix and numbers(f.fix) - known:
+        if not f.fix:
+            continue
+        f.fix = normalize_tags(f.fix)
+        if ASSUME_TAG not in f.fix and numbers(strip_ordinals(f.fix)) - known:
             f.fix = f"{f.fix.rstrip()} {ASSUME_TAG}"
 
 

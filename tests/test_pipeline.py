@@ -598,6 +598,36 @@ class AssumptionTagTest(unittest.TestCase):
         self.assertEqual(fs[3].fix, fixes[3])
         self.assertEqual(fs[4].fix, "")
 
+    def test_tag_variants_are_normalized_and_doubles_collapsed(self):
+        from reqcheck.model import Finding
+        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        cases = {"Повторять [значение, согласовать] раз.": f"Повторять {ASSUME_TAG} раз.",
+                 "Сверять по [правило, согласовать].": f"Сверять по {ASSUME_TAG}.",
+                 "До [число повторов — согласовать] повторов.": f"До число повторов {ASSUME_TAG} повторов.",
+                 "Сверять по [полям реестра ПЦ — уточнить].": f"Сверять по полям реестра ПЦ {ASSUME_TAG}.",
+                 "Срок [5 дней - согласовать].": f"Срок 5 дней {ASSUME_TAG}.",
+                 "Формат [уточнить].": f"Формат {ASSUME_TAG}.",
+                 f"Хранить 90 дней {ASSUME_TAG} {ASSUME_TAG}.": f"Хранить 90 дней {ASSUME_TAG}.",
+                 f"Хранить 90 дней {ASSUME_TAG}, [значение, согласовать].": f"Хранить 90 дней {ASSUME_TAG}.",
+                 f"Ждать 7 с {ASSUME_TAG}, затем 9 с {ASSUME_TAG}.": f"Ждать 7 с {ASSUME_TAG}, затем 9 с {ASSUME_TAG}.",
+                 "Список полей [см. раздел Ф-2].": "Список полей [см. раздел Ф-2]."}
+        fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix=x) for x in cases]
+        tag_assumptions(fs, "Ф-2: документ без чисел.")
+        tag_assumptions(fs, "Ф-2: документ без чисел.")
+        self.assertEqual([f.fix for f in fs], list(cases.values()))
+
+    def test_list_ordinals_are_not_tagged(self):
+        from reqcheck.model import Finding
+        from reqcheck.pipeline import ASSUME_TAG, tag_assumptions
+        doc = "Порог 1 000 ₸. Ответ 400."
+        plain = ["1. Указать порог 1 000 ₸. 2. Указать ответ 400.", "Варианты: 1) да; 2) нет.",
+                 "1) Указать порог.\n5) Указать ответ 400."]
+        invented = ["Повтор (до 5) раз.", "Таймаут 30. Затем ответ 400.", "1. Хранить 13 месяцев."]
+        fs = [Finding("", "req", [], "complete", "важно", [], "Проблема.", fix=x) for x in plain + invented]
+        tag_assumptions(fs, doc)
+        self.assertEqual([f.fix for f in fs[:3]], plain)
+        self.assertEqual([f.fix for f in fs[3:]], [f"{x} {ASSUME_TAG}" for x in invented])
+
     def test_pipeline_tags_fix_after_critic(self):
         from reqcheck.pipeline import ASSUME_TAG, Pipeline
 

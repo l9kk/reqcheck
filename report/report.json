@@ -2,10 +2,10 @@
   "passport": {
     "document": "requirements.md",
     "sha256": "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381",
-    "date": "2026-11-27 18:50",
+    "date": "2026-11-27 19:19",
     "model": "claude-opus-5-5",
     "provider": "anthropic",
-    "agent_version": "1.6.3 (v1.6.3)",
+    "agent_version": "1.6.4 (v1.6.4)",
     "llm_calls": 0,
     "seconds": 0.2,
     "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",

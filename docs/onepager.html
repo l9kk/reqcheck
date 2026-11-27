@@ -9,8 +9,8 @@
   --ink: #161b20;
   --muted: #56616b;
   --line: #cfd6db;
-  --accent: #0b6e6e;
-  --accent-soft: #e6f1f0;
+  --accent: #0c6a62;
+  --accent-soft: #e2eeeb;
   --crit: #b3261e;
   --crit-soft: #fbeceb;
   --paper: #ffffff;
@@ -61,17 +61,17 @@ p { margin: 0; }
 .strip { display: flex; align-items: center; gap: 0; }
 .role {
   font-size: 8pt; line-height: 1.2; padding: 1.5mm 2mm; border-radius: 1.2mm;
-  background: var(--accent-soft); color: #0a4f4f; border: 0.6pt solid var(--accent-soft);
+  background: var(--accent); color: #fff; border: 0.6pt solid var(--accent);
   white-space: nowrap; text-align: center;
 }
 .role.code { background: var(--paper); color: var(--ink); border-color: var(--line); }
-.role.out { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.role.out { background: var(--paper); color: var(--ink); border-color: var(--ink); font-weight: 600; }
 .stack { display: flex; flex-direction: column; gap: 1mm; }
 .arrow { flex: 1 1 0; min-width: 2.2mm; height: 6px; display: block; }
 .arrow svg { width: 100%; height: 6px; display: block; }
 .flow-note { margin-top: 2.6mm; font-size: 8.6pt; color: var(--muted); display: flex; gap: 5mm; flex-wrap: wrap; }
-.key { display: inline-block; width: 3mm; height: 2.4mm; border-radius: 0.6mm; vertical-align: -0.2mm; margin-right: 1.2mm; }
-.key.m { background: var(--accent-soft); }
+.key { display: inline-block; width: 3mm; height: 3mm; border-radius: 0.6mm; vertical-align: -0.2mm; margin-right: 1.2mm; }
+.key.m { background: var(--accent); }
 .key.c { border: 0.6pt solid var(--line); }
 
 /* Lower block */
@@ -125,15 +125,15 @@ p { margin: 0; }
     <div class="nums">
       <div class="num">
         <div class="big">40 <small>из 40</small></div>
-        <p>дефектов из нашего списка (строгая проверка: 39)</p>
+        <p>дефектов нашего списка, строго 39</p>
       </div>
       <div class="num">
         <div class="big">6 <small>из 6</small></div>
-        <p>критичных распознаны как критичные, в каждом из 3 прогонов</p>
+        <p>критичных найдены как критичные во всех 3 прогонах</p>
       </div>
       <div class="num">
         <div class="big">0 <small>ложных</small></div>
-        <p>из 55 замечаний; 48 реальные дефекты, 7 дубли и мелочи</p>
+        <p>из 55 замечаний; 48 реальных дефектов, 7 дублей и мелочей</p>
       </div>
       <div class="num">
         <div class="big">14 <small>мин</small></div>
@@ -189,7 +189,7 @@ p { margin: 0; }
           </div>
           <div class="finding">
             <span class="id">Q-01</span><span class="tag q">бизнесу</span>
-            <span>Отправляется ли второй push в том же календарном месяце?
+            <span>Будет ли второй push в том же месяце?
               <span class="reco">Три варианта с&nbsp;тестом, рекомендован&nbsp;(б).</span></span>
           </div>
         </div>

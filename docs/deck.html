@@ -70,8 +70,8 @@
   .vs { display: flex; align-items: center; justify-content: center; }
   .tag { display: inline-block; font-size: 16px; font-weight: 600; padding: 3px 10px; border-radius: 3px; vertical-align: 4px; margin-left: 14px; }
   .tag.crit { background: var(--crit-soft); color: var(--crit); }
-  .ask { margin-top: 52px; display: grid; grid-template-columns: 130px 1fr; gap: 0 20px; }
-  .ask .id { font-family: var(--mono); font-size: 18px; color: var(--accent); padding-top: 6px; }
+  .ask { margin-top: 52px; display: grid; grid-template-columns: 170px 1fr; gap: 0 20px; }
+  .ask .id { font-size: 18px; font-weight: 600; color: var(--accent); padding-top: 6px; }
   .ask .text { font-size: 26px; font-weight: 600; line-height: 1.3; }
   .opts { display: flex; flex-wrap: wrap; gap: 12px; white-space: nowrap; margin-top: 16px; font-size: 19px; }
   .opts span { border: 1px solid var(--line); padding: 6px 14px; background: #fff; }
@@ -128,7 +128,7 @@
 
   /* 7 value */
   .money { display: flex; gap: 96px; margin-top: 52px; }
-  .bars { margin-top: 64px; display: grid; grid-template-columns: 180px 1fr 330px; gap: 22px 24px; align-items: center; font-size: 20px; }
+  .bars { margin-top: 64px; display: grid; grid-template-columns: 300px 1fr 330px; gap: 22px 24px; align-items: center; font-size: 20px; }
   .track { position: relative; height: 34px; }
   .bar { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 2px; }
   .bar.agent { width: 4.7%; background: var(--accent); }
@@ -153,6 +153,10 @@
   pre.cmd .pr { color: #7fc7bd; }
   .repo { font-size: 52px; font-weight: 600; letter-spacing: -0.02em; margin-top: 52px; color: var(--accent); }
   .repo-note { font-size: 22px; color: var(--muted); margin-top: 12px; }
+  .kick { margin: 0 0 12px; }
+  .kick .tag { margin-left: 0; vertical-align: 0; }
+  .figs.big .n { font-size: 96px; }
+  .figs.big .c { font-size: 22px; }
 </style>
 </head>
 <body>
@@ -162,11 +166,12 @@
   <div class="big"><span class="num">в 21-78</span> раз дороже</div>
   <p class="says">обходится дефект требований, если его нашли только на тестах (NASA, 2004).</p>
   <p class="so">Агент проверяет ТЗ до того, как по нему начнут писать код и тесты.</p>
-  <div class="foot"><span>docs/details.md, «Ценность в тенге»; Stecklein и др., NASA, INCOSE 2004</span><span>1</span></div>
+  <div class="foot"><span>Stecklein и др., NASA, INCOSE 2004</span><span>1</span></div>
 </section>
 
 <section class="slide">
-  <h2>Дефект с цитатами из ТЗ и вопрос автору <span class="tag crit">D-01, критично</span></h2>
+  <p class="kick"><span class="tag crit">D-01, критично</span></p>
+  <h2>Дефект с цитатами из ТЗ и вопрос автору</h2>
   <div class="pair">
     <div class="q"><span class="ln">Ф-3, строка 39</span>«На карту приходится максимум один такой push за календарный месяц»</div>
     <div class="vs">
@@ -175,14 +180,13 @@
     <div class="q"><span class="ln">Ф-4, строка 40</span>«следующее достижение вызывает push независимо от истории предыдущей настройки»</div>
   </div>
   <div class="ask">
-    <div class="id">Q-01, бизнесу</div>
+    <div class="id">Вопрос бизнесу</div>
     <div>
       <div class="text">Push уже отправлен, клиент повысил порог, расходы достигли нового. Будет ли второй push в том же месяце?</div>
-      <div class="opts"><span>а) Нет</span><span class="rec">б) Да, если порог сохранён с другим значением</span><span>в) Да, при любом сохранении</span></div>
-      <p class="rec-note">Рекомендация агента: б.</p>
+      <div class="opts"><span>а) Нет</span><span class="rec">б) Да, если порог сохранён с другим значением · рекомендуем</span><span>в) Да, при любом сохранении</span></div>
     </div>
   </div>
-  <div class="foot"><span>report/report.md, D-01 и Q-01</span><span>2</span></div>
+  <div class="foot"><span></span><span>2</span></div>
 </section>
 
 <section class="slide">
@@ -198,10 +202,10 @@
   </div>
   <div class="figs">
     <div class="fig"><div class="n num">10</div><div class="c">вопросов, у 7 из 10 к вариантам приложен тест</div></div>
-    <div class="fig"><div class="n num">8 из 21</div><div class="c">замечаний закрыли ответы автора</div></div>
-    <div class="fig"><div class="n num">с 5 до 3</div><div class="c">критичных на изменённых требованиях</div></div>
+    <div class="fig"><div class="n num">8 из 21</div><div class="c">замечаний на изменённых требованиях закрыли ответы автора</div></div>
+    <div class="fig"><div class="n num">с 5 до 3</div><div class="c">критичных там же после ответов</div></div>
   </div>
-  <div class="foot"><span>RESULTS.md; examples/answers/requirements.report.answers.md</span><span>3</span></div>
+  <div class="foot"><span></span><span>3</span></div>
 </section>
 
 <section class="slide">
@@ -254,7 +258,7 @@
     <div class="chip code">Delta</div>
   </div>
   <div class="legend"><span><i class="model"></i>модель</span><span><i class="code"></i>код, без модели</span><span>9 вызовов модели на выданном ТЗ</span></div>
-  <div class="foot"><span>README.md, «Как работает»</span><span>4</span></div>
+  <div class="foot"><span></span><span>4</span></div>
 </section>
 
 <section class="slide">
@@ -264,22 +268,22 @@
     <div class="who">Один промпт<small>та же модель, прогон 1</small></div><div class="dots base" data-n="36"></div><div class="score num">36</div>
     <div class="who">Один промпт<small>прогон 2</small></div><div class="dots base" data-n="35"></div><div class="score num">35</div>
   </div>
-  <p style="margin:8px 0 0;font-size:15px;color:#666">Автоматическая сверка. При строгой проверке (каждое совпадение прочитал отдельный агент): 39, 36 и 34.</p>
+  <p style="margin:10px 0 0;font-size:18px;color:var(--muted)">Автоматическая сверка. При строгой проверке (каждое совпадение прочитал отдельный агент): 39, 36 и 34.</p>
   <div class="side">
     <div class="fig"><div class="n num">6 из 6</div><div class="c">критичных распознаны как критичные</div></div>
-    <div class="fig"><div class="n num">0 ложных</div><div class="c">из 55 замечаний: 48 реальные дефекты, 7 дубли и мелочи</div></div>
+    <div class="fig"><div class="n num">0 ложных</div><div class="c">из 55 замечаний: 48 реальных дефектов, 7 дублей и мелочей</div></div>
     <div class="fig"><div class="n num">39 и 38</div><div class="c">из 40 в двух свежих прогонах без кэша</div></div>
   </div>
-  <div class="foot"><span>RESULTS.md; eval/handcheck_v1.5.md (проверял отдельный агент); eval/variance.md; eval/baseline/README.md</span><span>5</span></div>
+  <div class="foot"><span>Все числа и команды для проверки: RESULTS.md</span><span>5</span></div>
 </section>
 
 <section class="slide">
   <h2>Отчёт открывается в браузере, без сервера</h2>
   <div class="shot">
-    <p>Слева ТЗ с номерами строк, справа замечания. Клик по замечанию подсвечивает цитату.</p>
+    <p>Клик по замечанию подсвечивает строки ТЗ, на которые оно ссылается.</p>
     <img src="img/report-html-split.png" alt="report.html: счётчики, слева текст ТЗ, справа замечание D-01 с цитатами">
   </div>
-  <div class="foot"><span>report/report.html</span><span>6</span></div>
+  <div class="foot"><span></span><span>6</span></div>
 </section>
 
 <section class="slide">
@@ -290,11 +294,11 @@
     <div>Инспекция, 3-4 ревьюера</div>
     <div class="track"><div class="bar man-max"></div><div class="bar man-min"></div></div><div class="vl">2.3-4.6 ч на всю команду</div>
   </div>
-  <div class="figs" style="margin-top:56px">
+  <div class="figs big" style="margin-top:72px">
     <div class="fig"><div class="n num">1 110 ₸</div><div class="c">прогон агента</div></div>
     <div class="fig"><div class="n num">8 000-15 900 ₸</div><div class="c">инспекция этого ТЗ командой</div></div>
   </div>
-  <div class="foot"><span>docs/details.md, «Ценность в тенге»: нормы Wiegers 1995, Fagan 1976; RESULTS.md</span><span>7</span></div>
+  <div class="foot"><span>Нормы ревью: Wiegers 1995, Fagan 1976; расчёт в docs/details.md</span><span>7</span></div>
 </section>
 
 <section class="slide">
@@ -306,7 +310,7 @@
   </ul>
   <div class="repo">github.com/l9kk/reqcheck</div>
   <p class="repo-note">Каждое число перепроверяется командой из RESULTS.md, без ключа.</p>
-  <div class="foot"><span>RESULTS.md</span><span>8</span></div>
+  <div class="foot"><span></span><span>8</span></div>
 </section>
 <script>
   document.querySelectorAll('.dots').forEach(function (el) {

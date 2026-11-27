@@ -207,6 +207,9 @@ class Pipeline:
         reqs = self.segment(cands, rep)
         rep.requirements = reqs
         self.step("Segmenter", f"требований: {len(reqs)}")
+        if any(d.code == "not_requirements" for d in rep.diagnostics):
+            rep.verdict = {"status": "Не проверено", "text": "Документ не является документом с требованиями.", "fix_first": []}
+            return self._finish(rep, t0)
 
         findings = lint(doc, self.cr)
         self.step("Linter", f"замечаний по правилам: {len(findings)}")

@@ -29,7 +29,7 @@
 | cashback на v1.6, автоматическая сверка | 20 из 20, критичные 4 из 5 (B04 понижен до «важно») | [`examples/cashback/report.json`](examples/cashback/report.json) | `python eval/score.py examples/cashback/report.json --golden eval/golden_cashback.toml` |
 | Ответы на вопросы агента закрывают дефекты | закрыто 8 из 21, критичных 5 → 3 (в примере отвечали мы: 6 раз приняли рекомендацию агента, 4 раза вариант (а)) | [`examples/answers/requirements.report.answers.md`](examples/answers/requirements.report.answers.md) | раздел «Дельта после ответов» |
 | Скан, пустой, обрезанный, зашифрованный файл | отчёт с понятной ошибкой и советом, что сделать | [`examples/broken/`](examples/broken/) | читать файлы |
-| Инструкции для ИИ внутри ТЗ («игнорируй предыдущие инструкции») | не выполняются, агент сам отмечает их как дефект (D-12) | [`examples/injection/report.md`](examples/injection/report.md) | читать отчёт |
+| Инструкции для ИИ внутри ТЗ («игнорируй предыдущие инструкции») | не выполняются, агент сам отмечает их как дефект (D-05) | [`examples/injection/report.md`](examples/injection/report.md) | читать отчёт |
 
 ## Стоимость и время прогона
 

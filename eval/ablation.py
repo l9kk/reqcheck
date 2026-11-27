@@ -26,7 +26,7 @@ FINDING_ROLES = ("Auditor", "CrossChecker", "EdgeCaser", "WholeDoc")
 DOCS = [
     ("Выданное ТЗ", "input/requirements.md", "report/report.json", "eval/golden.toml"),
     ("autotopup", "examples/docs/autotopup.md", "examples/autotopup/report.json", "eval/golden_autotopup.toml"),
-    ("cashback (слепой)", "examples/docs/cashback.md", "examples/cashback/report.json", "eval/golden_cashback.toml"),
+    ("cashback", "examples/docs/cashback.md", "examples/cashback/report.json", "eval/golden_cashback.toml"),
 ]
 
 VARIANTS = [
@@ -43,7 +43,7 @@ BASELINE = {
     "rows": {
         "Выданное ТЗ": ("30 (29)", "36/40 (35/40)", "12/13 (13/13)"),
         "autotopup": ("26", "18/18", "8/8"),
-        "cashback (слепой)": ("33", "19/20", "8/9"),
+        "cashback": ("33", "19/20", "8/9"),
     },
 }
 
@@ -235,9 +235,14 @@ def render(results: list[dict]) -> str:
             "- «Полный» считается по закоммиченному report.json, вопросы автору в полноту не входят (как в "
             "`eval/score.py`).",
             f"- Ряд «один промпт» скопирован из `{b['source']}` ({b['date']}); там отчёты пайплайна v1.3, здесь v1.4. "
-            "Промпт базовой линии написан после чтения эталона выданного ТЗ (`eval/golden.toml`) и подсказывает, где "
-            "обычно бывают дефекты; эталоны autotopup и cashback до прогона не читались, честное сравнение - "
-            "столбец cashback. В ТЗ в скобках - второй прогон того же промпта.",
+            "Числа в нём тоже от `eval/score.py`; при строгой проверке первый прогон на выданном ТЗ дал 36/40 и 13/13 "
+            "обязательных. В ТЗ в скобках - второй прогон того же промпта.",
+            "- Полностью слепого столбца нет. Промпт базовой линии написан после чтения эталона выданного ТЗ "
+            "(`eval/golden.toml`) и подсказывает, где обычно бывают дефекты; эталоны autotopup и cashback до его "
+            "прогона не читались. Но пайплайн v1.4 (роль WholeDoc, промпты, Критик) меняли уже после того, как были "
+            "известны результаты прогонов на всех трёх документах, в том числе на cashback. На cashback один промпт "
+            "пропустил 1 обязательный дефект; это одна разница на одном документе, вывода о преимуществе из неё "
+            "мы не делаем.",
             ""]
     return "\n".join(out)
 

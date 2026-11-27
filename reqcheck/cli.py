@@ -37,6 +37,7 @@ def main(argv=None) -> int:
     ap.add_argument("--no-cache", action="store_true", help="не использовать кэш ответов модели")
     ap.add_argument("--quiet", action="store_true", help="не печатать ход работы")
     ap.add_argument("--no-pdf", action="store_true", help="не создавать report.pdf")
+    ap.add_argument("--no-html", action="store_true", help="не создавать report.html")
     ap.add_argument("--interactive", action="store_true",
                     help="демо: задать главные вопросы в терминале и показать новые формулировки")
     ap.add_argument("--answers", metavar="FILE",
@@ -81,6 +82,14 @@ def main(argv=None) -> int:
     md_path.write_text(render(rep, all_criteria(load_criteria())), encoding="utf-8")
     out.with_suffix(".json").write_text(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     written = [md_path, out.with_suffix(".json")]
+    if not args.no_html:
+        try:
+            from .report_html import write_html
+            doc = getattr(pipe, "doc", None)
+            write_html(rep, [l.text for l in doc.lines] if doc else [], out.with_suffix(".html"))
+            written.append(out.with_suffix(".html"))
+        except Exception as e:
+            print(f"HTML не создан: {type(e).__name__}: {e}", file=sys.stderr)
     if out.suffix.lower() == ".pdf" or not args.no_pdf:
         try:
             from .report_pdf import write_pdf

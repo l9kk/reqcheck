@@ -12,6 +12,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit
+      - run: python -m unittest tests.test_reader tests.test_pipeline tests.test_report_md eval.test_score tests.test_loop eval.test_ablation tests.test_no_overfit tests.test_report_html tests.test_reconciler tests.test_report_html_polish
         env:
           PYTHONUTF8: "1"

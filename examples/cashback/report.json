@@ -2,10 +2,10 @@
   "passport": {
     "document": "cashback.md",
     "sha256": "d788ea6dae37652d63cb4b009eb5ae78c3c1791c4bc28d0acee42276f3b7919c",
-    "date": "2026-11-27 19:51",
+    "date": "2026-11-27 20:04",
     "model": "claude-opus-5-5",
     "provider": "anthropic",
-    "agent_version": "1.6.6 (v1.6.6)",
+    "agent_version": "1.6.7 (v1.6.7)",
     "llm_calls": 0,
     "seconds": 0.1,
     "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3",

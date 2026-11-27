@@ -10,6 +10,11 @@ SEV_CLASS = {"критично": "s-crit", "важно": "s-major", "мелоч�
 VERDICT_CLASS = {"Да": "v-ok", "С оговорками": "v-warn", "Нет": "v-bad"}
 STATUS_CLASS = {"ok": "st-ok", "partial": "st-partial", "fail": "st-fail"}
 REC_RE = re.compile(r"^\s*Вариант\s*\(([а-я])\)")
+LOC_SEC_RE = re.compile(r"^строк[аи]\s+[\d\s-]+\((.+)\)\s*$")
+SENT_RE = re.compile(r"(?<=[.!?…])\s+(?=[A-ZА-ЯЁ«\"(])")
+MD_SEP_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+VERDICT_GLYPH = {"Да": "✓", "С оговорками": "!", "Нет": "✕"}
+VERDICT_PREFIX_RE = re.compile(r"^\s*Начинать разработку и тестирование[^:.]*:\s*")
 
 
 def e(s) -> str:
@@ -30,11 +35,64 @@ def quote_html(q: Quote, n_lines: int, owner: str = "") -> str:
     sp = span(q, n_lines)
     loc = e(q.loc or (f"строки {q.start}-{q.end}" if q.end != q.start else f"строка {q.start}"))
     if sp:
+        short = f"строки {sp[0]}-{sp[1]}" if sp[1] != sp[0] else f"строка {sp[0]}"
+        sec = LOC_SEC_RE.search(q.loc or "")
         ref = (f'<a class="qref" href="#L{sp[0]}" data-start="{sp[0]}" data-end="{sp[1]}"'
-               + (f' data-owner="{e(owner)}"' if owner else "") + f">{loc}</a>")
+               + (f' data-owner="{e(owner)}"' if owner else "") + f' title="{loc}">{short}</a>'
+               + (f' <span class="qsec">{e(sec.group(1))}</span>' if sec else ""))
     else:
         ref = f'<span class="qref-none">{loc}</span>'
     return f'<blockquote class="quote"><p>«{e(clean(q.text))}»</p><footer>{ref}</footer></blockquote>'
+
+
+def first_sentence(s: str) -> tuple[str, str]:
+    s = (s or "").strip()
+    m = SENT_RE.search(s)
+    return (s[:m.start()].strip(), s[m.end():].strip()) if m else (s, "")
+
+
+def short_title(f: Finding, max_words: int = 6) -> str:
+    s = first_sentence(problem_parts(f.problem)[0])[0]
+    s = re.sub(r"\s*\([^()]*\)", "", s)
+    s = re.sub(r"[«»\"`*]", "", s)
+    words = [w for w in s.split() if w not in ("-", "–", "—")]
+    clause: list[str] = []
+    for w in words:
+        clause.append(w)
+        if len(clause) >= 3 and re.search(r"[:;,.!?]$", w):
+            break
+    cut = clause[:max_words]
+    t = " ".join(cut).rstrip(",;:.!?—–- ")
+    return t + ("…" if len(cut) < len(words) and not re.search(r"[:;,.!?]$", cut[-1] if cut else "") else "")
+
+
+def md_inline(text: str) -> str:
+    t = e(text.rstrip())
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+    return t.replace("**", "")
+
+
+def md_line(text: str) -> tuple[str, str]:
+    if not text.strip():
+        return "blank", ""
+    m = re.match(r"^\s*(#{1,6})\s+(.*)$", text)
+    if m:
+        return f"h{len(m.group(1))}", md_inline(m.group(2).rstrip("# "))
+    if re.match(r"^\s*([-*_])(\s*\1){2,}\s*$", text):
+        return "hr", ""
+    if MD_SEP_RE.match(text):
+        return "sep", ""
+    if re.match(r"^\s*\|.*\|\s*$", text):
+        cells = [c.strip() for c in text.strip().strip("|").split("|")]
+        return "tr", "".join(f'<span class="c">{md_inline(c)}</span>' for c in cells)
+    m = re.match(r"^\s*[-*+]\s+(.*)$", text)
+    if m:
+        return "li", f'<span class="bul" aria-hidden="true"></span>{md_inline(m.group(1))}'
+    m = re.match(r"^\s*>\s?(.*)$", text)
+    if m:
+        return "bq", md_inline(m.group(1))
+    return "p", md_inline(text)
 
 
 def ranges_attr(quotes: list[Quote], n_lines: int) -> str:
@@ -44,7 +102,7 @@ def ranges_attr(quotes: list[Quote], n_lines: int) -> str:
 def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_lines: int) -> str:
     fid = fnum[f.id]
     sev = SEV_CLASS.get(f.severity, "s-minor")
-    meta = [f'<span class="sev {sev}">{e(f.severity)}</span>', f'<span class="crit">{e(crit_name(crit, f.criterion))}</span>']
+    meta = [f'<span class="crit">{e(crit_name(crit, f.criterion))}</span>']
     if f.req_ids:
         meta.append(f'<span class="reqs">{e(", ".join(f.req_ids))}</span>')
     if f.scope == "set":
@@ -53,12 +111,17 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
         meta.append(f'<span class="tag">граничный случай {e(f.edge)}</span>')
     out = [f'<article class="finding" id="{fid}" data-sev="{e(f.severity)}" data-ranges="{ranges_attr(f.quotes, n_lines)}" tabindex="-1">',
            f'<header><button type="button" class="fsel" aria-controls="doc" title="Показать цитаты в документе">'
-           f'<span class="fid">{e(f.id)}</span></button><div class="fmeta">{"".join(meta)}</div></header>']
-    main, *extra = problem_parts(f.problem)
-    out.append(f'<p class="problem">{e(main)}</p>')
-    if extra:
-        out.append('<ul class="also">' + "".join(f"<li>Также: {e(p)}</li>" for p in extra) + "</ul>")
+           f'<span class="fid">{e(f.id)}</span></button><span class="sev {sev}">{e(f.severity)}</span>'
+           f'<span class="ftitle">{e(short_title(f))}</span></header>']
     out += [quote_html(q, n_lines, fid) for q in f.quotes]
+    main, *extra = problem_parts(f.problem)
+    lead, rest = first_sentence(main)
+    out.append(f'<p class="problem">{e(lead)}</p>')
+    more = []
+    if rest:
+        more.append(f'<p class="prest">{e(rest)}</p>')
+    if extra:
+        more.append('<ul class="also">' + "".join(f"<li>Также: {e(p)}</li>" for p in extra) + "</ul>")
     dl = []
     if f.impact:
         dl.append(("Последствия", e(f.impact)))
@@ -72,10 +135,18 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
         dl.append(("Тесты", e(f.test_hint)))
     if qlinks:
         dl.append(("Вопрос к автору", qlinks))
-    if dl:
-        out.append('<dl class="fdl">' + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in dl) + "</dl>")
+    dl.append(("Критерий", f'<span class="fmeta">{"".join(meta)}</span>'))
+    more.append('<dl class="fdl">' + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in dl) + "</dl>")
+    out.append('<details class="more"><summary>Подробнее</summary>' + "".join(more) + "</details>")
     out.append("</article>")
     return "".join(out)
+
+
+def chip_html(f: Finding, fnum: dict) -> str:
+    sev = SEV_CLASS.get(f.severity, "s-minor")
+    lab = "" if f.severity == "критично" else f' · <span class="clab">{e(f.severity)}</span>'
+    return (f'<a class="flink chip" href="#{fnum[f.id]}" data-sev="{e(f.severity)}"><i class="dot {sev}" aria-hidden="true"></i>'
+            f'<b>{e(f.id)}</b>{lab}<span class="ct">{e(short_title(f))}</span></a>')
 
 
 def question_html(q, i: int, fnum: dict, n_lines: int) -> str:
@@ -140,25 +211,38 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
                 line_sev[n] = min(line_sev.get(n, 9), rank)
 
     status = v.get("status") or "Не проверено"
-    fix_first = [x for x in v.get("fix_first") or [] if x in fnum]
+    by_id = {f.id: f for f in rep.findings}
+    fix_first = [by_id[x] for x in v.get("fix_first") or [] if x in fnum]
+    ff_crit = [f for f in fix_first if f.severity == "критично"]
+    ff_rest = [f for f in fix_first if f.severity != "критично"]
+    vtext = v.get("text") or ""
+    vshort = VERDICT_PREFIX_RE.sub("", vtext)
+    if vshort != vtext and vshort:
+        vshort = vshort[0].upper() + vshort[1:]
+    glyph = VERDICT_GLYPH.get(status, "?")
     head = [f'<header class="top"><p class="kicker">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p>',
             f"<h1>{e(title)}</h1>",
             f'<div class="verdict {VERDICT_CLASS.get(status, "v-none")}"><p class="vline">Начинать разработку и тестирование: '
-            f"<strong>{e(status)}</strong></p>" + (f'<p class="vtext">{e(v.get("text"))}</p>' if v.get("text") else "")]
+            f'<span class="pill"><span class="pg" aria-hidden="true">{glyph}</span><strong>{e(status)}</strong></span></p>'
+            + (f'<p class="vtext">{e(vshort)}</p>' if vshort else "")]
     if fix_first:
-        head.append('<p class="vtext">Исправить в первую очередь: '
-                    + ", ".join(f'<a class="flink" href="#{fnum[x]}">{e(x)}</a>' for x in fix_first) + "</p>")
+        groups = []
+        if ff_crit:
+            groups.append(f'<div class="ffg"><span class="ffl">Критично · {len(ff_crit)}</span><div class="chips">'
+                          + "".join(chip_html(f, fnum) for f in ff_crit) + "</div></div>")
+        if ff_rest:
+            groups.append(f'<div class="ffg"><span class="ffl">Ещё в первую очередь · {len(ff_rest)}</span><div class="chips">'
+                          + "".join(chip_html(f, fnum) for f in ff_rest) + "</div></div>")
+        head.append('<div class="ff"><p class="ffh">Исправить в первую очередь</p>' + "".join(groups) + "</div>")
     head.append("</div>")
-    stats = [("Требований", num(len(rep.requirements)), f"с замечаниями: {len(req_with)}"),
-             ("Замечаний", num(len(rep.findings)), None),
-             ("Вопросов к автору", num(len(rep.questions)), None),
-             ("Строк в документе", num(n_lines), None)]
     sev_line = "".join(f'<span class="sev {SEV_CLASS[s]}">{e(s)}: {counts[s]}</span>' for s in SEVERITIES)
-    head.append('<dl class="stats">' + "".join(
-        f'<div><dt>{a}</dt><dd><span class="big">{b}</span>'
-        + (f'<span class="sub">{e(c)}</span>' if c else "")
-        + (f'<span class="sevs">{sev_line}</span>' if a == "Замечаний" else "") + "</dd></div>"
-        for a, b, c in stats) + "</dl>")
+    head.append('<dl class="stats">'
+                f'<div class="hero"><dt>Критично</dt><dd><span class="big">{num(counts["критично"])}</span>'
+                '<span class="sub">блокируют начало работ</span></dd></div>'
+                f'<div><dt>Замечаний</dt><dd><span class="big">{num(len(rep.findings))}</span>'
+                f'<span class="sub">в {num(len(req_with))} из <span class="big">{num(len(rep.requirements))}</span> требований</span>'
+                f'<span class="sevs">{sev_line}</span></dd></div>'
+                f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
     errs = [d for d in rep.diagnostics if d.level == "error"]
     if errs:
         head.append('<div class="diag" role="alert"><p><strong>Диагностика</strong></p><ul>' + "".join(
@@ -175,15 +259,21 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
     nav.append("</nav>")
 
     doc = ['<section class="pane doc" id="doc" aria-label="Исходный документ"><div class="pane-head"><h2>Документ</h2>'
-           f'<span class="muted">{e(p.get("document"))}' + (", строки, на которые ссылаются замечания, отмечены слева" if line_f else "")
-           + "</span></div>"]
+           f'<span class="muted">{e(p.get("document"))}' + (", строки с замечаниями отмечены слева" if line_f else "")
+           + '</span><button type="button" class="dtog" id="dtog" aria-expanded="false" aria-controls="lines">Показать документ</button></div>']
     if doc_lines:
         doc.append('<div class="lines" id="lines">')
         w = len(str(n_lines))
+        kinds = [md_line(t) for t in doc_lines]
         for n, text in enumerate(doc_lines, start=1):
             fs = line_f.get(n)
-            cls = "ln" + (f" q{line_sev[n]}" if fs else "")
+            kind, md = kinds[n - 1]
+            if kind == "tr" and n < n_lines and kinds[n][0] == "sep":
+                kind = "th"
+            cls = f"ln md-{kind}" + (f" q{line_sev[n]}" if fs else "")
             attrs = f' data-f="{" ".join(fs)}" tabindex="0" role="button" aria-label="Строка {n}: замечаний {len(fs)}"' if fs else ""
+            if kind not in ("blank", "sep", "hr"):
+                attrs += f' data-md="{e(md)}"'
             doc.append(f'<div class="{cls}" id="L{n}"{attrs}><span class="no" style="min-width:{w}ch">{n}</span>'
                        f'<span class="tx">{e(text) if text.strip() else "&#8203;"}</span></div>')
         doc.append("</div>")
@@ -191,13 +281,14 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
         doc.append('<p class="empty">Текст документа недоступен: документ не был прочитан.</p>')
     doc.append("</section>")
 
+    crit_n = counts["критично"]
     fl = ['<section class="pane fl" id="findings" aria-label="Замечания"><div class="pane-head"><h2>Замечания</h2>'
           '<span class="muted" id="fcount" aria-live="polite"></span></div>']
     if rep.findings:
-        fl.append('<div class="tools"><div class="seg" role="group" aria-label="Фильтр по важности">'
-                  f'<button type="button" data-sev="" aria-pressed="true">Все <span class="cnt">{len(rep.findings)}</span></button>'
-                  + "".join(f'<button type="button" data-sev="{s}" aria-pressed="false"><i class="dot {SEV_CLASS[s]}"></i>{s} '
-                            f'<span class="cnt">{counts[s]}</span></button>' for s in SEVERITIES)
+        fl.append(f'<div class="tools"><div class="seg" role="group" aria-label="Фильтр по важности" data-default="{"критично" if crit_n else ""}">'
+                  f'<button type="button" data-sev="" aria-pressed="{"false" if crit_n else "true"}">Все <span class="cnt">{len(rep.findings)}</span></button>'
+                  + "".join(f'<button type="button" data-sev="{s}" aria-pressed="{"true" if s == "критично" and crit_n else "false"}">'
+                            f'<i class="dot {SEV_CLASS[s]}"></i>{s} <span class="cnt">{counts[s]}</span></button>' for s in SEVERITIES)
                   + '</div><input type="search" id="q" placeholder="Поиск по замечаниям" aria-label="Поиск по замечаниям" autocomplete="off">'
                   '<p class="linef" id="linef" hidden><span></span> <button type="button" id="linef-x">Сбросить</button></p></div>')
         fl.append('<div class="flist" id="flist">' + "".join(finding_html(f, crit, asks, qnum, fnum, n_lines) for f in rep.findings)
@@ -251,9 +342,9 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
 
     body = ("".join(head) + "".join(nav)
             + '<section class="panel" id="panel-main" role="tabpanel" aria-labelledby="tab-main"><div class="work">'
-            + "".join(doc) + "".join(fl) + "</div></section>" + "".join(qp) + "".join(sp_) + "".join(pp))
+            + "".join(fl) + "".join(doc) + "</div></section>" + "".join(qp) + "".join(sp_) + "".join(pp))
     return (f'<!doctype html><html lang="ru"><head><meta charset="utf-8">'
-            f'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">'
             f"<title>{e(title)}: отчёт о проверке требований</title><style>{CSS}</style></head>"
             f'<body><div class="wrap">{body}</div><script>{JS}</script></body></html>\n')
 
@@ -265,63 +356,97 @@ def write_html(rep: Report, doc_lines: list[str], path, crit: dict | None = None
 
 
 CSS = """
-:root{--bg:#f7f7f5;--surface:#fff;--ink:#1c2024;--muted:#5d6670;--line:#dfe2e5;--soft:#eef0f2;
+:root{--bg:#f7f7f5;--surface:#fff;--raise:#f3f4f6;--ink:#1c2024;--muted:#5d6670;--line:#dfe2e5;--soft:#eef0f2;
 --accent:#1f5c99;--accent-soft:#e3edf7;--hl:#fff1bf;--hl-edge:#c99a06;
 --crit:#a3221b;--crit-bg:#fbe9e7;--major:#7a4d00;--major-bg:#fbf0d9;--minor:#4a5562;--minor-bg:#eceff2;
 --ok:#1e6b3a;--ok-bg:#e4f3e8;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#121417;--surface:#1a1d21;--ink:#e4e6e8;--muted:#9aa3ad;--line:#2d3238;--soft:#22262b;
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--surface:#1a1d21;--raise:#24282e;--ink:#e4e6e8;--muted:#9aa3ad;--line:#2d3238;--soft:#22262b;
 --accent:#7fb0e6;--accent-soft:#1d2d40;--hl:#3b3216;--hl-edge:#d9a92a;
---crit:#ff9c92;--crit-bg:#3a1d1b;--major:#f0c46a;--major-bg:#352a14;--minor:#b6c0cb;--minor-bg:#262b31;
+--crit:#ffaba3;--crit-bg:#3a1d1b;--major:#f0c46a;--major-bg:#352a14;--minor:#b6c0cb;--minor-bg:#262b31;
 --ok:#86d19e;--ok-bg:#183022;color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow-x:hidden}
 .wrap{max-width:1600px;margin:0 auto;padding:20px 24px 48px}
 a{color:var(--accent)}
-a:focus-visible,button:focus-visible,input:focus-visible,.ln:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-h1{font-size:22px;line-height:1.25;margin:2px 0 14px;font-weight:650}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,.ln:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:15px;line-height:1.35;margin:2px 0 10px;font-weight:600}
 h2{font-size:15px;margin:0;font-weight:650}
 h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 .kicker{margin:0;color:var(--muted);font-size:12.5px}
 .muted{color:var(--muted);font-size:12.5px}
-.verdict{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--minor);border-radius:6px;padding:12px 16px;margin-bottom:14px}
+.verdict{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--minor);border-radius:6px;padding:14px 18px;margin-bottom:14px}
 .verdict.v-bad{border-left-color:var(--crit)}.verdict.v-warn{border-left-color:var(--major)}.verdict.v-ok{border-left-color:var(--ok)}
-.vline{margin:0;font-size:16px}.v-bad .vline strong{color:var(--crit)}.v-warn .vline strong{color:var(--major)}.v-ok .vline strong{color:var(--ok)}
-.vtext{margin:6px 0 0;color:var(--ink)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:0 0 14px}
-.stats>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+.vline{margin:0;font-size:24px;line-height:1.3;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:17px;line-height:1;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid currentColor;color:var(--minor);background:var(--minor-bg)}
+.pill strong{font-weight:650}.pg{font-size:15px;font-weight:700}
+.v-bad .pill{color:var(--crit);background:var(--crit-bg)}.v-warn .pill{color:var(--major);background:var(--major-bg)}.v-ok .pill{color:var(--ok);background:var(--ok-bg)}
+.vtext{margin:8px 0 0;color:var(--ink);max-width:75ch}
+.ff{margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.ffh{margin:0;font-weight:600;font-size:13px}
+.ffg{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.ffl{font-size:12.5px;color:var(--muted);min-width:9.5em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.chip{min-width:0;display:inline-flex;align-items:center;gap:6px;max-width:100%;font-size:13px;line-height:18px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);text-decoration:none}
+.chip:hover{border-color:var(--accent)}
+.chip b{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip .clab{color:var(--major);font-weight:600;white-space:nowrap}
+.chip .ct{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.stats{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(260px,1.6fr) minmax(150px,.8fr);gap:10px;margin:0 0 14px}
+.stats>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:0}
 .stats dt{color:var(--muted);font-size:12.5px}.stats dd{margin:2px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .big{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums}.sub{color:var(--muted);font-size:12.5px}
-.sevs{display:flex;flex-wrap:wrap;gap:4px}
+.sub .big{font-size:inherit;font-weight:inherit}
+.hero .big{font-size:32px;line-height:1.1;color:var(--crit)}
+.sevs{display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%}
 .diag{background:var(--crit-bg);border:1px solid var(--line);border-radius:6px;padding:10px 16px;margin-bottom:14px}
 .diag p{margin:0}.diag ul{margin:6px 0 0;padding-left:18px}
 .sev,.tag,.st{display:inline-block;font-size:12px;line-height:18px;padding:0 7px;border-radius:4px;white-space:nowrap}
 .s-crit{color:var(--crit);background:var(--crit-bg)}.s-major{color:var(--major);background:var(--major-bg)}.s-minor{color:var(--minor);background:var(--minor-bg)}
 .tag{color:var(--muted);background:var(--soft)}
 .st-fail{color:var(--crit);background:var(--crit-bg)}.st-partial{color:var(--major);background:var(--major-bg)}.st-ok{color:var(--ok);background:var(--ok-bg)}
-.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.tabs button{font:inherit;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;color:var(--muted);cursor:pointer}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{font:inherit;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;color:var(--muted);cursor:pointer;white-space:nowrap;flex:none}
 .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
 .tabs button:hover{color:var(--ink)}
 .cnt{color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
 .work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.work>.doc{order:-1}
 .pane{background:var(--surface);border:1px solid var(--line);border-radius:6px;position:sticky;top:8px;height:calc(100vh - 16px);display:flex;flex-direction:column;min-height:0}
 .pane-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 14px;border-bottom:1px solid var(--line)}
-.lines{overflow:auto;flex:1;min-height:0;padding:6px 0;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;position:relative}
-.ln{display:flex;gap:12px;padding:0 14px 0 0;border-left:3px solid transparent}
-.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;opacity:.75}
+.dtog{display:none}
+.lines{overflow:auto;flex:1;min-height:0;padding:6px 0;font:14px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;position:relative}
+.ln{display:flex;gap:12px;padding:0 14px 0 0;border-left:4px solid transparent}
+.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;opacity:.75;font-size:12px;font-variant-numeric:tabular-nums;padding-top:2px}
 .ln .tx{white-space:pre-wrap;overflow-wrap:anywhere;flex:1;min-width:0}
+.ln .tx.r{white-space:normal}
+.md-h1 .tx.r{font-size:18px;font-weight:650;padding-top:4px}
+.md-h2 .tx.r{font-size:16px;font-weight:650;padding-top:8px}
+.md-h3 .tx.r,.md-h4 .tx.r,.md-h5 .tx.r,.md-h6 .tx.r{font-weight:650;padding-top:4px}
+.md-tr .tx.r,.md-th .tx.r{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:0 12px;border-bottom:1px solid var(--soft)}
+.md-th .tx.r{color:var(--muted);font-size:12.5px;font-weight:600}
+.tx.r .c:only-child{grid-column:1/-1}
+.md-sep .tx,.md-hr .tx{font-size:0;line-height:0;align-self:center;border-top:1px solid var(--line);height:0}
+.md-sep{height:8px;overflow:hidden}.md-sep .no{visibility:hidden}
+.md-li .tx.r{padding-left:14px;position:relative}
+.bul{position:absolute;left:3px;top:.68em;width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.md-bq .tx.r{color:var(--muted);border-left:2px solid var(--line);padding-left:8px}
+.tx code,.quote code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);padding:0 3px;border-radius:3px}
 .ln[data-f]{cursor:pointer}
-.ln.q0{border-left-color:var(--crit)}.ln.q1{border-left-color:var(--major)}.ln.q2{border-left-color:var(--minor)}
+.ln.q0{border-left-color:var(--crit);background:color-mix(in srgb,var(--crit) 8%,transparent)}
+.ln.q1{border-left-color:var(--major);background:color-mix(in srgb,var(--major) 8%,transparent)}
+.ln.q2{border-left-color:var(--minor);background:color-mix(in srgb,var(--minor) 8%,transparent)}
 .ln[data-f]:hover{background:var(--soft)}
 .ln.hl{background:var(--hl)}.ln.hl .no{color:var(--ink);opacity:1}
 .ln.pick{box-shadow:inset 0 0 0 1px var(--hl-edge)}
 .fl .tools{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .seg{display:flex;flex-wrap:wrap;gap:4px}
-.seg button,.linef button{font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:3px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.seg button,.linef button,.dtog{font:inherit;font-size:12.5px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:3px 9px;cursor:pointer;align-items:center;gap:5px}
+.seg button,.linef button{display:inline-flex}
 .seg button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
-.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
 .dot.s-crit{background:var(--crit)}.dot.s-major{background:var(--major)}.dot.s-minor{background:var(--minor)}
 #q{font:inherit;flex:1 1 180px;min-width:0;padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink)}
 .linef{margin:0;flex-basis:100%;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
@@ -329,23 +454,31 @@ h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 .finding,.question{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px;background:var(--surface);transition:opacity .15s ease}
 .finding.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .finding header,.question header{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.ftitle{font-weight:600;min-width:0}
 .fsel{font:inherit;background:none;border:0;padding:0;cursor:pointer;color:var(--accent)}
 .fid{font-weight:650;font-variant-numeric:tabular-nums}
 .fsel .fid{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .fmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .crit,.reqs{font-size:12.5px;color:var(--muted)}
-.problem,.qtext{margin:8px 0 6px}
-.also{margin:0 0 6px;padding-left:18px;color:var(--ink)}
-.quote{margin:6px 0;padding:4px 10px;border-left:2px solid var(--line);color:var(--ink);background:var(--soft);border-radius:0 4px 4px 0}
+.problem,.qtext{margin:8px 0 6px;max-width:75ch}
+.prest{margin:6px 0;max-width:75ch}
+.also{margin:0 0 6px;padding-left:18px;color:var(--ink);max-width:75ch}
+.quote{margin:8px 0;padding:5px 10px;border-left:3px solid var(--line);color:var(--ink);background:var(--raise);border-radius:0 4px 4px 0}
+.finding[data-sev="критично"] .quote{border-left-color:var(--crit)}.finding[data-sev="важно"] .quote{border-left-color:var(--major)}.finding[data-sev="мелочь"] .quote{border-left-color:var(--minor)}
 .quote p{margin:0}.quote footer{font-size:12px;color:var(--muted)}
+.qsec{color:var(--muted)}
+.more{margin-top:4px}
+.more>summary{cursor:pointer;color:var(--accent);font-size:12.5px;width:max-content;list-style-position:inside}
+.more[open]>summary{margin-bottom:4px}
 .fdl{margin:6px 0 0;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px}
-.fdl dt{color:var(--muted);font-size:12.5px;padding-top:1px}.fdl dd{margin:0;min-width:0}
+.fdl dt{color:var(--muted);font-size:12.5px;padding-top:1px}.fdl dd{margin:0;min-width:0;max-width:75ch}
 .opts{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .opts li{padding:4px 8px;border:1px solid var(--line);border-radius:4px}
 .opts li.rec{border-color:var(--accent)}
 .ol{font-weight:600}
 .rec-tag{margin-left:6px;font-size:12px;color:var(--accent)}
 .panel>.question{max-width:980px}
+.panel>.muted{max-width:75ch}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface);max-width:1100px}
 table{border-collapse:collapse;width:100%}
 th,td{text-align:left;vertical-align:top;padding:7px 12px;border-bottom:1px solid var(--line)}
@@ -354,28 +487,46 @@ tr:last-child td{border-bottom:0}
 .empty{color:var(--muted);padding:16px 14px;margin:0}
 code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .panel ul{padding-left:18px}
-@media (max-width:900px){.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}
-.pane{position:static;height:auto}.doc .lines{max-height:55vh}.flist{overflow:visible}
-.fdl{grid-template-columns:1fr}.fdl dt{padding-top:4px}h1{font-size:19px}}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
+@media (max-width:767px){.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
+.pane{position:static;height:auto}.doc .lines{max-height:60vh}.flist{overflow:visible}
+.doc:not(.open) .lines{display:none}.doc:not(.open) .pane-head{border-bottom:0}
+.dtog{display:inline-flex;margin-left:auto}
+.vline{font-size:20px}.ffl{min-width:0;flex-basis:100%}
+.stats{grid-template-columns:1fr 1fr}.stats>div:nth-child(2){grid-column:1/-1;order:2}
+.fdl{grid-template-columns:1fr}.fdl dt{padding-top:4px}
+.tabs{margin-left:-16px;margin-right:-16px;padding:0 16px}
+.tabs.more-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
+.md-tr .tx.r,.md-th .tx.r{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:600px){.tw thead{display:none}.tw table,.tw tbody,.tw tr,.tw td{display:block}
 .tw tr{border-bottom:1px solid var(--line);padding:6px 0}.tw tr:last-child{border-bottom:0}.tw td{border:0;padding:2px 12px}
 .tw td::before{content:attr(data-label);display:block;font-size:12px;color:var(--muted)}
-.tw.kv td::before{content:none}.tw.kv td:first-child{font-size:12.5px;color:var(--muted)}
-.tabs{flex-wrap:nowrap;overflow-x:auto}.tabs button{white-space:nowrap;flex:none}}
+.tw.kv td::before{content:none}.tw.kv td:first-child{font-size:12.5px;color:var(--muted)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 """
 
 JS = r"""
 (function(){
 var d=document,reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-var tabs=[].slice.call(d.querySelectorAll('[data-tab]'));
+function mobile(){return window.matchMedia&&matchMedia('(max-width: 767px)').matches;}
+[].forEach.call(d.querySelectorAll('.ln[data-md]'),function(el){var t=el.querySelector('.tx');if(t){t.innerHTML=el.getAttribute('data-md');t.classList.add('r');}});
+var tabs=[].slice.call(d.querySelectorAll('[data-tab]')),tabbar=d.querySelector('.tabs');
+function fade(){if(tabbar)tabbar.classList.toggle('more-r',tabbar.scrollLeft+tabbar.clientWidth<tabbar.scrollWidth-2);}
+if(tabbar){tabbar.addEventListener('scroll',fade,{passive:true});window.addEventListener('resize',fade);fade();}
 function show(k){tabs.forEach(function(b){var on=b.getAttribute('data-tab')===k;b.setAttribute('aria-selected',on?'true':'false');
 var p=d.getElementById('panel-'+b.getAttribute('data-tab'));if(p)p.hidden=!on;});}
 tabs.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-tab'));});});
 show('main');
-var lines=d.getElementById('lines'),flist=d.getElementById('flist');
+var lines=d.getElementById('lines'),flist=d.getElementById('flist'),docp=d.getElementById('doc'),dtog=d.getElementById('dtog');
+function openDoc(on){if(!docp)return;docp.classList.toggle('open',on);if(dtog){dtog.setAttribute('aria-expanded',on?'true':'false');dtog.textContent=on?'Скрыть документ':'Показать документ';}}
+if(dtog)dtog.addEventListener('click',function(){openDoc(!docp.classList.contains('open'));});
 var fs=[].slice.call(d.querySelectorAll('.finding'));
-var sev='',query='',line=0;
+var segs=[].slice.call(d.querySelectorAll('.seg button')),segbox=d.querySelector('.seg');
+var KEYS={'':'all','критично':'crit','важно':'major','мелочь':'minor'},SEVS={};for(var k in KEYS)SEVS[KEYS[k]]=k;
+function fromHash(){var m=/(?:^#|&)sev=([a-z]+)/.exec(location.hash);return m&&m[1] in SEVS?SEVS[m[1]]:null;}
+var h0=fromHash(),sev=h0!==null?h0:(segbox?segbox.getAttribute('data-default')||'':''),query='',line=0;
+function setSev(v,write){sev=v;segs.forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-sev')===v?'true':'false');});
+if(write&&history.replaceState)history.replaceState(null,'','#sev='+KEYS[v]);}
 function norm(s){return s.toLowerCase().replace(/ё/g,'е');}
 fs.forEach(function(f){f._t=norm(f.textContent);f._r=(f.getAttribute('data-ranges')||'').split(' ').filter(Boolean).map(function(x){var a=x.split('-');return[+a[0],+a[1]];});});
 function covers(f,n){return f._r.some(function(r){return n>=r[0]&&n<=r[1];});}
@@ -383,16 +534,17 @@ var cnt=d.getElementById('fcount'),none=d.getElementById('fnone'),lf=d.getElemen
 function apply(){var shown=0;fs.forEach(function(f){var ok=(!sev||f.getAttribute('data-sev')===sev)&&(!query||f._t.indexOf(query)>=0)&&(!line||covers(f,line));f.hidden=!ok;if(ok)shown++;});
 if(cnt)cnt.textContent=fs.length?('показано '+shown+' из '+fs.length):'';if(none)none.hidden=shown>0;
 if(lf){lf.hidden=!line;if(line)lf.firstChild.textContent='Только замечания к строке '+line+'.';}}
-[].forEach.call(d.querySelectorAll('.seg button'),function(b){b.addEventListener('click',function(){sev=b.getAttribute('data-sev');
-[].forEach.call(d.querySelectorAll('.seg button'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});apply();});});
+segs.forEach(function(b){b.addEventListener('click',function(){setSev(b.getAttribute('data-sev'),true);apply();});});
+window.addEventListener('hashchange',function(){var v=fromHash();if(v!==null&&v!==sev){setSev(v,false);apply();}});
+setSev(sev,false);
 var qi=d.getElementById('q');if(qi)qi.addEventListener('input',function(){query=norm(qi.value.trim());apply();});
 var lx=d.getElementById('linef-x');if(lx)lx.addEventListener('click',function(){line=0;clearPick();apply();});
 function L(n){return d.getElementById('L'+n);}
 function clearHl(){[].forEach.call(d.querySelectorAll('.ln.hl'),function(x){x.classList.remove('hl');});}
 function clearPick(){[].forEach.call(d.querySelectorAll('.ln.pick'),function(x){x.classList.remove('pick');});}
-function scrollIn(box,el,center){if(!box||!el)return;var y=el.offsetTop-(center?box.clientHeight/3:8);
-box.scrollTo?box.scrollTo({top:Math.max(0,y),behavior:reduce?'auto':'smooth'}):(box.scrollTop=y);
-if(window.matchMedia&&matchMedia('(max-width: 900px)').matches){box.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});}}
+function scrollIn(box,el,center){if(!box||!el)return;if(mobile()&&box===lines){openDoc(true);docp.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});}
+var y=el.offsetTop-(center?box.clientHeight/3:8);
+box.scrollTo?box.scrollTo({top:Math.max(0,y),behavior:reduce?'auto':'smooth'}):(box.scrollTop=y);}
 function select(f,at){fs.forEach(function(x){x.classList.toggle('active',x===f);});clearHl();var first=0;
 f._r.forEach(function(r){for(var n=r[0];n<=r[1];n++){var el=L(n);if(el)el.classList.add('hl');}if(!first)first=r[0];});
 var target=at||first;if(target)scrollIn(lines,L(target),true);}
@@ -401,13 +553,13 @@ d.addEventListener('click',function(ev){var a=ev.target.closest&&ev.target.close
 if(a.classList.contains('qref')){ev.preventDefault();var o=a.getAttribute('data-owner'),s=+a.getAttribute('data-start'),en=+a.getAttribute('data-end');
 show('main');if(o){select(d.getElementById(o),s);}else{fs.forEach(function(x){x.classList.remove('active');});clearHl();for(var n=s;n<=en;n++){var el=L(n);if(el)el.classList.add('hl');}scrollIn(lines,L(s),true);}return;}
 if(a.classList.contains('flink')){ev.preventDefault();var f=d.getElementById(a.getAttribute('href').slice(1));if(!f)return;
-show('main');sev='';query='';line=0;if(qi)qi.value='';clearPick();[].forEach.call(d.querySelectorAll('.seg button'),function(x){x.setAttribute('aria-pressed',x.getAttribute('data-sev')===''?'true':'false');});
-apply();select(f);scrollIn(flist,f,false);f.focus({preventScroll:true});return;}
+show('main');if(line){line=0;clearPick();}apply();if(f.hidden){query='';if(qi)qi.value='';setSev('',true);apply();}
+select(f);if(mobile()){f.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});}else{scrollIn(flist,f,false);}f.focus({preventScroll:true});return;}
 if(a.classList.contains('qlink')){ev.preventDefault();var q=d.getElementById(a.getAttribute('href').slice(1));if(!q)return;
 show('questions');q.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});q.focus({preventScroll:true});}});
 function pickLine(el){var n=+el.id.slice(1);line=n;clearPick();el.classList.add('pick');apply();
 var vis=fs.filter(function(f){return !f.hidden;});if(vis.length===1)select(vis[0],n);else{fs.forEach(function(x){x.classList.remove('active');});}
-if(flist){flist.scrollTop=0;if(window.matchMedia&&matchMedia('(max-width: 900px)').matches)d.getElementById('findings').scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});}}
+if(flist){flist.scrollTop=0;if(mobile())d.getElementById('findings').scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});}}
 if(lines){lines.addEventListener('click',function(ev){var el=ev.target.closest('.ln[data-f]');if(el)pickLine(el);});
 lines.addEventListener('keydown',function(ev){if(ev.key!=='Enter'&&ev.key!==' ')return;var el=ev.target.closest('.ln[data-f]');if(el){ev.preventDefault();pickLine(el);}});}
 apply();

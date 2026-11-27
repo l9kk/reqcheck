@@ -687,6 +687,21 @@ class AssumptionTagTest(unittest.TestCase):
         tag_assumptions(fs, "Ф-2: документ без чисел.")
         self.assertEqual([f.fix for f in fs], list(cases.values()))
 
+    def test_agreed_tags_are_not_turned_into_open_requests(self):
+        from reqcheck.pipeline import ASSUME_TAG, normalize_tags
+        kept = ["Решение [ADR-5 согласовано].", "Схема [ADR-5 согласован].", "Формат [согласовано с ИБ].",
+                "Лимит [Согласовано]."]
+        for x in kept:
+            with self.subTest(x=x):
+                self.assertEqual(normalize_tags(x), x)
+        cases = {"Формат [X — требует уточнения].": f"Формат X {ASSUME_TAG}.",
+                 "Формат [на согласование].": f"Формат {ASSUME_TAG}.",
+                 "Формат [Согласовать].": f"Формат {ASSUME_TAG}.",
+                 "Формат [требуется уточнение].": f"Формат {ASSUME_TAG}."}
+        for x, want in cases.items():
+            with self.subTest(x=x):
+                self.assertEqual(normalize_tags(x), want)
+
     def test_list_ordinals_are_not_tagged(self):
         from reqcheck.model import Finding
         from reqcheck.pipeline import ASSUME_TAG, tag_assumptions

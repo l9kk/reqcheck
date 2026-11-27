@@ -83,6 +83,14 @@ def agent_version() -> str:
         return __version__
 
 
+def option_letter(text: str, opts) -> str:
+    m = re.match(r"\s*([Вв])ариант\s+(\d+)\b", text)
+    n = len(opts) if isinstance(opts, list) else 0
+    if m and 1 <= int(m.group(2)) <= min(n, 4):
+        return f"{m.group(1)}ариант ({chr(1071 + int(m.group(2)))})" + text[m.end():]
+    return text
+
+
 def default_workers() -> int:
     try:
         return max(1, int(os.getenv("REQCHECK_WORKERS", "3")))
@@ -625,7 +633,7 @@ class Pipeline:
             opts, fids = q.get("options"), q.get("finding_ids")
             out.append(Question(id=f"Q-{len(out) + 1:02d}", text=text, quotes=quotes, blocks=str(q.get("blocks", "")),
                                 options=[str(o) for o in (opts if isinstance(opts, list) else [])][:4],
-                                default=str(q.get("default", "")), addressee=str(q.get("addressee", "")),
+                                default=option_letter(str(q.get("default", "")), opts), addressee=str(q.get("addressee", "")),
                                 finding_ids=[x for x in (fids if isinstance(fids, list) else [])
                                              if isinstance(x, str) and x in ids]))
         if not out:

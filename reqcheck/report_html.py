@@ -112,7 +112,7 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
     out = [f'<article class="finding" id="{fid}" data-sev="{e(f.severity)}" data-ranges="{ranges_attr(f.quotes, n_lines)}" tabindex="-1">',
            f'<header><button type="button" class="fsel" aria-controls="doc" title="Показать цитаты в документе">'
            f'<span class="fid">{e(f.id)}</span></button><span class="sev {sev}">{e(f.severity)}</span>'
-           f'<span class="ftitle">{e(short_title(f))}</span></header>']
+           f'<span class="ftitle">{e(short_title(f, 14))}</span></header>']
     out += [quote_html(q, n_lines, fid) for q in f.quotes]
     main, *extra = problem_parts(f.problem)
     lead, rest = first_sentence(main)

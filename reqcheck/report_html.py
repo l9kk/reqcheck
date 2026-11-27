@@ -38,7 +38,7 @@ def quote_html(q: Quote, n_lines: int, owner: str = "") -> str:
 
 
 def ranges_attr(quotes: list[Quote], n_lines: int) -> str:
-    return " ".join(f"{a}-{b}" for a, b in (span(q, n_lines) for q in quotes) if a)
+    return " ".join(f"{sp[0]}-{sp[1]}" for sp in (span(q, n_lines) for q in quotes) if sp)
 
 
 def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_lines: int) -> str:

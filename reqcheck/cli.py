@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .llm import LLM
+from .llm import LLM, ReplayLLM
 from .pipeline import Pipeline, all_criteria, load_criteria
 from .report_md import render
 
@@ -33,8 +33,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m reqcheck",
                                  description="Агент проверки качества требований (ISO/IEC/IEEE 29148, IEEE 830).")
     ap.add_argument("input", help="путь к документу требований (.md, .txt, .pdf, .docx)")
-    ap.add_argument("-o", "--output", default="report/report.md", help="путь к отчёту (.md); рядом пишутся .json")
+    ap.add_argument("-o", "--output", default="out/report.md", help="путь к отчёту (.md); рядом пишутся .json, .html, .pdf")
     ap.add_argument("--no-cache", action="store_true", help="не использовать кэш ответов модели")
+    ap.add_argument("--replay", action="store_true",
+                    help="только повторить сохранённый прогон из .cache/llm: без ключа, без запросов к модели")
     ap.add_argument("--quiet", action="store_true", help="не печатать ход работы")
     ap.add_argument("--no-pdf", action="store_true", help="не создавать report.pdf")
     ap.add_argument("--no-html", action="store_true", help="не создавать report.html")
@@ -50,7 +52,12 @@ def main(argv=None) -> int:
 
     load_dotenv(Path.cwd() / ".env")
 
-    llm = LLM(use_cache=not args.no_cache)
+    if args.replay and args.no_cache:
+        ap.error("--replay и --no-cache вместе не имеют смысла")
+    outs = {Path(args.output).with_suffix(x).resolve() for x in (".md", ".json", ".html", ".pdf")}
+    if Path(args.input).resolve() in outs:
+        ap.error("отчёт записался бы поверх документа: укажите другой путь в -o")
+    llm = ReplayLLM() if args.replay else LLM(use_cache=not args.no_cache)
     log = (lambda m: None) if args.quiet else (lambda m: print(m, flush=True))
     pipe = Pipeline(llm, log=log, wholedoc=not args.no_wholedoc, workers=args.workers)
     crashed = False

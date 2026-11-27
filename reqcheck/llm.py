@@ -236,3 +236,20 @@ class LLM:
             raise LLMError("overloaded", f"Сервер модели перегружен или недоступен ({last}).",
                            "Это сбой на стороне провайдера: повторите позже или укажите другую модель в LLM_MODEL.")
         raise LLMError("network", f"LLM недоступна ({last}).", "Проверьте интернет и LLM_BASE_URL.")
+
+
+class ReplayLLM(LLM):
+    """Reads answers only from the cache and never calls a model. Pinned to the provider and model of the
+    committed reports, so a .env with another provider does not turn a replay into a live run."""
+
+    PROVIDER, MODEL = "anthropic", "claude-opus-5-5"
+
+    def __init__(self, cache_dir: str = ".cache/llm"):
+        super().__init__(use_cache=True, cache_dir=cache_dir)
+        self.provider, self.model = self.PROVIDER, self.MODEL
+        self.texts = TEXTS["anthropic"]
+        self.api_key, self.base_url = "replay", "http://127.0.0.1:9"
+
+    def _call(self, role: str, system: str, user: str):
+        raise LLMError("cache_miss", f"{role}: ответа на этот запрос нет в кэше {self.cache_dir}.",
+                       "Режим --replay только повторяет сохранённые прогоны. Для нового документа запустите без --replay с ключом LLM.")

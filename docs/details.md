@@ -305,7 +305,7 @@ git clone https://github.com/l9kk/reqcheck && cd reqcheck
 python -m venv .venv
 . .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m reqcheck input/requirements.md -o out/report.md
+python -m reqcheck input/requirements.md -o out/report.md --replay
 ```
 
 Отчёт ляжет в `out/report.md`, рядом `out/report.html`, `out/report.pdf` и `out/report.json`. Агент берёт ответы

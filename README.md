@@ -100,7 +100,7 @@ ISO 29148 п. 5.2.5, Ф-3 и Ф-4 - пункты самого ТЗ.
 ```bash
 git clone https://github.com/l9kk/reqcheck && cd reqcheck
 python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt   # Windows: .venv\Scripts\activate
-python -m reqcheck input/requirements.md -o out/report.md
+python -m reqcheck input/requirements.md -o out/report.md --replay
 ```
 
 Отчёт ляжет в `out/report.md`, рядом `out/report.pdf`, `out/report.html` и `out/report.json`.

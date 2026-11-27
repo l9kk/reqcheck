@@ -47,7 +47,7 @@
 ```bash
 git clone https://github.com/l9kk/reqcheck && cd reqcheck
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-LLM_PROVIDER=anthropic LLM_MODEL=claude-opus-5-5 .venv/bin/python -m reqcheck input/requirements.md -o out/report.md
+.venv/bin/python -m reqcheck input/requirements.md -o out/report.md --replay
 ```
 
 Все 9 ответов берутся из кэша, отчёт совпадает с [`report/report.json`](report/report.json) (кроме даты, версии и времени прогона).

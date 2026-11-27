@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>reqcheck: агент ревью требований</title>
+<title>reqcheck: агент проверки требований</title>
 <style>
   @page { size: 1280px 720px; margin: 0; }
   :root {
@@ -46,7 +46,6 @@
   }
   p { margin: 0 0 16px; }
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .accent { color: var(--accent); }
   code, .mono { font-family: "Noto Sans Mono", "Source Code Pro", "Liberation Mono", monospace; font-size: 0.9em; }
   .foot {
     position: absolute; left: 80px; right: 80px; bottom: 28px;
@@ -57,7 +56,7 @@
   ul.plain li { padding-left: 22px; position: relative; margin-bottom: 12px; }
   ul.plain li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 8px; height: 8px; background: var(--accent); }
 
-  /* slide 1 */
+  /* title */
   .s1 h1 { font-size: 64px; line-height: 1.1; margin-top: 56px; }
   .s1 .sub { font-size: 30px; margin-top: 14px; }
   .s1 .rule { width: 96px; height: 4px; background: var(--accent); margin: 44px 0 36px; }
@@ -65,252 +64,249 @@
   .s1 .label { font-weight: 600; color: var(--accent); margin-bottom: 8px; font-size: 22px; }
   .s1 .grid p { font-size: 24px; }
 
-  /* slide 2 */
-  .diagram { width: 1120px; height: 300px; display: block; }
-  .diagram text { font-family: "Noto Sans", "Liberation Sans", sans-serif; fill: var(--ink); }
-  .s2 .notes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 28px; font-size: 20px; }
-  .s2 .notes b { display: block; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+  /* blocks */
+  .blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 56px; margin-top: 4px; }
+  .block { border-left: 3px solid var(--accent); padding: 4px 0 4px 20px; }
+  .block b { display: block; font-weight: 600; font-size: 24px; margin-bottom: 6px; }
+  .block p { font-size: 20px; margin: 0; }
+  .block.wide { grid-column: 1 / -1; }
 
-  /* slide 3 */
-  .s3 .lead { font-size: 21px; margin: -8px 0 24px; }
-  .s3 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-  .card { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 22px 26px; font-size: 20px; line-height: 1.4; }
-  .card .head { font-weight: 600; font-size: 21px; margin-bottom: 12px; }
+  /* report excerpt */
+  .lead { font-size: 21px; margin: -8px 0 24px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .card { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 20px 24px; font-size: 18px; line-height: 1.38; }
+  .card .head { font-weight: 600; font-size: 20px; margin-bottom: 10px; }
   .card blockquote { margin: 0 0 10px; padding: 8px 14px; background: var(--soft); border-left: 3px solid var(--accent); }
   .card .where { display: block; font-size: 15px; margin-top: 3px; }
   .card p { margin: 0 0 10px; }
   .card ol { margin: 4px 0 10px; padding-left: 0; list-style: none; }
   .card ol li { margin-bottom: 6px; }
 
-  /* slide 4 */
-  table { border-collapse: collapse; width: 100%; font-size: 20px; }
-  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  /* tables */
+  table { border-collapse: collapse; width: 100%; font-size: 19px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-weight: 600; font-size: 17px; border-bottom: 2px solid var(--ink); }
   td.n, th.n { text-align: right; }
-  tr.main td { font-weight: 600; }
-  .s4 .small { font-size: 15px; font-weight: 400; display: block; }
-  .s4 th, .s4 td { padding: 9px 12px; }
-  .s4 td:first-child { width: 32%; }
-  .s4 .notes { margin-top: 18px; font-size: 17px; }
-  .s4 .notes li { margin-bottom: 8px; }
+  .notes { margin-top: 16px; font-size: 17px; }
+  .notes li { margin-bottom: 6px; }
 
-  /* slide 5 */
-  .s5 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 44px 56px; margin-top: 8px; }
-  .s5 .block { border-left: 3px solid var(--accent); padding: 4px 0 4px 20px; }
-  .s5 .block b { display: block; font-weight: 600; font-size: 26px; margin-bottom: 6px; }
-  .s5 .block p { font-size: 22px; margin: 0; }
+  /* diagram */
+  .diagram { width: 1120px; height: 310px; display: block; }
+  .diagram text { font-family: "Noto Sans", "Liberation Sans", sans-serif; fill: var(--ink); }
+  .dnotes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 18px; font-size: 19px; }
+  .dnotes b { display: block; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
 
-  /* slide 6 */
+  /* run */
   pre.cmd {
-    margin: 0 0 28px; padding: 24px 28px; background: var(--soft); border-left: 3px solid var(--accent);
-    font-family: "Noto Sans Mono", "Source Code Pro", "Liberation Mono", monospace; font-size: 24px; line-height: 1.75;
+    margin: 0 0 20px; padding: 18px 24px; background: var(--soft); border-left: 3px solid var(--accent);
+    font-family: "Noto Sans Mono", "Source Code Pro", "Liberation Mono", monospace; font-size: 19px; line-height: 1.7;
     white-space: pre;
   }
   pre.cmd .pr { color: var(--accent); }
-  .s6 .repo { font-size: 34px; font-weight: 600; color: var(--accent); margin-top: 20px; }
-  .s6 p { font-size: 22px; max-width: 1000px; }
+  .repo { font-size: 30px; font-weight: 600; color: var(--accent); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .two ul { font-size: 19px; }
 </style>
 </head>
 <body>
 
 <!-- 1 -->
 <section class="slide s1">
-  <h1>reqcheck</h1>
-  <div class="sub">Агент ревью требований: дефекты в ТЗ до начала разработки</div>
+  <h1>reqcheck v1.5</h1>
+  <div class="sub">Агент проверки требований: дефекты в ТЗ до начала разработки</div>
   <div class="rule"></div>
   <div class="grid">
     <div>
       <div class="label">Задача</div>
-      <p>Противоречия, неоднозначности, непроверяемые формулировки и пропуски в ТЗ. Ручное ревью занимает часы и зависит от того, кто его делает.</p>
+      <p>Противоречия, неоднозначности, непроверяемые формулировки и пропуски в ТЗ. Их надо найти до того, как по ТЗ начнут писать код и тесты.</p>
     </div>
     <div>
       <div class="label">Решение</div>
-      <p>Одна команда: на входе ТЗ, на выходе отчёт с дословными цитатами, номерами строк и вопросами автору.</p>
+      <p>Одна команда: на входе ТЗ, на выходе отчёт с цитатами и номерами строк, вопросы автору с вариантами и перепроверка после ответов.</p>
     </div>
   </div>
   <div class="foot"><span>BCC-HUB x MNU FinTech Hackathon</span><span>1</span></div>
 </section>
 
 <!-- 2 -->
-<section class="slide s2">
-  <h2>Как работает агент</h2>
-  <svg class="diagram" viewBox="0 0 1120 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Конвейер ролей агента">
+<section class="slide">
+  <h2>Чем отличается</h2>
+  <div class="blocks">
+    <div class="block"><b>Вопросы с вариантами</b><p>Кому вопрос, 2-3 варианта, каждый проверяется тестом, рекомендуемый вариант и какие замечания он закроет. Три главных на первом экране.</p></div>
+    <div class="block"><b>Цикл ответов</b><p>Ответ, новая формулировка с критериями «Дано, Когда, Тогда», перепроверка, отчёт о разнице: закрыто, осталось, появилось.</p></div>
+    <div class="block"><b>Свои проверки качества</b><p>3 документа с разметкой, строгая ручная проверка, стресс-набор из <span class="num">8</span> документов с ловушками, абляция, тест на подгонку.</p></div>
+    <div class="block"><b>Повтор без ключа</b><p>Ответы модели лежат в <code>.cache/llm</code>. Повтор отчёта: <span class="num">0</span> запросов к модели, тот же результат.</p></div>
+    <div class="block wide"><b>Цитаты с номерами строк</b><p>Каждую цитату модели код ищет в документе и сам ставит номер строки. Близкую заменяет строкой документа, ненайденную выбрасывает.</p></div>
+  </div>
+  <div class="foot"><span>reqcheck</span><span>2</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <h2>Что получает QA-лид</h2>
+  <p class="lead">Отчёт по выданному ТЗ: <span class="num">44</span> требования, <span class="num">55</span> замечаний, из них <span class="num">6</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».</p>
+  <div class="cols">
+    <div class="card">
+      <div class="head">D-01, критично, Корректное</div>
+      <blockquote>«На карту приходится максимум один такой push за календарный месяц»<span class="where">строка <span class="num">39</span></span></blockquote>
+      <blockquote>«следующее достижение вызывает push независимо от истории предыдущей настройки»<span class="where">строка <span class="num">40</span></span></blockquote>
+      <p>Если push уже отправлен, а клиент поднял порог, по Ф-4 будет второй push в месяце, что запрещено Ф-3.</p>
+    </div>
+    <div class="card">
+      <div class="head">Q-01, кому: бизнес, закрывает D-01, D-16, D-33</div>
+      <p>Push в месяце уже отправлен, клиент повысил порог, и расходы достигли нового порога. Отправляется ли второй push в том же месяце?</p>
+      <ol>
+        <li>(а) Нет: признак отправки на пару «карта + месяц»</li>
+        <li>(б) Да, если порог сохранён с другим значением</li>
+        <li>(в) Да, при любом сохранении порога</li>
+      </ol>
+      <p>Рекомендация: вариант 2, он сохраняет смысл Ф-4 и не даёт лишнего push при сохранении того же порога.</p>
+    </div>
+  </div>
+  <div class="foot"><span>reqcheck: выдержка из report/report.md</span><span>3</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <h2>Цикл ответов</h2>
+  <div class="blocks">
+    <div class="block"><b>1. Ответ</b><p><code>--answers файл.toml</code> или <code>--interactive</code>: буква варианта, рекомендация агента или свой текст.</p></div>
+    <div class="block"><b>2. Новая формулировка</b><p>Переписанное требование и критерии приёмки «Дано, Когда, Тогда».</p></div>
+    <div class="block"><b>3. Перепроверка</b><p>Auditor и CrossChecker проверяют переписанные и соседние требования.</p></div>
+    <div class="block"><b>4. Разница</b><p>Что закрыто, что осталось и почему, что появилось из-за самих ответов.</p></div>
+    <div class="block wide"><b>Пример на этом отчёте</b><p><span class="num">10</span> ответов, переписано <span class="num">25</span> требований. Закрыто <span class="num">7</span> из <span class="num">21</span> связанного замечания, в том числе критичное D-04. Появилось <span class="num">19</span> новых: например, push теперь разрешён на каждое значение порога, а хранится один признак отправки на месяц. Это видно до разработки.</p></div>
+  </div>
+  <div class="foot"><span>reqcheck: examples/answers/</span><span>4</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <h2>Конвейер и один промпт на той же модели</h2>
+  <table>
+    <thead>
+      <tr><th>На нашей разметке, claude-opus-5-5</th><th class="n">Конвейер v1.5</th><th class="n">Один промпт</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Выданное ТЗ, найдено по score.py / строго</td><td class="n"><span class="num">40/40 / 39/40</span></td><td class="n"><span class="num">36 и 35 / 36 и 34 из 40</span></td></tr>
+      <tr><td>Выданное ТЗ, обязательные по score.py</td><td class="n"><span class="num">13/13</span></td><td class="n"><span class="num">12/13 и 13/13</span></td></tr>
+      <tr><td>Выданное ТЗ, точность по score.py</td><td class="n"><span class="num">89%</span></td><td class="n"><span class="num">93% и 97%</span></td></tr>
+      <tr><td>autotopup: найдено / обязательные</td><td class="n"><span class="num">18/18 / 8/8</span></td><td class="n"><span class="num">18/18 / 8/8</span></td></tr>
+      <tr><td>cashback: найдено / обязательные</td><td class="n"><span class="num">20/20 / 9/9</span></td><td class="n"><span class="num">19/20 / 8/9</span></td></tr>
+      <tr><td>Вопросы с вариантами, цикл ответов</td><td class="n">да</td><td class="n">нет</td></tr>
+    </tbody>
+  </table>
+  <ul class="plain notes">
+    <li>Конвейер в прогонах v1.4 и v1.5 не пропустил ни одного обязательного дефекта. Один промпт на cashback пропустил B07, на выданном ТЗ он немного точнее.</li>
+    <li>Один промпт написан после чтения нашей разметки выданного ТЗ. Конвейер тоже меняли после прогонов на этих документах.</li>
+    <li>Выданное ТЗ, строго: все <span class="num">6</span> критичных как «критично» (G03 только через одно предложение в D-05), <span class="num">48</span> из <span class="num">55</span> замечаний реальные, неверных <span class="num">0</span>.</li>
+  </ul>
+  <div class="foot"><span>reqcheck: eval/score.py, eval/handcheck_v1.5.md, eval/baseline/README.md, 27.11.2026</span><span>5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <h2>Как устроен агент</h2>
+  <svg class="diagram" viewBox="0 0 1120 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Конвейер ролей агента">
     <defs>
       <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#1a1f24"/>
       </marker>
     </defs>
     <g fill="none" stroke="#1a1f24" stroke-width="1.6" marker-end="url(#ar)">
-      <line x1="132" y1="150" x2="164" y2="150"/>
-      <path d="M302,150 C332,150 332,52 366,52"/>
-      <line x1="302" y1="150" x2="366" y2="150"/>
-      <path d="M302,150 C332,150 332,248 366,248"/>
-      <path d="M564,52 C596,52 596,150 626,150"/>
-      <line x1="564" y1="150" x2="626" y2="150"/>
-      <path d="M564,248 C596,248 596,150 626,150"/>
-      <line x1="760" y1="150" x2="794" y2="150"/>
-      <line x1="928" y1="150" x2="962" y2="150"/>
+      <line x1="110" y1="150" x2="124" y2="150"/>
+      <line x1="236" y1="150" x2="250" y2="150"/>
+      <line x1="362" y1="150" x2="376" y2="150"/>
+      <path d="M488,150 C496,150 494,62 502,62"/>
+      <path d="M488,150 C496,150 494,238 502,238"/>
+      <line x1="614" y1="62" x2="628" y2="62"/>
+      <path d="M740,62 C748,62 746,150 754,150"/>
+      <path d="M740,238 C748,238 746,150 754,150"/>
+      <line x1="866" y1="150" x2="880" y2="150"/>
+      <line x1="992" y1="150" x2="1006" y2="150"/>
     </g>
-    <!-- guard outlines -->
     <g fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4">
-      <rect x="161" y="111" width="146" height="78"/>
-      <rect x="363" y="111" width="206" height="78"/>
-      <rect x="363" y="209" width="206" height="78"/>
-      <rect x="791" y="111" width="142" height="78"/>
+      <rect x="375" y="115" width="116" height="70"/>
+      <rect x="501" y="27" width="116" height="70"/>
+      <rect x="627" y="27" width="116" height="70"/>
+      <rect x="501" y="203" width="242" height="70"/>
+      <rect x="879" y="115" width="116" height="70"/>
     </g>
-    <!-- code boxes -->
     <g fill="#ffffff" stroke="#1a1f24" stroke-width="1.6">
-      <rect x="0" y="118" width="132" height="64"/>
-      <rect x="368" y="20" width="196" height="64"/>
-      <rect x="966" y="118" width="132" height="64"/>
+      <rect x="0" y="118" width="110" height="64"/>
+      <rect x="252" y="118" width="110" height="64"/>
+      <rect x="1008" y="118" width="110" height="64"/>
     </g>
-    <!-- model boxes -->
     <g fill="#ffffff" stroke="#0b6e6e" stroke-width="2.2">
-      <rect x="168" y="118" width="134" height="64"/>
-      <rect x="368" y="118" width="196" height="64"/>
-      <rect x="368" y="216" width="196" height="64"/>
-      <rect x="630" y="118" width="130" height="64"/>
-      <rect x="798" y="118" width="130" height="64"/>
+      <rect x="126" y="118" width="110" height="64"/>
+      <rect x="378" y="118" width="110" height="64"/>
+      <rect x="504" y="30" width="110" height="64"/>
+      <rect x="630" y="30" width="110" height="64"/>
+      <rect x="504" y="206" width="236" height="64"/>
+      <rect x="756" y="118" width="110" height="64"/>
+      <rect x="882" y="118" width="110" height="64"/>
     </g>
-    <g font-size="18" font-weight="600" text-anchor="middle">
-      <text x="66" y="146">Reader</text>
-      <text x="235" y="146">Segmenter</text>
-      <text x="466" y="48">Linter</text>
-      <text x="466" y="146">Auditor</text>
-      <text x="466" y="244">CrossChecker</text>
-      <text x="695" y="146">Critic</text>
-      <text x="863" y="146">Clarifier</text>
-      <text x="1032" y="146">Reporter</text>
+    <g font-size="15" font-weight="600" text-anchor="middle">
+      <text x="55" y="146">Reader</text>
+      <text x="181" y="146">Segmenter</text>
+      <text x="307" y="146">Linter</text>
+      <text x="433" y="146">Auditor</text>
+      <text x="559" y="58">CrossChecker</text>
+      <text x="685" y="58">EdgeCaser</text>
+      <text x="622" y="234">WholeDoc</text>
+      <text x="811" y="146">Critic</text>
+      <text x="937" y="146">Clarifier</text>
+      <text x="1063" y="146">Отчёт</text>
     </g>
-    <g font-size="14" text-anchor="middle">
-      <text x="66" y="168">код</text>
-      <text x="235" y="168">код + модель</text>
-      <text x="466" y="70">код, 29148 5.2.7</text>
-      <text x="466" y="168">модель, 29148 5.2.5</text>
-      <text x="466" y="266">модель, 5.2.6 + IEEE 830</text>
-      <text x="695" y="168">модель</text>
-      <text x="863" y="168">модель</text>
-      <text x="1032" y="168">код</text>
+    <g font-size="13" text-anchor="middle">
+      <text x="55" y="168">код</text>
+      <text x="181" y="168">код + модель</text>
+      <text x="307" y="168">код, 5.2.7</text>
+      <text x="433" y="168">модель, 5.2.5</text>
+      <text x="559" y="80">5.2.6, IEEE 830</text>
+      <text x="685" y="80">E01-E12</text>
+      <text x="622" y="256">модель, весь документ</text>
+      <text x="811" y="168">модель</text>
+      <text x="937" y="168">модель</text>
+      <text x="1063" y="168">код</text>
     </g>
-    <!-- legend -->
     <g font-size="14">
-      <rect x="660" y="236" width="22" height="14" fill="#fff" stroke="#1a1f24" stroke-width="1.6"/>
-      <text x="690" y="248">код</text>
-      <rect x="740" y="236" width="22" height="14" fill="#fff" stroke="#0b6e6e" stroke-width="2.2"/>
-      <text x="770" y="248">модель</text>
-      <rect x="850" y="236" width="22" height="14" fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4"/>
-      <text x="880" y="248">Guard сверяет цитаты с текстом</text>
+      <rect x="0" y="288" width="22" height="14" fill="#fff" stroke="#1a1f24" stroke-width="1.6"/>
+      <text x="30" y="300">код</text>
+      <rect x="80" y="288" width="22" height="14" fill="#fff" stroke="#0b6e6e" stroke-width="2.2"/>
+      <text x="110" y="300">модель</text>
+      <rect x="190" y="288" width="22" height="14" fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="220" y="300">код сверяет цитаты с документом</text>
     </g>
   </svg>
-  <div class="notes">
-    <div><b>Стандарты как данные</b>ISO/IEC/IEEE 29148 и IEEE 830 лежат в <code>criteria.toml</code>. Из него собираются промпты.</div>
-    <div><b>Guard цитат</b>Замечание без цитаты из документа отбрасывается кодом. Повторы тоже: в прогоне на выданном ТЗ отброшено <span class="num">9</span>.</div>
-    <div><b>Экономно</b>До <span class="num">7</span> запросов к модели на прогон, ответы кэшируются.</div>
+  <div class="dnotes">
+    <div><b>Стандарты как данные</b>ISO/IEC/IEEE 29148 и IEEE 830 лежат в <code>criteria.toml</code>, из него собираются промпты.</div>
+    <div><b>Вердикт считает код</b>По числу критичных и важных замечаний. Модель не ставит его сама, но важность замечаний задаёт она.</div>
+    <div><b>Плохие входы</b>Пустой, битый, зашифрованный файл, скан, не ТЗ: вместо падения раздел «Диагностика».</div>
   </div>
-  <div class="foot"><span>reqcheck</span><span>2</span></div>
+  <div class="foot"><span>reqcheck: README, раздел «Как устроен агент»</span><span>6</span></div>
 </section>
 
-<!-- 3 -->
-<section class="slide s3">
-  <h2>Что получает QA-лид</h2>
-  <p class="lead">Отчёт по выданному ТЗ: <span class="num">45</span> требований, <span class="num">52</span> нарушения, из них <span class="num">5</span> критичных, <span class="num">12</span> вопросов автору. Вердикт: «Нет».</p>
-  <div class="cols">
-    <div class="card">
-      <div class="head">D-01 · критично · Корректное</div>
-      <blockquote>«следующее достижение вызывает push независимо от истории предыдущей настройки»<span class="where">строка <span class="num">40</span></span></blockquote>
-      <blockquote>«На карту приходится максимум один такой push за календарный месяц.»<span class="where">строка <span class="num">39</span></span></blockquote>
-      <p>Разработчик не может реализовать оба правила одновременно.</p>
-    </div>
-    <div class="card">
-      <div class="head">Q-01 · кому: бизнес</div>
-      <p>Ф-3 и Ф-4: если push в этом месяце уже отправлен по старому порогу, а клиент повысил порог, отправляется ли второй push при достижении нового порога?</p>
-      <ol>
-        <li>(а) Да: изменение порога сбрасывает признак отправки</li>
-        <li>(б) Нет: лимит Ф-3 абсолютный, после смены порога push в этом месяце не отправляется</li>
-      </ol>
-      <p>Закрывает D-01, D-18.</p>
-    </div>
-  </div>
-  <div class="foot"><span>reqcheck · выдержка из report/report.md</span><span>3</span></div>
-</section>
-
-<!-- 4 -->
-<section class="slide s4">
-  <h2>Точность на трёх ТЗ</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Документ и прогон</th>
-        <th class="n">Полнота (авто)</th>
-        <th class="n">Полнота (ручная проверка)</th>
-        <th class="n">Критичные</th>
-        <th class="n">Обязательные</th>
-        <th class="n">Точность</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="main">
-        <td>Выданное ТЗ<span class="small"><span class="num">40</span> эталонных дефектов</span></td>
-        <td class="n"><span class="num">37/40 (92%)</span></td>
-        <td class="n"><span class="num">36/40 (90%)</span></td>
-        <td class="n"><span class="num">6/6</span><span class="small"><span class="num">5</span> верно по важности</span></td>
-        <td class="n"><span class="num">13/13</span></td>
-        <td class="n"><span class="num">92%</span></td>
-      </tr>
-      <tr class="main">
-        <td>Второе ТЗ (autotopup)<span class="small">эталон до прогона, <span class="num">18</span> дефектов</span></td>
-        <td class="n"><span class="num">18/18 (100%)</span></td>
-        <td class="n"><span class="num">18/18 (100%)</span></td>
-        <td class="n"><span class="num">4/4</span><span class="small"><span class="num">3</span> верно по важности</span></td>
-        <td class="n"><span class="num">8/8</span></td>
-        <td class="n"><span class="num">78%</span></td>
-      </tr>
-      <tr class="main">
-        <td>Третье ТЗ (cashback), слепое<span class="small">эталон до любого прогона, <span class="num">20</span> дефектов</span></td>
-        <td class="n"><span class="num">20/20 (100%)</span></td>
-        <td class="n"><span class="num">20/20 (100%)</span></td>
-        <td class="n"><span class="num">5/5</span></td>
-        <td class="n"><span class="num">9/9</span></td>
-        <td class="n"><span class="num">45%</span><span class="small">вручную <span class="num">70</span> из <span class="num">86</span> реальные</span></td>
-      </tr>
-      <tr>
-        <td>Выданное ТЗ, без модели<span class="small">только правила кода</span></td>
-        <td class="n"><span class="num">11/40 (28%)</span></td>
-        <td class="n">-</td>
-        <td class="n">-</td>
-        <td class="n"><span class="num">9/13</span></td>
-        <td class="n"><span class="num">93%</span></td>
-      </tr>
-    </tbody>
-  </table>
-  <ul class="plain notes">
-    <li>Модель <code>claude-opus-5-5</code>. Для сравнения на выданном ТЗ: <code>claude-sonnet-5-5</code> <span class="num">32/40</span>, <code>gemini-3.5-flash</code> (v1.2) <span class="num">23/40</span> вручную.</li>
-    <li>Эталоны составлены вручную. Каждое авто-совпадение проверено руками. Второй прогон не полностью слепой (<code>eval/manual_check.md</code>).</li>
-  </ul>
-  <div class="foot"><span>reqcheck · eval/score.py, eval/manual_check.md</span><span>4</span></div>
-</section>
-
-<!-- 5 -->
-<section class="slide s5">
-  <h2>Не падает на плохих входах</h2>
-  <div class="grid">
-    <div class="block"><b>Форматы</b><p>PDF, DOCX, MD, TXT (UTF-8 и cp1251). Если в PDF слипаются слова, текст берётся через pdftotext.</p></div>
-    <div class="block"><b>Битые файлы</b><p><span class="num">13</span> видов: пустые, сканы, с паролем, не ТЗ. Вместо падения отчёт с разделом «Диагностика».</p></div>
-    <div class="block"><b>Коды выхода</b><p><span class="num">0</span> нет критичных, <span class="num">1</span> есть критичные, <span class="num">2</span> документ не удалось проверить.</p></div>
-    <div class="block"><b>Без ключа и из кэша</b><p>Без ключа работают правила кода, отчёт пишет, что модель не вызывалась. Повтор: <span class="num">0</span> запросов, <span class="num">0.1</span> с.</p></div>
-  </div>
-  <div class="foot"><span>reqcheck · examples/broken/, tests/fixtures/broken/</span><span>5</span></div>
-</section>
-
-<!-- 6 -->
-<section class="slide s6">
-  <h2>Как запустить</h2>
-<pre class="cmd"><span class="pr">$</span> git clone https://github.com/l9kk/reqcheck &amp;&amp; cd reqcheck
+<!-- 7 -->
+<section class="slide">
+  <h2>Слабые места и запуск</h2>
+  <div class="two">
+    <ul class="plain">
+      <li>cashback уже не слепая проверка: v1.5 настраивали после того, как видели на нём результаты. Дефект возвратов B04 теперь «важно».</li>
+      <li>Часть рекомендаций в вопросах спорит с исправлениями в замечаниях. Отчёт помечает их «окончательно после ответа на Q-xx».</li>
+      <li>Почти чистый документ стресс-набора всё ещё получает «Нет».</li>
+      <li>Один прогон на документ, разброс не измерен. Конвейер тратит больше токенов, чем один промпт.</li>
+    </ul>
+    <div>
+<pre class="cmd"><span class="pr">$</span> git clone https://github.com/l9kk/reqcheck
+<span class="pr">$</span> cd reqcheck
 <span class="pr">$</span> pip install -r requirements.txt
-<span class="pr">$</span> python -m reqcheck input/requirements.md -o report/report.md</pre>
-  <p>Python <span class="num">3.11</span>+. Ключ Anthropic в <code>.env</code> (<code>ANTHROPIC_API_KEY</code>), бесплатно: Gemini. Без ключа работают правила кода. На выходе <code>report.md</code>, <code>report.json</code>, <code>report.pdf</code>.</p>
-  <div class="repo">github.com/l9kk/reqcheck</div>
-  <div class="foot"><span>reqcheck</span><span>6</span></div>
+<span class="pr">$</span> python -m reqcheck input/requirements.md \
+    -o out/report.md</pre>
+      <p style="font-size:19px">Без ключа: повтор отчёта из кэша, <span class="num">0</span> запросов к модели. Свой документ: ключ Anthropic или бесплатный Gemini в <code>.env</code>.</p>
+      <div class="repo">github.com/l9kk/reqcheck</div>
+    </div>
+  </div>
+  <div class="foot"><span>reqcheck: README, docs/qa.md</span><span>7</span></div>
 </section>
 
 </body>

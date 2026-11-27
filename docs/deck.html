@@ -142,6 +142,8 @@
   .limits { list-style: none; margin: 56px 0 0; padding: 0; max-width: 940px; }
   .limits li { font-size: 30px; line-height: 1.3; padding: 24px 0; border-top: 1px solid var(--line); }
   .limits li:last-child { border-bottom: 1px solid var(--line); }
+  .limits.tight { margin-top: 32px; }
+  .limits.tight li { font-size: 26px; padding: 16px 0; }
 
   /* 9 run */
   pre.cmd {
@@ -256,13 +258,13 @@
 </section>
 
 <section class="slide">
-  <h2><span class="num">40 из 40</span> дефектов нашего списка (автосверка)</h2>
+  <h2><span class="num">40 из 40</span> дефектов нашего списка</h2>
   <div class="runs" id="runs">
     <div class="who">Конвейер</div><div class="dots main" data-n="40"></div><div class="score main num">40</div>
     <div class="who">Один промпт<small>та же модель, прогон 1</small></div><div class="dots base" data-n="36"></div><div class="score num">36</div>
     <div class="who">Один промпт<small>прогон 2</small></div><div class="dots base" data-n="35"></div><div class="score num">35</div>
   </div>
-  <p style="margin:8px 0 0;font-size:15px;color:#666">Строгая проверка, каждое совпадение прочитал отдельный агент: 39, 36 и 34.</p>
+  <p style="margin:8px 0 0;font-size:15px;color:#666">Автоматическая сверка. При строгой проверке (каждое совпадение прочитал отдельный агент): 39, 36 и 34.</p>
   <div class="side">
     <div class="fig"><div class="n num">6 из 6</div><div class="c">критичных распознаны как критичные</div></div>
     <div class="fig"><div class="n num">0 ложных</div><div class="c">из 55 замечаний: 48 реальные дефекты, 7 дубли и мелочи</div></div>
@@ -281,7 +283,7 @@
 </section>
 
 <section class="slide">
-  <h2>Около <span class="num">1 110 ₸</span> и <span class="num">14</span> минут на прогон</h2>
+  <h2><span class="num">14</span> минут вместо часов ручного ревью</h2>
   <div class="bars">
     <div>Агент</div>
     <div class="track"><div class="bar agent"></div></div><div class="vl">около 14 мин</div>
@@ -298,25 +300,15 @@
 
 <section class="slide">
   <h2>Чего мы не доказали</h2>
-  <ul class="limits">
+  <ul class="limits tight">
     <li>Список дефектов составили мы сами. Независимой разметки нет.</li>
     <li>Строгую проверку делал отдельный агент, не человек.</li>
     <li>Время живых ревьюеров не засекали, часы взяты из литературы.</li>
   </ul>
+  <div class="repo">github.com/l9kk/reqcheck</div>
+  <p class="repo-note">Каждое число здесь перепроверяется командой из RESULTS.md, без ключа и без затрат.</p>
   <div class="foot"><span>RESULTS.md, «Чего здесь нет»; docs/qa.md</span><span>8</span></div>
 </section>
-
-<section class="slide">
-  <h2>Запуск без ключа, из кэша</h2>
-  <pre class="cmd"><span class="pr">$</span> git clone https://github.com/l9kk/reqcheck && cd reqcheck
-<span class="pr">$</span> python -m venv .venv && .venv/bin/pip install -r requirements.txt
-<span class="pr">$</span> LLM_PROVIDER=anthropic LLM_MODEL=claude-opus-5-5 \
-    .venv/bin/python -m reqcheck input/requirements.md -o out/report.md</pre>
-  <div class="repo">github.com/l9kk/reqcheck</div>
-  <p class="repo-note">Все 9 ответов модели берутся из кэша, команды не тратят деньги.</p>
-  <div class="foot"><span>RESULTS.md, «Повторить весь прогон без ключа»</span><span>9</span></div>
-</section>
-
 <script>
   document.querySelectorAll('.dots').forEach(function (el) {
     var n = +el.dataset.n, html = '';

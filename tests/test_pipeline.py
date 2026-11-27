@@ -354,6 +354,19 @@ class GeneralizedRulesTest(unittest.TestCase):
         self.assertEqual([f.quotes[0].start for f in fs], [4])
         self.assertIn("копейки и рубли", fs[0].problem)
 
+    def test_money_units_ignore_centre_and_european(self):
+        base = "# ТЗ\nВерсия 1.0 от 01.02.2026\n\n{}\n"
+        for line in ("Курс берётся у Центральный европейский банк, затем в $ по курсу.",
+                     "Центр обработки пересчитывает сумму в евро.",
+                     "Центральный банк задаёт курс, комиссия в процентах от суммы в долларах."):
+            with self.subTest(line=line):
+                self.assertFalse([f for f in self._lint(base.format(line)) if "разных единицах" in f.problem])
+        for line in ("Комиссия 50 центов, тариф $5.", "Лимит в центах, сумма в евро."):
+            with self.subTest(line=line):
+                fs = [f for f in self._lint(base.format(line)) if "разных единицах" in f.problem]
+                self.assertEqual(len(fs), 1)
+                self.assertIn("центы и доллары или евро", fs[0].problem)
+
     def test_content_type_with_other_no_body_wording(self):
         base = "# API\nВерсия 1.0 от 01.02.2026\n\n## Запрос\nContent-Type: application/json\n{}\n"
         for phrase in ("Тело запроса отсутствует.", "Запрос без тела.", "Request body: none", "Тело не используется."):

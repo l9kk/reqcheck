@@ -1,0 +1,14 @@
+{
+ "doc": "examples/docs/cashback.md",
+ "model": "claude-opus-5-5",
+ "seconds": 161.2,
+ "stop_reason": "end_turn",
+ "input_tokens": 10092,
+ "output_tokens": 18909,
+ "cache_read_input_tokens": null,
+ "cache_creation_input_tokens": null,
+ "findings": 33,
+ "questions": 13,
+ "quotes": 59,
+ "quotes_exact": 59
+}

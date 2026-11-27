@@ -37,7 +37,7 @@ VARIANTS = [
 ]
 
 BASELINE = {
-    "source": "research/B1-single-prompt-baseline.md",
+    "source": "eval/baseline/README.md",
     "date": "27.11.2026",
     "model": "claude-opus-5-5",
     "rows": {

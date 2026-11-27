@@ -16,7 +16,9 @@
   8 000-15 900 ₸.
 
 Все числа и команды для их проверки: [`RESULTS.md`](RESULTS.md). Отчёт агента: [`report/report.md`](report/report.md)
-([PDF](report/report.pdf)). Презентация [`docs/deck.pdf`](docs/deck.pdf), одностраничник [`docs/onepager.pdf`](docs/onepager.pdf).
+([PDF](report/report.pdf)). Отчёт сделан настоящим прогоном агента 27.11: 9 вызовов модели, 14 минут. Ответы модели
+сохранены в `.cache/llm`, поэтому в паспорте отчёта написано «из кэша»: команда из «Быстрого старта» повторяет тот же
+отчёт без ключа. Презентация [`docs/deck.pdf`](docs/deck.pdf), одностраничник [`docs/onepager.pdf`](docs/onepager.pdf).
 
 ![Отчёт в браузере: документ слева, замечания справа](docs/img/report-html.png)
 
@@ -101,7 +103,7 @@ python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt 
 python -m reqcheck input/requirements.md -o out/report.md
 ```
 
-Отчёт ляжет в `out/report.md`, рядом `out/report.pdf` и `out/report.json`.
+Отчёт ляжет в `out/report.md`, рядом `out/report.pdf`, `out/report.html` и `out/report.json`.
 
 Свой прогон с ключом. Скопируйте `.env.example` в `.env` (ключ кладётся туда, в git `.env` не попадает).
 
@@ -143,7 +145,7 @@ flowchart TD
   цитата выброшена, замечание без цитат тоже (`reqcheck/ground.py`).
 - **Критерии - это данные.** Свойства 29148 и IEEE 830 лежат в `criteria.toml`, промпты собираются из него.
 - **Проверка формы ответа.** Если JSON роли не той формы, код один раз спрашивает роль заново
-  (`reqcheck/pipeline.py:283-291`). Вердикт считает код, а не модель.
+  (`reqcheck/pipeline.py:287-299`). Вердикт считает код, а не модель.
 - **Reconciler.** Сверяет исправления в замечаниях с рекомендациями вопросов: противоречий было 4-8 из 10
   вопросов, стало 2 из 10, и они помечены в отчёте «Внимание» ([`eval/reconciler_check.md`](eval/reconciler_check.md)).
 - **Кэш.** Каждый ответ модели сохраняется в `.cache/llm`, повтор того же прогона не тратит запросов.

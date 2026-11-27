@@ -73,6 +73,22 @@ def problem_parts(problem: str) -> list[str]:
     return kept or [problem]
 
 
+KIND = {"verifiable": "непроверяемые", "set_validatable": "непроверяемые", "set_consistent": "противоречивые",
+        "correct": "некорректные или противоречащие другим", "complete": "неполные", "set_complete": "неполные",
+        "unambiguous": "неоднозначные", "set_comprehensible": "неоднозначные", "feasible": "нереализуемые",
+        "set_feasible": "нереализуемые"}
+
+
+def crit_kinds(findings: list[Finding]) -> list[str]:
+    by: dict[str, list[str]] = {}
+    for f in findings:
+        if f.severity == "критично":
+            by.setdefault(KIND.get(f.criterion, "прочие"), []).append(f.id)
+    if not by:
+        return []
+    return ["- Критичные дефекты по видам: " + "; ".join(f"{k} {', '.join(v)}" for k, v in by.items()) + "."]
+
+
 def gist(f: Finding) -> str:
     return problem_parts(f.problem)[0]
 
@@ -211,6 +227,7 @@ def render(rep: Report, crit: dict) -> str:
     L += ["## 2. Сводка", "",
           f"- Требований выделено: **{len(rep.requirements)}**, из них с замечаниями: **{len(req_with)}**.",
           f"- Нарушений: **{len(rep.findings)}** (критично: {counts['критично']}, важно: {counts['важно']}, мелочь: {counts['мелочь']}).",
+          *crit_kinds(rep.findings),
           f"- Уточняющих вопросов к автору: **{len(rep.questions)}**.",
           f"- Вердикт: **{rep.verdict.get('status')}**. {rep.verdict.get('text', '')}", ""]
     if rep.findings:

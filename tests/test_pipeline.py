@@ -12,6 +12,8 @@ from unittest import mock
 from reqcheck.cli import main
 from reqcheck.ground import Grounder
 from reqcheck.lint import lint
+from reqcheck.model import Finding
+from reqcheck.pipeline import Pipeline
 from reqcheck.llm import parse_json, unwrap
 from reqcheck.reader import read_document
 from tests.fake_llm import FakeLLM
@@ -471,6 +473,24 @@ class PipelineMockTest(unittest.TestCase):
         self.assertTrue(data["findings"])
         if not any(f["severity"] == "критично" for f in data["findings"]):
             self.assertEqual(data["verdict"]["status"], "Не проверено")
+
+    def test_no_key_verdict_with_critical_says_model_not_used(self):
+        f = Finding(id="D-01", scope="single", req_ids=["R-01"], criterion="verifiable", severity="критично", quotes=[], problem="x")
+        req = object()
+        v = Pipeline.verdict(None, [f], [], [req], model_used=False)
+        self.assertEqual(v["status"], "Нет")
+        self.assertIn("Модель не использовалась", v["text"])
+        self.assertNotIn("Модель не использовалась", Pipeline.verdict(None, [f], [], [req])["text"])
+
+    def test_summary_lists_critical_by_kind(self):
+        with tempfile.TemporaryDirectory() as d:
+            _, data, md = run(DOC, d)
+        summary = md.split("## 3.")[0]
+        crit = [f["id"] for f in data["findings"] if f["severity"] == "критично"]
+        if crit:
+            line = next(l for l in summary.splitlines() if l.startswith("- Критичные дефекты по видам:"))
+            for i in crit:
+                self.assertIn(i, line)
 
     def test_broken_input_verdict_is_not_checked(self):
         with tempfile.TemporaryDirectory() as d:

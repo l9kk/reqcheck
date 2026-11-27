@@ -41,7 +41,6 @@
 | :--- | :--- |
 | Ручная проверка ТЗ на 1 382 слова, один ревьюер | от 0.3 до 2.3 ч и больше по нормам Porter, Wiegers, Gilb; 730-21 800 ₸ |
 | Прогон агента на Claude | около 1 110 ₸ ($2.42 по курсу НБ РК 458.85 на 27.11.2026), 14 мин |
-| Прогон агента на Gemini, бесплатный ключ | 0 ₸, 5 мин |
 | Чтение отчёта человеком | 20-30 мин, около 1 150-1 730 ₸ (допущение) |
 | Дефект требований, найденный только на тестах | в 21-78 раз дороже, чем на этапе требований (NASA, 2004) |
 
@@ -104,6 +103,7 @@ python -m reqcheck input/requirements.md -o out/report.md
 - **Бесплатно, Gemini.** Ключ: https://aistudio.google.com/apikey (Create API key). В `.env` закомментируйте
   три строки Anthropic, раскомментируйте блок Gemini и вставьте ключ в `LLM_API_KEY=`. Модель `gemini-3.5-flash`.
   Запуск: `python -m reqcheck input/requirements.md -o out/gemini/report.md`
+  Только для пробы на открытых документах: условия Google запрещают отправлять на бесплатный уровень конфиденциальные данные, запросы могут читать люди (aistudio.google.com/docs/terms, действуют с 23.03.2026).
 - **Anthropic.** Ключ: https://platform.claude.com/settings/keys (нужен баланс). Вставьте его
   в `ANTHROPIC_API_KEY=`. Модель по умолчанию `claude-opus-5-5`. Без `--no-cache` агент повторит отчёт из кэша.
   Запуск: `python -m reqcheck input/requirements.md -o out/opus/report.md --no-cache`

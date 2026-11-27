@@ -150,10 +150,10 @@ def first_screen(rep: Report, crit: dict, asks: dict, counts: dict) -> list[str]
         for f in crit_f:
             tag = ", ".join([short_crit(crit, f.criterion)] + [f"вопрос {x}" for x in asks.get(f.id, [])])
             L.append(f"**{f.id}** ({tag}): {brief(gist(f), 240)}")
-            for q in f.quotes[:3]:
+            for q in f.quotes[:2]:
                 L.append(f"> «{cell(q.text, 160)}» ({where(q.loc)})")
-            if len(f.quotes) > 3:
-                L.append(f"> ещё цитат: {len(f.quotes) - 3}, полностью в разделе {5 if f.scope == 'req' else 6}")
+            if len(f.quotes) > 2:
+                L.append(f"> ещё цитат: {len(f.quotes) - 2}, полностью в разделе {5 if f.scope == 'req' else 6}")
             if f.impact:
                 L.append(f"- Последствия: {brief(f.impact, 200)}")
             L.append("")

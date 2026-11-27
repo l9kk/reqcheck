@@ -207,6 +207,9 @@ class Pipeline:
         reqs = self.segment(cands, rep)
         rep.requirements = reqs
         self.step("Segmenter", f"требований: {len(reqs)}")
+        if not reqs and any(d.code == "not_requirements" for d in rep.diagnostics):
+            rep.verdict = {"status": "Не проверено", "text": "Документ не является документом с требованиями.", "fix_first": []}
+            return self._finish(rep, t0)
 
         findings = lint(doc, self.cr)
         self.step("Linter", f"замечаний по правилам: {len(findings)}")
@@ -295,7 +298,7 @@ class Pipeline:
             if data.get("is_requirements_doc") is False:
                 rep.diagnostics.append(Diagnostic("error", "not_requirements",
                                                   "Модель считает, что документ не является документом с требованиями.",
-                                                  "Проверьте, что передан нужный файл."))
+                                                  "Модель может ошибаться: проверьте, что передан нужный файл."))
             used = set()
             for r in self._dicts(data["requirements"], "Segmenter"):
                 cand = r.get("candidates")

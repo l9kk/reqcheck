@@ -4,7 +4,7 @@ from pathlib import Path
 
 from reqcheck.interactive import load_answers, pick, run as irun
 from reqcheck.loop import recheck, render_delta
-from reqcheck.model import Finding, Question, Report
+from reqcheck.model import Finding, Question, Quote, Report
 from reqcheck.pipeline import Pipeline
 from reqcheck.ground import Grounder
 from reqcheck.model import Requirement
@@ -113,6 +113,35 @@ class DeltaTest(unittest.TestCase):
         self.assertIn("закрыто 1 из 2 связанных замечаний, осталось 1; новых последствий ответов: 1", text)
         self.assertIn("D-01", text)
         self.assertIn("N-01", text)
+
+    def test_new_findings_about_one_issue_share_a_line(self):
+        from reqcheck.loop import group_new
+        q = Quote("цитата", 138, 138, "строка 138")
+        n = [Finding("N-23", "req", ["R-16"], "correct", "критично", [q],
+                     "В примере параметры передаются в JSON-теле, но ниже cardId, amount и enabled описаны как "
+                     "Query-параметры, а в разделе Request body написано «Тело не используется»."),
+             Finding("N-36", "req", ["R-29"], "correct", "критично", [q],
+                     "amount описан как query-параметр, но в CURL передаётся в теле JSON, а Request body объявлен "
+                     "неиспользуемым. Источник значения противоречиво описан внутри спецификации."),
+             Finding("N-02", "req", ["R-04"], "correct", "важно", [q],
+                     "Процесс начинается с «проведения» (клиринга), тогда как Ф-2а включает покупку в расходы при "
+                     "авторизации. Схема противоречит Ф-2/Ф-2а."),
+             Finding("N-54", "set", ["R-16"], "set_consistent", "критично", [q],
+                     "Параметры cardId, amount, enabled описаны как query-параметры, «Тело не используется», а CURL "
+                     "передаёт их в JSON-теле. Prod URL — «—», Swagger «—»."),
+             Finding("N-21", "req", ["R-16"], "verifiable", "мелочь", [q],
+                     "Параметры cardId, amount, enabled описаны как query-параметры, а CURL передаёт их в JSON-теле.")]
+        groups = group_new([(f, "") for f in n])
+        self.assertEqual([[f.id for f, _ in g] for g in groups], [["N-23", "N-36", "N-54"], ["N-02"], ["N-21"]])
+        d = {"rewritten": {"R-16": {}, "R-29": {}, "R-04": {}}, "closed": [], "remains": [], "judged": True,
+             "cross_ok": True, "calls": 1, "seconds": 1, "noise": 0, "untouched": 0, "repeat_nb": 0, "other_nb": 0,
+             "all_old": [], "new": [(f, "причина") for f in n]}
+        text = render_delta(d)
+        self.assertIn("### Появилось новое (3)", text)
+        self.assertIn("новых последствий ответов: 3", text)
+        self.assertIn("- N-23, N-36, N-54 [критично, correct, set_consistent, R-16, R-29]", text)
+        self.assertEqual(sum(1 for l in text.splitlines() if l.startswith("- N-")), 3)
+        self.assertIn("Та же проблема в других местах: N-36", text)
 
     def test_unjudged_closes_nothing(self):
         def mock(role, system, user):

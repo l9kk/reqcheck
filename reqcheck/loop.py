@@ -3,7 +3,7 @@ import re
 from . import roles
 from .pipeline import AUDIT_BATCH
 from .ground import norm
-from .model import Finding, Quote
+from .model import SEVERITIES, Finding, Quote
 from .segment import clean
 
 
@@ -203,6 +203,46 @@ def _line(f, why, answer_q=None) -> str:
     return f"- {f.id} [{f.severity}, {f.criterion}, {where}]{quote}: {f.problem}{tail}"
 
 
+CONTRADICTION = {"correct", "set_consistent"}
+
+
+def _stems(text: str) -> set[str]:
+    return {w[:6] for w in re.findall(r"\w+", text.lower()) if len(w) > 3}
+
+
+def group_new(items: list) -> list[list]:
+    """New findings about one issue go together: same criterion (correct and set_consistent count as one, both
+    are contradictions) and close wording (shared word stems)."""
+    groups: list[dict] = []
+    for f, why in items:
+        fam = "contradiction" if f.criterion in CONTRADICTION else f.criterion
+        st = _stems(f.problem)
+        for g in groups:
+            if g["fam"] == fam and any(st and s and len(st & s) / len(st | s) >= 0.3 for s in g["stems"]):
+                g["items"].append((f, why))
+                g["stems"].append(st)
+                break
+        else:
+            groups.append({"fam": fam, "stems": [st], "items": [(f, why)]})
+    rank = {s: i for i, s in enumerate(SEVERITIES)}
+    return [sorted(g["items"], key=lambda x: rank.get(x[0].severity, 3)) for g in groups]
+
+
+def _group_line(group: list) -> str:
+    if len(group) == 1:
+        return _line(*group[0])
+    f, why = group[0]
+    ids = ", ".join(x.id for x, _ in group)
+    crits = ", ".join(dict.fromkeys(x.criterion for x, _ in group))
+    reqs = ", ".join(dict.fromkeys(r for x, _ in group for r in x.req_ids)) or "набор"
+    q = f.quotes[0] if f.quotes else None
+    quote = f" «{clean(q.text)[:140]}» ({q.loc})" if q else ""
+    also = "; ".join(f"{x.id} «{clean(x.quotes[0].text)[:80]}» ({x.quotes[0].loc})" if x.quotes else x.id
+                     for x, _ in group[1:])
+    tail = f" Почему: {why}" if why else ""
+    return f"- {ids} [{f.severity}, {crits}, {reqs}]{quote}: {f.problem}{tail} Та же проблема в других местах: {also}."
+
+
 NOISE_CRITERIA = {"necessary", "singular"}
 DUP_RE = re.compile(r"дублир|повторя|повторен|дважды|то же правило", re.I)
 
@@ -217,10 +257,11 @@ def render_delta(d: dict) -> str:
     linked = len(d["closed"]) + len(d["remains"])
     rw = set(d["rewritten"])
     before = [f for f in d["all_old"] if set(f.req_ids) & rw]
-    after = [f for f in before if f.id not in gone] + [f for f, _ in d["new"]]
+    new_groups = group_new(d["new"])
+    after = [f for f in before if f.id not in gone] + [g[0][0] for g in new_groups]
     md = ["## Дельта после ответов", "",
           f"По ответам: закрыто {len(d['closed'])} из {len(d['closed']) + len(d['remains'])} связанных замечаний, "
-          f"осталось {len(d['remains'])}; новых последствий ответов: {len(d['new'])}.", "",
+          f"осталось {len(d['remains'])}; новых последствий ответов: {len(new_groups)}.", "",
           f"Переписано требований: {len(d['rewritten'])} ({', '.join(d['rewritten'])}). Перепроверка: Аудитор и "
           f"Кросс-проверка на переписанных требованиях и соседних, затем сверка. Вызовов модели: {d['calls']}, "
           f"{d['seconds']} с. Замечания на переписанном тексте ссылаются на номер требования и его новую формулировку; "
@@ -229,10 +270,13 @@ def render_delta(d: dict) -> str:
         md += ["Оценка модели по сверке недоступна: закрытыми ничего не считаем.", ""]
     if not d["cross_ok"]:
         md += ["Кросс-проверка не ответила: новые противоречия могли остаться незамеченными.", ""]
-    for title, key in (("Закрыто ответами", "closed"), ("Осталось", "remains"), ("Появилось новое", "new")):
+    for title, key in (("Закрыто ответами", "closed"), ("Осталось", "remains")):
         md += [f"### {title} ({len(d[key])})", ""]
         md += [_line(f, w) for f, w in d[key]] or ["- нет"]
         md.append("")
+    md += [f"### Появилось новое ({len(new_groups)})", ""]
+    md += [_group_line(g) for g in new_groups] or ["- нет"]
+    md.append("")
     md += [f"Не показано как шум: {d['noise']} замечаний о дублировании и единичности между переписанными "
            f"текстами этого же прогона.",
            f"Не относятся к ответам: на переписанных требованиях осталось {d['untouched']} старых замечаний, "

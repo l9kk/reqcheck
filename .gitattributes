@@ -4,3 +4,4 @@
 *.mp4 binary
 *.docx binary
 *.ttf binary
+eval/stress/s2_tiny.txt -text

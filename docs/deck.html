@@ -72,9 +72,9 @@
   .block.wide { grid-column: 1 / -1; }
 
   /* report excerpt */
-  .lead { font-size: 21px; margin: -8px 0 24px; }
+  .lead { font-size: 21px; margin: -8px 0 16px; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-  .card { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 20px 24px; font-size: 18px; line-height: 1.38; }
+  .card { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 16px 22px; font-size: 18px; line-height: 1.38; }
   .card .head { font-weight: 600; font-size: 20px; margin-bottom: 10px; }
   .card blockquote { margin: 0 0 10px; padding: 8px 14px; background: var(--soft); border-left: 3px solid var(--accent); }
   .card .where { display: block; font-size: 15px; margin-top: 3px; }
@@ -84,14 +84,14 @@
 
   /* tables */
   table { border-collapse: collapse; width: 100%; font-size: 19px; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-weight: 600; font-size: 17px; border-bottom: 2px solid var(--ink); }
   td.n, th.n { text-align: right; }
-  .notes { margin-top: 16px; font-size: 17px; }
+  .notes { margin-top: 12px; font-size: 17px; }
   .notes li { margin-bottom: 6px; }
 
   /* diagram */
-  .diagram { width: 1120px; height: 310px; display: block; }
+  .diagram { width: 1120px; height: 279px; display: block; }
   .diagram text { font-family: "Noto Sans", "Liberation Sans", sans-serif; fill: var(--ink); }
   .dnotes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 18px; font-size: 19px; }
   .dnotes b { display: block; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
@@ -106,13 +106,18 @@
   .repo { font-size: 30px; font-weight: 600; color: var(--accent); }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
   .two ul { font-size: 19px; }
+
+  /* screenshot */
+  .shot { display: grid; grid-template-columns: 736px 1fr; gap: 36px; align-items: start; }
+  .shot img { width: 736px; height: 460px; display: block; border: 1px solid var(--line); }
+  .shot ul { font-size: 20px; margin-top: 4px; }
 </style>
 </head>
 <body>
 
 <!-- 1 -->
 <section class="slide s1">
-  <h1>reqcheck v1.5</h1>
+  <h1>reqcheck v1.6</h1>
   <div class="sub">Агент проверки требований: дефекты в ТЗ до начала разработки</div>
   <div class="rule"></div>
   <div class="grid">
@@ -132,11 +137,11 @@
 <section class="slide">
   <h2>Чем отличается</h2>
   <div class="blocks">
-    <div class="block"><b>Вопросы с вариантами</b><p>Кому вопрос, 2-3 варианта, каждый проверяется тестом, рекомендуемый вариант и какие замечания он закроет. Три главных на первом экране.</p></div>
+    <div class="block"><b>Вопросы с вариантами</b><p>Кому вопрос, 2-3 варианта с тестом, рекомендация и какие замечания она закроет. Роль Reconciler подгоняет исправления замечаний под рекомендацию.</p></div>
     <div class="block"><b>Цикл ответов</b><p>Ответ, новая формулировка с критериями «Дано, Когда, Тогда», перепроверка, отчёт о разнице: закрыто, осталось, появилось.</p></div>
     <div class="block"><b>Свои проверки качества</b><p>3 документа с разметкой, строгая ручная проверка, стресс-набор из <span class="num">8</span> документов с ловушками, абляция, тест на подгонку.</p></div>
     <div class="block"><b>Повтор без ключа</b><p>Ответы модели лежат в <code>.cache/llm</code>. Повтор отчёта: <span class="num">0</span> запросов к модели, тот же результат.</p></div>
-    <div class="block wide"><b>Цитаты с номерами строк</b><p>Каждую цитату модели код ищет в документе и сам ставит номер строки. Близкую заменяет строкой документа, ненайденную выбрасывает.</p></div>
+    <div class="block wide"><b>Цитаты с номерами строк</b><p>Каждую цитату модели код ищет в документе и сам ставит номер строки. Близкую заменяет строкой документа, ненайденную выбрасывает. Отчёт в md, pdf, json и html.</p></div>
   </div>
   <div class="foot"><span>reqcheck</span><span>2</span></div>
 </section>
@@ -144,7 +149,7 @@
 <!-- 3 -->
 <section class="slide">
   <h2>Что получает QA-лид</h2>
-  <p class="lead">Отчёт по выданному ТЗ: <span class="num">44</span> требования, <span class="num">55</span> замечаний, из них <span class="num">6</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».<br>Ориентир, не замер: по норме Gilb внимательный ревьюер тратит на это ТЗ больше <span class="num">2</span> ч; прогон агента стоит около <span class="num">$2.3</span> по токенам.</p>
+  <p class="lead">Отчёт по выданному ТЗ: <span class="num">44</span> требования, <span class="num">55</span> замечаний, из них <span class="num">6</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».<br>Оценка, не замер: вручную это ТЗ <span class="num">0.3-2.3</span> ч и <span class="num">730-21 800 ₸</span> по нормам Porter, Wiegers, Gilb. Прогон агента около <span class="num">1 110 ₸</span> на Claude или <span class="num">0 ₸</span> на Gemini. Дефект требований, найденный только на тестах, в <span class="num">21-78</span> раз дороже (NASA, 2004).</p>
   <div class="cols">
     <div class="card">
       <div class="head">D-01, критично, Корректное</div>
@@ -160,13 +165,29 @@
         <li>(б) Да, если порог сохранён с другим значением</li>
         <li>(в) Да, при любом сохранении порога</li>
       </ol>
-      <p>Рекомендация: вариант 2, он сохраняет смысл Ф-4 и не даёт лишнего push при сохранении того же порога.</p>
+      <p>Рекомендация: Вариант (б), он сохраняет смысл Ф-4 и не даёт лишнего push при сохранении того же порога.</p>
     </div>
   </div>
-  <div class="foot"><span>reqcheck: выдержка из report/report.md</span><span>3</span></div>
+  <div class="foot"><span>reqcheck: report/report.md; оценка: docs/details.md, «Ценность в тенге»</span><span>3</span></div>
 </section>
 
 <!-- 4 -->
+<section class="slide">
+  <h2>Отчёт в браузере</h2>
+  <div class="shot">
+    <img src="img/report-html.png" alt="report.html: ТЗ с номерами строк слева, замечания справа">
+    <ul class="plain">
+      <li>Файл <code>report.html</code> рядом с md, pdf и json.</li>
+      <li>Слева ТЗ с номерами строк, справа замечания.</li>
+      <li>Клик по замечанию подсвечивает его цитату в тексте.</li>
+      <li>Фильтр по важности и поиск.</li>
+      <li>Один файл без внешних ссылок, открывается без сервера.</li>
+    </ul>
+  </div>
+  <div class="foot"><span>reqcheck: report/report.html</span><span>4</span></div>
+</section>
+
+<!-- 5 -->
 <section class="slide">
   <h2>Цикл ответов</h2>
   <div class="blocks">
@@ -174,17 +195,17 @@
     <div class="block"><b>2. Новая формулировка</b><p>Переписанное требование и критерии приёмки «Дано, Когда, Тогда».</p></div>
     <div class="block"><b>3. Перепроверка</b><p>Auditor и CrossChecker проверяют переписанные и соседние требования.</p></div>
     <div class="block"><b>4. Разница</b><p>Что закрыто, что осталось и почему, что появилось из-за самих ответов.</p></div>
-    <div class="block wide"><b>Пример на этом отчёте</b><p><span class="num">10</span> ответов, переписано <span class="num">25</span> требований. Закрыто <span class="num">7</span> из <span class="num">21</span> связанного замечания, в том числе критичное D-04. Появилось <span class="num">19</span> новых: например, push теперь разрешён на каждое значение порога, а хранится один признак отправки на месяц. Это видно до разработки.</p></div>
+    <div class="block wide"><b>Пример на этом отчёте</b><p><span class="num">10</span> ответов, переписано <span class="num">25</span> требований. Закрыто <span class="num">8</span> из <span class="num">21</span> связанного замечания, в том числе критичные D-04, D-05 и D-06. Критичных на изменённых требованиях было <span class="num">5</span>, стало <span class="num">3</span>. Появилось <span class="num">13</span> новых: например, критичное N-70, по R-06 расходы растут при авторизации, а по R-09 при проведении. Это видно до разработки.</p></div>
   </div>
-  <div class="foot"><span>reqcheck: examples/answers/</span><span>4</span></div>
+  <div class="foot"><span>reqcheck: examples/answers/requirements.report.answers.md</span><span>5</span></div>
 </section>
 
-<!-- 5 -->
+<!-- 6 -->
 <section class="slide">
   <h2>Конвейер и один промпт на той же модели</h2>
   <table>
     <thead>
-      <tr><th>На нашей разметке, claude-opus-5-5</th><th class="n">Конвейер v1.5</th><th class="n">Один промпт</th></tr>
+      <tr><th>На нашей разметке, claude-opus-5-5</th><th class="n">Конвейер v1.6</th><th class="n">Один промпт</th></tr>
     </thead>
     <tbody>
       <tr><td>Выданное ТЗ, найдено по score.py / строго</td><td class="n"><span class="num">40/40 / 39/40</span></td><td class="n"><span class="num">36 и 35 / 36 и 34 из 40</span></td></tr>
@@ -193,20 +214,21 @@
       <tr><td>autotopup: найдено / обязательные</td><td class="n"><span class="num">18/18 / 8/8</span></td><td class="n"><span class="num">18/18 / 8/8</span></td></tr>
       <tr><td>cashback: найдено / обязательные</td><td class="n"><span class="num">20/20 / 9/9</span></td><td class="n"><span class="num">19/20 / 8/9</span></td></tr>
       <tr><td>Вопросы с вариантами, цикл ответов</td><td class="n">да</td><td class="n">нет</td></tr>
+      <tr><td>Выданное ТЗ, вызовов модели / цена по токенам</td><td class="n"><span class="num">9 / около $2.4</span></td><td class="n"><span class="num">1 / $0.34 и $0.26</span></td></tr>
     </tbody>
   </table>
   <ul class="plain notes">
-    <li>Конвейер в прогонах v1.4 и v1.5 не пропустил ни одного обязательного дефекта. Один промпт на cashback пропустил B07, на выданном ТЗ он немного точнее.</li>
+    <li>Конвейер в прогонах v1.4, v1.5 и v1.6 не пропустил ни одного обязательного дефекта. Один промпт на cashback пропустил B07, на выданном ТЗ он немного точнее.</li>
     <li>Один промпт написан после чтения нашей разметки выданного ТЗ. Конвейер тоже меняли после прогонов на этих документах.</li>
-    <li>Выданное ТЗ, строго: все <span class="num">6</span> критичных как «критично» (G03 только через одно предложение в D-05), <span class="num">48</span> из <span class="num">55</span> замечаний реальные, неверных <span class="num">0</span>.</li>
+    <li>Выданное ТЗ, строго (v1.5, замечания в v1.6 те же): все <span class="num">6</span> критичных как «критично» (G03 только через одно предложение в D-05), <span class="num">48</span> из <span class="num">55</span> замечаний реальные, неверных <span class="num">0</span>.</li>
   </ul>
-  <div class="foot"><span>reqcheck: eval/score.py, eval/handcheck_v1.5.md, eval/baseline/README.md, 27.11.2026</span><span>5</span></div>
+  <div class="foot"><span>reqcheck: eval/score.py, eval/handcheck_v1.5.md, eval/baseline/README.md, 27.11.2026</span><span>6</span></div>
 </section>
 
-<!-- 6 -->
+<!-- 7 -->
 <section class="slide">
   <h2>Как устроен агент</h2>
-  <svg class="diagram" viewBox="0 0 1120 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Конвейер ролей агента">
+  <svg class="diagram" viewBox="0 0 1246 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Конвейер ролей агента">
     <defs>
       <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#1a1f24"/>
@@ -223,6 +245,7 @@
       <path d="M740,238 C748,238 746,150 754,150"/>
       <line x1="866" y1="150" x2="880" y2="150"/>
       <line x1="992" y1="150" x2="1006" y2="150"/>
+      <line x1="1118" y1="150" x2="1132" y2="150"/>
     </g>
     <g fill="none" stroke="#0b6e6e" stroke-width="1.5" stroke-dasharray="5 4">
       <rect x="375" y="115" width="116" height="70"/>
@@ -234,7 +257,7 @@
     <g fill="#ffffff" stroke="#1a1f24" stroke-width="1.6">
       <rect x="0" y="118" width="110" height="64"/>
       <rect x="252" y="118" width="110" height="64"/>
-      <rect x="1008" y="118" width="110" height="64"/>
+      <rect x="1134" y="118" width="110" height="64"/>
     </g>
     <g fill="#ffffff" stroke="#0b6e6e" stroke-width="2.2">
       <rect x="126" y="118" width="110" height="64"/>
@@ -244,6 +267,7 @@
       <rect x="504" y="206" width="236" height="64"/>
       <rect x="756" y="118" width="110" height="64"/>
       <rect x="882" y="118" width="110" height="64"/>
+      <rect x="1008" y="118" width="110" height="64"/>
     </g>
     <g font-size="15" font-weight="600" text-anchor="middle">
       <text x="55" y="146">Reader</text>
@@ -255,7 +279,8 @@
       <text x="622" y="234">WholeDoc</text>
       <text x="811" y="146">Critic</text>
       <text x="937" y="146">Clarifier</text>
-      <text x="1063" y="146">Отчёт</text>
+      <text x="1063" y="146">Reconciler</text>
+      <text x="1189" y="146">Отчёт</text>
     </g>
     <g font-size="13" text-anchor="middle">
       <text x="55" y="168">код</text>
@@ -267,7 +292,8 @@
       <text x="622" y="256">модель, весь документ</text>
       <text x="811" y="168">модель</text>
       <text x="937" y="168">модель</text>
-      <text x="1063" y="168">код</text>
+      <text x="1063" y="168">модель</text>
+      <text x="1189" y="168">код</text>
     </g>
     <g font-size="14">
       <rect x="0" y="288" width="22" height="14" fill="#fff" stroke="#1a1f24" stroke-width="1.6"/>
@@ -283,18 +309,18 @@
     <div><b>Вердикт считает код</b>По числу критичных и важных замечаний. Модель не ставит его сама, но важность замечаний задаёт она.</div>
     <div><b>Плохие входы</b>Пустой, битый, зашифрованный файл, скан, не ТЗ: вместо падения раздел «Диагностика».</div>
   </div>
-  <div class="foot"><span>reqcheck: README, раздел «Как устроен агент»</span><span>6</span></div>
+  <div class="foot"><span>reqcheck: README, раздел «Как работает»; 9 вызовов модели на выданном ТЗ</span><span>7</span></div>
 </section>
 
-<!-- 7 -->
+<!-- 8 -->
 <section class="slide">
   <h2>Слабые места и запуск</h2>
   <div class="two">
     <ul class="plain">
-      <li>cashback уже не слепая проверка: v1.5 настраивали после того, как видели на нём результаты. Дефект возвратов B04 теперь «важно».</li>
-      <li>Часть рекомендаций в вопросах спорит с исправлениями в замечаниях. Отчёт помечает их «окончательно после ответа на Q-xx».</li>
+      <li>cashback уже не слепая проверка: v1.5 и v1.6 настраивали после того, как видели на нём результаты. Дефект возвратов B04 теперь «важно».</li>
+      <li>Спорных вопросов на выданном ТЗ в v1.5 было <span class="num">4-8</span> из <span class="num">10</span> (два слепых проверяющих), с Reconciler <span class="num">2</span> из <span class="num">10</span>: Q-03 и Q-05 спорят друг с другом, в отчёте пометка «Внимание».</li>
       <li>Почти чистый документ стресс-набора всё ещё получает «Нет».</li>
-      <li>Один прогон на документ, разброс не измерен. Конвейер тратит больше токенов, чем один промпт.</li>
+      <li>Один прогон на документ, разброс не измерен. Экономию времени не мерили, суммы в тенге это оценка по нормам.</li>
     </ul>
     <div>
 <pre class="cmd"><span class="pr">$</span> git clone https://github.com/l9kk/reqcheck
@@ -306,7 +332,7 @@
       <div class="repo">github.com/l9kk/reqcheck</div>
     </div>
   </div>
-  <div class="foot"><span>reqcheck: README, docs/qa.md</span><span>7</span></div>
+  <div class="foot"><span>reqcheck: README, docs/qa.md, eval/reconciler_check.md</span><span>8</span></div>
 </section>
 
 </body>

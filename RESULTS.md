@@ -13,7 +13,7 @@
 | То же, строгая проверка (каждое совпадение прочитал отдельный агент) | 39 из 40 | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | читать таблицу G01-G40 |
 | Критичные распознаны как критичные | 6 из 6 | то же | то же, строка `Critical found as critical` |
 | Замечания агента, оказавшиеся реальными дефектами | 48 из 55 (87%), ложных 0 | [`eval/handcheck_v1.5.md`](eval/handcheck_v1.5.md) | раздел Precision |
-| Строгая проверка v1.5 относится к v1.6 | 55 замечаний те же, кроме текстов исправлений | [`eval/handcheck_v1.5_input.json`](eval/handcheck_v1.5_input.json) | `python eval/same_findings.py eval/handcheck_v1.5_input.json report/report.json` |
+| Строгую проверку делали на v1.5, она верна и для текущего отчёта | 55 замечаний те же, отличаются только тексты исправлений | [`eval/handcheck_v1.5_input.json`](eval/handcheck_v1.5_input.json) | `python eval/same_findings.py eval/handcheck_v1.5_input.json report/report.json` |
 | Вопросы к автору | 10, у каждого адресат, варианты и рекомендация; у 7 из 10 к вариантам приложен тест | [`report/report.md`](report/report.md) | раздел «Вопросы» |
 | Один промпт на той же модели, 2 прогона | 36 и 35 из 40 автоматически, 36 и 34 строго | [`eval/baseline/README.md`](eval/baseline/README.md) | таблица Task doc, строки Auto recall и Strict recall |
 | Разброс: ещё 2 прогона без кэша (v1.6.2) | 39 и 38 из 40 (закоммиченный 40); в каждом из 3 прогонов критичные 6 из 6, важные 25 из 25, обязательные 13 из 13; точность 86% и 90%, около 11 мин на прогон | [`eval/variance.md`](eval/variance.md) | `python eval/score.py eval/variance/run2.json`, то же для `run3.json` и `report/report.json` |

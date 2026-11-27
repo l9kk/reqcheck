@@ -119,8 +119,8 @@ LLM_MODEL=gemini-3.5-flash
 python -m reqcheck input/requirements.md -o out/gemini/report.md
 ```
 
-На v1.2 `gemini-3.5-flash` нашёл 23 из 40 при строгой проверке (`git show v1.3:eval/manual_check.md`,
-строка 9). На v1.5 Gemini не мерили, поэтому с числами `claude-opus-5-5` это напрямую не сравнить.
+В отчёте из тега v1.2 (его сделал код v1.1, в паспорте «0.1.0 (v1.1)») `gemini-3.5-flash` нашёл 23 из 40
+при строгой проверке (`git show v1.3:eval/manual_check.md`, строка 9). На v1.5 Gemini не мерили, поэтому с числами `claude-opus-5-5` это напрямую не сравнить.
 Если кончится дневная квота, агент напишет это в разделе «Диагностика».
 
 ### 4. Anthropic (на этой модели сделаны отчёты в репозитории)

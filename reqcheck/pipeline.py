@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 AUDIT_BATCH = 22
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
 REQ_MARKERS = re.compile(r"должн|требовани|обязан|систем|сервис|пользовател|клиент|приложени|\bapi\b|shall|must|"
-                         r"requirement|функциональн|интеграц|запрос|ответ", re.I)
+                         r"requirement|функциональн|интеграц|запрос|ответ|"
+                         r"талап|талаб|жүйе|қажет|тиіс|керек|міндетт|пайдаланушы|сұраныс|жауап", re.I)
 ASSUME_TAG = "[предложение, согласовать]"
 NUM_RE = re.compile(r"(?<!\w)(?<![^\W\d_]-)(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+(?:[.,]\d+)?)(?!\d)")
 

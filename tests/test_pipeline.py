@@ -373,6 +373,29 @@ class GeneralizedRulesTest(unittest.TestCase):
         self.assertIn("предел", step)
 
 
+class KazakhDocTest(unittest.TestCase):
+    TEXT = """# Карта бойынша шығындар туралы хабарлама: талаптар
+
+1. Жүйе клиенттің айлық шығын сомасын әр сатып алудан кейін есептеуі тиіс.
+2. Шекті мән 1 000-нан 1 000 000 теңгеге дейін болуы керек.
+3. Сома шекті мәннен асқанда жүйе бір push-хабарлама жіберуі қажет.
+4. Пайдаланушы хабарламаны мобильді қосымшада өшіре алуы міндетті.
+5. Аударымдар мен қолма-қол ақша алу есепке алынбауы тиіс.
+6. Хабарлама сатып алудан кейін 60 секунд ішінде жеткізілуі керек.
+"""
+
+    def test_kazakh_requirements_not_rejected_without_model(self):
+        from reqcheck.llm import LLM
+        from reqcheck.pipeline import Pipeline
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "kk.md"
+            p.write_text(self.TEXT, encoding="utf-8")
+            with mock.patch.dict(os.environ, {"LLM_PROVIDER": "openai_compat", "LLM_API_KEY": ""}):
+                rep = Pipeline(LLM(use_cache=False), log=lambda m: None).run(str(p))
+        self.assertNotIn("not_requirements", [d.code for d in rep.diagnostics])
+        self.assertEqual(len(rep.requirements), 6)
+
+
 class PipelineMockTest(unittest.TestCase):
     def test_full_report_sections(self):
         with tempfile.TemporaryDirectory() as d:

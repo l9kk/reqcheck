@@ -57,12 +57,18 @@
   ul.plain li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 8px; height: 8px; background: var(--accent); }
 
   /* title */
-  .s1 h1 { font-size: 64px; line-height: 1.1; margin-top: 56px; }
-  .s1 .sub { font-size: 30px; margin-top: 14px; }
-  .s1 .rule { width: 96px; height: 4px; background: var(--accent); margin: 44px 0 36px; }
+  .s1 h1 { font-size: 64px; line-height: 1.1; margin-top: 16px; }
+  .s1 .sub { font-size: 30px; margin-top: 12px; }
+  .s1 .rule { width: 96px; height: 4px; background: var(--accent); margin: 32px 0 28px; }
   .s1 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; max-width: 1080px; }
   .s1 .label { font-weight: 600; color: var(--accent); margin-bottom: 8px; font-size: 22px; }
-  .s1 .grid p { font-size: 24px; }
+  .s1 .grid p { font-size: 22px; margin: 0; }
+  .proof { display: grid; grid-template-columns: 1.15fr 1fr 1fr; margin-top: 40px; border-top: 1px solid var(--line); }
+  .proof > div { padding: 20px 24px 0 0; }
+  .proof > div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+  .proof .fig { font-size: 52px; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .proof .fig.key { color: var(--accent); }
+  .proof .cap { font-size: 18px; line-height: 1.35; margin-top: 10px; color: #4a535b; }
 
   /* blocks */
   .blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 56px; margin-top: 4px; }
@@ -130,6 +136,11 @@
       <p>Одна команда: на входе ТЗ, на выходе отчёт с цитатами и номерами строк, вопросы автору с вариантами и перепроверка после ответов.</p>
     </div>
   </div>
+  <div class="proof">
+    <div><div class="fig key">39 из 40</div><div class="cap">дефектов выданного ТЗ из нашего списка, ручная строгая проверка</div></div>
+    <div><div class="fig">6 из 6</div><div class="cap">критичных распознаны как критичные</div></div>
+    <div><div class="fig">14 мин</div><div class="cap">прогон на Claude, около 1 110 ₸; на бесплатном Gemini 0 ₸</div></div>
+  </div>
   <div class="foot"><span>BCC-HUB x MNU FinTech Hackathon</span><span>1</span></div>
 </section>
 
@@ -149,7 +160,7 @@
 <!-- 3 -->
 <section class="slide">
   <h2>Что получает QA-лид</h2>
-  <p class="lead">Отчёт по выданному ТЗ: <span class="num">44</span> требования, <span class="num">55</span> замечаний, из них <span class="num">6</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».<br>Оценка, не замер: вручную это ТЗ <span class="num">0.3-2.3</span> ч и больше, <span class="num">730-21 800 ₸</span> и больше по нормам Porter, Wiegers, Gilb. Прогон агента около <span class="num">1 110 ₸</span> на Claude или <span class="num">0 ₸</span> на Gemini. Дефект требований, найденный только на тестах, в <span class="num">21-78</span> раз дороже (NASA, 2004).</p>
+  <p class="lead">Отчёт по выданному ТЗ: <span class="num">44</span> требования, <span class="num">55</span> замечаний, из них <span class="num">6</span> критичных, <span class="num">10</span> вопросов автору. Вердикт: «Нет».<br>Оценка, не замер: вручную <span class="num">0.3-2.3</span> ч и больше (<span class="num">730-21 800 ₸</span>, нормы Porter, Wiegers, Gilb), агент около <span class="num">1 110 ₸</span>. Дефект, найденный только на тестах, в <span class="num">21-78</span> раз дороже (NASA, 2004).</p>
   <div class="cols">
     <div class="card">
       <div class="head">D-01, критично, Корректное</div>

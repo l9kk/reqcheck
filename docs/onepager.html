@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>reqcheck: проверка ТЗ до разработки</title>
+<style>
+@page { size: A4; margin: 15mm 16mm 14mm; }
+:root {
+  --ink: #161b20;
+  --muted: #56616b;
+  --line: #cfd6db;
+  --accent: #0b6e6e;
+  --accent-soft: #e6f1f0;
+  --crit: #b3261e;
+  --crit-soft: #fbeceb;
+  --paper: #ffffff;
+  --sans: "Noto Sans", "Liberation Sans", sans-serif;
+  --mono: "Noto Sans Mono", "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+body {
+  font-family: var(--sans);
+  font-size: 9.6pt;
+  line-height: 1.42;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.page { height: 267mm; display: flex; flex-direction: column; }
+h2 {
+  font-size: 10.5pt;
+  font-weight: 700;
+  margin: 0 0 2.4mm;
+  color: var(--ink);
+}
+p { margin: 0; }
+
+/* Header */
+.head { display: flex; justify-content: space-between; align-items: baseline; }
+.name { font-size: 34pt; font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin: 0; }
+.url { font-family: var(--mono); font-size: 9.5pt; color: var(--accent); }
+.lede { font-size: 15pt; line-height: 1.35; margin-top: 4mm; max-width: 158mm; text-wrap: balance; }
+
+/* Numbers */
+.proof { margin-top: 11mm; border-top: 1.4pt solid var(--ink); padding-top: 2.6mm; }
+.proof-cap { font-size: 8.6pt; color: var(--muted); }
+.nums { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 3.5mm; }
+.num { padding: 0 4mm; border-left: 0.6pt solid var(--line); }
+.num:first-child { padding-left: 0; border-left: 0; }
+.big {
+  font-size: 32pt; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums; white-space: nowrap;
+}
+.big small { font-size: 15pt; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.big { position: relative; padding-top: 4.6mm; }
+.big .pre { position: absolute; top: 0; left: 0; font-size: 8.6pt; font-weight: 400; color: var(--muted); letter-spacing: 0; line-height: 1; }
+.num p { margin-top: 2.2mm; font-size: 9pt; line-height: 1.35; }
+
+/* Pipeline */
+.flow { margin-top: 12mm; }
+.strip { display: flex; align-items: center; gap: 0; }
+.role {
+  font-size: 8pt; line-height: 1.2; padding: 1.5mm 2mm; border-radius: 1.2mm;
+  background: var(--accent-soft); color: #0a4f4f; border: 0.6pt solid var(--accent-soft);
+  white-space: nowrap; text-align: center;
+}
+.role.code { background: var(--paper); color: var(--ink); border-color: var(--line); }
+.role.out { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.stack { display: flex; flex-direction: column; gap: 1mm; }
+.arrow { flex: 1 1 0; min-width: 2.2mm; height: 6px; display: block; }
+.arrow svg { width: 100%; height: 6px; display: block; }
+.flow-note { margin-top: 2.6mm; font-size: 8.6pt; color: var(--muted); display: flex; gap: 5mm; flex-wrap: wrap; }
+.key { display: inline-block; width: 3mm; height: 2.4mm; border-radius: 0.6mm; vertical-align: -0.2mm; margin-right: 1.2mm; }
+.key.m { background: var(--accent-soft); }
+.key.c { border: 0.6pt solid var(--line); }
+
+/* Lower block */
+.lower { margin-top: 12mm; display: grid; grid-template-columns: 1.18fr 1fr; gap: 9mm; }
+.doc { border: 0.6pt solid var(--line); border-radius: 1.6mm; overflow: hidden; }
+.doc-lines { font-family: var(--mono); font-size: 8pt; line-height: 1.45; background: #f6f8f9; padding: 2.4mm 3mm; border-bottom: 0.6pt solid var(--line); }
+.doc-lines div { display: grid; grid-template-columns: 6mm 1fr; }
+.doc-lines .ln { color: var(--muted); }
+.doc-body { padding: 2.8mm 3mm 3mm; }
+.finding { display: flex; gap: 2mm; align-items: baseline; }
+.id { font-family: var(--mono); font-size: 8.4pt; font-weight: 600; white-space: nowrap; }
+.tag { font-size: 7.6pt; font-weight: 600; color: var(--crit); background: var(--crit-soft); border-radius: 1mm; padding: 0.2mm 1.4mm; white-space: nowrap; }
+.tag.q { color: #0a4f4f; background: var(--accent-soft); }
+.finding + .finding { margin-top: 2.4mm; }
+.reco { margin-top: 1mm; color: var(--muted); }
+
+.value p { font-size: 9.6pt; }
+.value p + p { margin-top: 1.6mm; }
+.value strong { font-weight: 700; }
+.limits { margin-top: 6mm; }
+.limits ul { margin: 0; padding: 0; list-style: none; }
+.limits li { padding-left: 3.4mm; position: relative; }
+.limits li + li { margin-top: 1.2mm; }
+.limits li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 1.4mm; height: 0.6pt; background: var(--muted); }
+
+/* Run */
+.run { margin-top: auto; border-top: 1.4pt solid var(--ink); padding-top: 3mm; display: grid; grid-template-columns: 1fr auto; gap: 6mm; align-items: end; }
+.run pre {
+  margin: 1.6mm 0 0; font-family: var(--mono); font-size: 8.6pt; line-height: 1.5;
+  background: var(--ink); color: #eef2f4; padding: 2.6mm 3.4mm; border-radius: 1.4mm; white-space: pre;
+}
+.run .side { font-size: 8.6pt; color: var(--muted); text-align: right; line-height: 1.5; }
+.run .side .url { font-size: 10pt; display: block; margin-bottom: 1mm; }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header>
+    <div class="head">
+      <h1 class="name">reqcheck</h1>
+      <span class="url">github.com/l9kk/reqcheck</span>
+    </div>
+    <p class="lede">Агент проверяет ТЗ до разработки: находит дефекты требований по ISO/IEC/IEEE 29148 и задаёт автору вопросы с вариантами ответа.</p>
+  </header>
+
+  <section class="proof">
+    <p class="proof-cap">Выданное ТЗ, модель claude-opus-5-5. Числа и команды для их проверки: RESULTS.md</p>
+    <div class="nums">
+      <div class="num">
+        <div class="big">39 <small>из 40</small></div>
+        <p>дефектов из нашего списка найдено при строгой проверке</p>
+      </div>
+      <div class="num">
+        <div class="big">6 <small>из 6</small></div>
+        <p>критичных распознаны как критичные</p>
+      </div>
+      <div class="num">
+        <div class="big">48 <small>из 55</small></div>
+        <p>замечаний оказались реальными дефектами, ложных 0</p>
+      </div>
+      <div class="num">
+        <div class="big"><span class="pre">около</span>1 110 <small>₸</small></div>
+        <p>и около 14 минут на один прогон</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="flow">
+    <h2>Как работает</h2>
+    <div class="strip" aria-label="Роли агента по порядку">
+      <span class="role code">Reader</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role">Segmenter</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role code">Linter</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role">Auditor</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="stack">
+        <span class="role">CrossChecker</span>
+        <span class="role">EdgeCaser</span>
+        <span class="role">WholeDoc</span>
+      </span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role">Critic</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role">Clarifier</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role">Reconciler</span>
+      <span class="arrow"><svg viewBox="0 0 20 6" preserveAspectRatio="none"><path d="M0 3H18" stroke="#8a969f" stroke-width="1"/><path d="M15 0.5L19.5 3L15 5.5" fill="none" stroke="#8a969f" stroke-width="1"/></svg></span>
+      <span class="role out">Отчёт</span>
+    </div>
+    <div class="flow-note">
+      <span><i class="key m"></i>роль модели</span>
+      <span><i class="key c"></i>код</span>
+      <span>Вход PDF, DOCX, MD, TXT. Отчёт MD, PDF, JSON, HTML. Номер строки к каждой цитате ставит код.</span>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="example">
+      <h2>Пример из отчёта</h2>
+      <div class="doc">
+        <div class="doc-lines">
+          <div><span class="ln">39</span><span>«На карту приходится максимум один такой push за календарный месяц»</span></div>
+          <div><span class="ln">40</span><span>«следующее достижение вызывает push независимо от истории предыдущей настройки»</span></div>
+        </div>
+        <div class="doc-body">
+          <div class="finding">
+            <span class="id">D-01</span><span class="tag">критично</span>
+            <span>Строки 39 и 40 противоречат друг другу.</span>
+          </div>
+          <div class="finding">
+            <span class="id">Q-01</span><span class="tag q">бизнесу</span>
+            <span>Отправляется ли второй push в том же календарном месяце?
+              <span class="reco">Три варианта с&nbsp;тестом, рекомендован&nbsp;(б).</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="value">
+      <h2>Зачем</h2>
+      <p>Ручная проверка этого ТЗ по нормам ревью: <strong>0.3-2.3 ч и больше.</strong> Агент: один прогон.</p>
+      <p>Дефект требований, найденный только на тестах, в 21-78 раз дороже (NASA, 2004).</p>
+
+      <div class="limits">
+        <h2>Ограничения</h2>
+        <ul>
+          <li>Список дефектов составили мы сами, независимой разметки нет.</li>
+          <li>Строгую проверку делал отдельный агент, не человек.</li>
+          <li>Время живых ревьюеров не засекали: ценность оценена по нормам.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="run">
+    <div>
+      <h2>Запуск</h2>
+      <pre>pip install -r requirements.txt
+python -m reqcheck &lt;ТЗ&gt; -o out/report.md</pre>
+    </div>
+    <div class="side">
+      Повтор на выданном ТЗ без ключа,<br>из кэша: команда в RESULTS.md
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>

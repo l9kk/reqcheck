@@ -165,17 +165,24 @@ def rule_version_date(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
                "Добавить версию, дату и историю изменений.")]
 
 
-def rule_tiyn_tenge(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
-    tiyn = [l.no for l in doc.lines if re.search(r"тиын", l.text, re.I)]
-    tenge = [l.no for l in doc.lines if re.search(r"тенге|₸|\bkzt\b", l.text, re.I)]
-    same = [n for n in tiyn if n in tenge]
-    if not same:
-        return []
-    return [_f("set", "set_consistent", "важно", [g.quote_lines(same[0], same[0])],
-               "В одном требовании суммы хранятся в разных единицах: тиыны и тенге.",
-               "Сравнение и сложение сумм без явного пересчёта дадут ошибку в 100 раз.",
-               "Хранить все суммы в одной единице (тиыны) и указать правило пересчёта.",
-               "Одна и та же сумма в тенге и в тиынах на границе условия: результат должен совпасть.")]
+MONEY_UNITS = [
+    (r"тиын", "тиыны", "тиынах", r"тенге|₸|\bkzt\b", "тенге"),
+    (r"копе[йе]к", "копейки", "копейках", r"рубл|₽|\brub\b", "рубли"),
+    (r"(?<![а-яё])цент|\bcents?\b", "центы", "центах", r"доллар|евро|\$|€|\busd\b|\beur\b|dollar|euro", "доллары или евро"),
+]
+
+
+def rule_mixed_money_units(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
+    for minor, minor_name, minor_loc, major, major_name in MONEY_UNITS:
+        same = next((l.no for l in doc.lines if re.search(minor, l.text, re.I) and re.search(major, l.text, re.I)), None)
+        if same is None:
+            continue
+        return [_f("set", "set_consistent", "важно", [g.quote_lines(same, same)],
+                   f"В одном требовании суммы хранятся в разных единицах: {minor_name} и {major_name}.",
+                   "Сравнение и сложение сумм без явного пересчёта дадут ошибку в 100 раз.",
+                   f"Хранить все суммы в одной единице ({minor_name}) и указать правило пересчёта.",
+                   f"Одна и та же сумма в основной единице и в {minor_loc} на границе условия: результат должен совпасть.")]
+    return []
 
 
 def rule_secrets_in_logs(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
@@ -226,9 +233,15 @@ def rule_get_method_line(doc: Document, lang: dict, g: Grounder) -> list[Finding
                "Повторный GET из кэша не должен менять данные.")]
 
 
+NO_BODY_RE = re.compile(r"тел[оа]\s+(?:запроса\s+)?(?:не\s+(?:используется|передаётся|передается|нужно|требуется)|"
+                        r"отсутствует|пуст)|без\s+тела|пустое\s+тело|тела\s+(?:запроса\s+)?нет|"
+                        r"\bno\s+(?:request\s+)?body\b|body\s+is\s+(?:not\s+used|empty)|body:\s*(?:none|empty)", re.I)
+
+
 def rule_content_type_without_body(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
-    ct = next((l for l in doc.lines if re.search(r"content-type", l.text, re.I) and "json" in l.text.lower()), None)
-    nobody = next((l for l in doc.lines if re.search(r"тело не используется|body is not used|без тела", l.text, re.I)), None)
+    cts = [l for l in doc.lines if re.search(r"content-type", l.text, re.I) and "json" in l.text.lower()]
+    nobodies = [l for l in doc.lines if NO_BODY_RE.search(l.text)]
+    ct, nobody = next(((c, n) for c in cts for n in nobodies if abs(c.no - n.no) <= 10), (None, None))
     if not (ct and nobody):
         return []
     return [_f("set", "set_consistent", "важно", [g.quote_lines(ct.no, ct.no), g.quote_lines(nobody.no, nobody.no)],
@@ -285,7 +298,7 @@ def rule_param_types(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
 
 
 RULES = [rule_weak_words, rule_placeholders, rule_empty_test_section, rule_table_gaps, rule_version_date,
-         rule_tiyn_tenge, rule_secrets_in_logs, rule_get_writes_in_table, rule_get_method_line,
+         rule_mixed_money_units, rule_secrets_in_logs, rule_get_writes_in_table, rule_get_method_line,
          rule_content_type_without_body, rule_undescribed_codes, rule_param_types]
 
 

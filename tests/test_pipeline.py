@@ -338,6 +338,41 @@ class GenericLintTest(unittest.TestCase):
         self.assertEqual([f.severity for f in fs], ["критично"])
 
 
+class GeneralizedRulesTest(unittest.TestCase):
+    def _lint(self, text):
+        with open(ROOT / "criteria.toml", "rb") as f:
+            cr = tomllib.load(f)
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "t.md"
+            p.write_text(text, encoding="utf-8")
+            return lint(read_document(str(p)), cr)
+
+    def test_mixed_money_units_beyond_tenge(self):
+        text = ("# ТЗ\nВерсия 1.0 от 01.02.2026\n\nСистема должна хранить сумму заказа в копейках и лимит в рублях.\n"
+                "Система должна хранить скидку в рублях.\nКомиссия в центах, тариф в долларах.\n")
+        fs = [f for f in self._lint(text) if "разных единицах" in f.problem]
+        self.assertEqual([f.quotes[0].start for f in fs], [4])
+        self.assertIn("копейки и рубли", fs[0].problem)
+
+    def test_content_type_with_other_no_body_wording(self):
+        base = "# API\nВерсия 1.0 от 01.02.2026\n\n## Запрос\nContent-Type: application/json\n{}\n"
+        for phrase in ("Тело запроса отсутствует.", "Запрос без тела.", "Request body: none", "Тело не используется."):
+            with self.subTest(phrase=phrase):
+                fs = [f for f in self._lint(base.format(phrase)) if "Content-Type" in f.problem]
+                self.assertEqual(len(fs), 1)
+        far = base.format("\n" * 12 + "Тело запроса отсутствует.")
+        self.assertFalse([f for f in self._lint(far) if "Content-Type" in f.problem])
+
+    def test_cross_prompt_has_no_sample_wording(self):
+        from reqcheck import roles
+        from reqcheck.pipeline import load_criteria
+        system, _ = roles.cross_prompt(load_criteria(), "d", "r", "k", False)
+        step = system.split("4a.")[1].split("5.")[0]
+        for w in ("максимум", "независимо от", "всегда", "в любом случае"):
+            self.assertNotIn(w, step)
+        self.assertIn("предел", step)
+
+
 class PipelineMockTest(unittest.TestCase):
     def test_full_report_sections(self):
         with tempfile.TemporaryDirectory() as d:

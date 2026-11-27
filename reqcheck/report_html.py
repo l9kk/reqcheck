@@ -536,7 +536,7 @@ h3{font-size:14.5px;margin:28px 0 10px;font-weight:600}
 .tick.t0{background:var(--crit)}.tick.t1{background:var(--major)}
 .lines{overflow:auto;flex:1;min-height:0;padding:10px 0;font:14px/1.65 var(--sans);position:relative;scrollbar-color:var(--line-2) transparent}
 .ln{display:flex;align-items:baseline;gap:12px;padding:0 18px 0 0;border-left:3px solid transparent}
-.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;opacity:.7;font:12px/1.65 var(--mono)}
+.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;font:12px/1.65 var(--mono)}
 .ln .tx{white-space:pre-wrap;overflow-wrap:anywhere;flex:1;min-width:0}
 .ln .tx.r{white-space:normal}
 .md-h1 .tx.r{font:600 19px/1.35 var(--serif);padding-top:6px}
@@ -554,7 +554,7 @@ h3{font-size:14.5px;margin:28px 0 10px;font-weight:600}
 .ln[data-f]{cursor:pointer;border-left-color:var(--mark)}
 .ln.q0{border-left-color:var(--crit)}.ln.q1{border-left-color:var(--major)}
 .ln[data-f]:hover{background:var(--hover)}
-.ln[data-f] .no{opacity:1;color:var(--ink-2)}
+.ln[data-f] .no{color:var(--ink-2)}
 .ln.hl,.ln.hl:hover{background:var(--accent-soft)}.ln.hl .no{color:var(--accent)}
 .ln.pick{box-shadow:inset 0 0 0 1px var(--accent)}
 .fl .tools{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -630,7 +630,7 @@ code{font:12.5px var(--mono)}
 @media (max-width:767px){.bar{position:relative}.brand{flex:1 1 0}.bar-in{padding:10px 16px}.tabs{flex-basis:100%}.bact{flex:none;margin-left:auto}.tbtn span{display:none}.tbtn{width:34px;padding:0}
 .wrap{padding:16px 16px 40px}.hero{padding:24px 20px 22px;border-radius:14px;margin-bottom:20px}.hero h1{font-size:28px}.sub{font-size:14px}
 .verdict{margin-top:20px;padding:14px 16px 16px}.vline{font-size:15px;gap:8px 10px}.pill{font-size:15px}.vtext{font-size:15px}
-.stats{gap:18px 32px;margin-top:22px;padding-top:20px}.big{font-size:34px}.stat-f{flex-basis:100%;order:-1}
+.stats{gap:18px 32px;margin-top:22px;padding-top:20px}.big{font-size:34px}.stat-f{flex-basis:100%;order:-1}.stat-f .big{align-self:center}
 .hero-sub{margin-top:22px;padding-top:20px;gap:24px}
 .chip{flex-wrap:wrap;gap:4px 10px;font-size:14.5px}.chip .ctl{flex-basis:100%}
 .work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}

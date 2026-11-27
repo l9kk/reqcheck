@@ -1250,5 +1250,18 @@ class ParallelTest(unittest.TestCase):
         self.assertIn("[WholeDoc] запрос к модели", lines)
 
 
+class OptionLetterTest(unittest.TestCase):
+    def test_number_becomes_letter(self):
+        from reqcheck.pipeline import option_letter
+        self.assertEqual(option_letter("Вариант 2. Так проще.", ["a", "b", "c"]), "Вариант (б). Так проще.")
+        self.assertEqual(option_letter("вариант 1, потому что", ["a", "b"]), "вариант (а), потому что")
+
+    def test_other_text_kept(self):
+        from reqcheck.pipeline import option_letter
+        self.assertEqual(option_letter("Вариант 5.", ["a", "b"]), "Вариант 5.")
+        self.assertEqual(option_letter("Да, сбросить признак.", ["a", "b"]), "Да, сбросить признак.")
+        self.assertEqual(option_letter("Вариант 1.", []), "Вариант 1.")
+
+
 if __name__ == "__main__":
     unittest.main()

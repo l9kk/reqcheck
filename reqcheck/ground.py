@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 
 from .model import Quote
 from .reader import Document
+from .roles import restore
 
 FENCE_RE = re.compile(r"^\s*```")
 
@@ -31,6 +32,7 @@ class Grounder:
         self.joined = " ".join(self.norm_lines[i] for i in self.content)
 
     def locate(self, quote: str, hint_line: int | None = None) -> Quote | None:
+        quote = restore(quote)
         q = norm(quote).strip(' ."')
         if len(q) < 4:
             i = next((i for i, nl in enumerate(self.norm_lines) if nl.strip(' ."') == q), None) if len(q) == 3 else None

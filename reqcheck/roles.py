@@ -1,3 +1,21 @@
+import re
+
+CLOSE_TAG_RE = re.compile(r"<(\s*/\s*document)", re.I)
+ESCAPED_TAG_RE = re.compile(r"‹(\s*/\s*document)", re.I)
+
+
+def neutralize(text: str) -> str:
+    return CLOSE_TAG_RE.sub(r"‹\1", text)
+
+
+def restore(text: str) -> str:
+    return ESCAPED_TAG_RE.sub(r"<\1", text)
+
+
+def doc_block(text: str) -> str:
+    return f"<document>\n{neutralize(text)}\n</document>"
+
+
 BASE = """Ты - опытный аналитик требований и QA-лид в банке. Ты проводишь статическое ревью документа с требованиями
 до начала разработки по ISO/IEC/IEEE 29148:2018 и IEEE 830-1998.
 
@@ -47,7 +65,7 @@ short: краткая формулировка требования, до 12 с�
 {"doc_title": "...", "is_requirements_doc": true,
  "requirements": [{"candidates": ["C014"], "type": "functional", "doc_id": "REQ-12", "short": "..."}]}
 Если документ вообще не является документом с требованиями, верни is_requirements_doc=false и пустой список."""
-    user = f"<document>\n{cands}\n</document>"
+    user = doc_block(cands)
     return system, user
 
 
@@ -81,7 +99,7 @@ def auditor_prompt(cr: dict, numbered_doc: str, reqs: str) -> tuple[str, str]:
 {{"results": [{{"req_id": "R-01", "fail": ["verifiable"],
   "findings": [{{"criterion": "verifiable", "severity": "критично", "quote": "дословная цитата",
                 "problem": "...", "impact": "...", "fix": "...", "test_hint": "..."}}]}}]}}"""
-    user = f"<document>\n{numbered_doc}\n</document>\n\nТребования для проверки:\n{reqs}"
+    user = f"{doc_block(numbered_doc)}\n\nТребования для проверки:\n{reqs}"
     return system, user
 
 
@@ -143,7 +161,7 @@ comment = одно предложение с привязкой к докуме�
    "problem": "...", "impact": "...", "fix": "...", "test_hint": "..."}}]}}],
  "set_summary": [{{"criterion": "set_complete", "status": "partial", "comment": "..."}}],
  "checklist": [{{"item": "текст строки чек-листа", "value": "Нет", "evidence": "..."}}]}}"""
-    user = f"<document>\n{numbered_doc}\n</document>\n\nТребования (id и строки):\n{reqs}"
+    user = f"{doc_block(numbered_doc)}\n\nТребования (id и строки):\n{reqs}"
     return system, user
 
 
@@ -178,7 +196,7 @@ def edge_prompt(cr: dict, numbered_doc: str, reqs: str, known: str) -> tuple[str
 Схема ответа:
 {{"findings": [{{"edge": "E01", "criterion": "set_complete", "severity": "важно", "quotes": ["дословная цитата"],
    "problem": "...", "impact": "...", "fix": "...", "test_hint": "..."}}]}}"""
-    user = f"<document>\n{numbered_doc}\n</document>\n\nТребования (id и строки):\n{reqs}"
+    user = f"{doc_block(numbered_doc)}\n\nТребования (id и строки):\n{reqs}"
     return system, user
 
 
@@ -215,7 +233,7 @@ def critic_prompt(cr: dict, numbered_doc: str, findings: str) -> tuple[str, str]
 Схема ответа:
 {{"decisions": [{{"id": "F-01", "action": "keep", "into": "", "severity": "критично", "reason": "..."}}],
  "fix_first": ["F-01"]}}"""
-    user = f"<document>\n{numbered_doc}\n</document>\n\nЗамечания:\n{findings}"
+    user = f"{doc_block(numbered_doc)}\n\nЗамечания:\n{findings}"
     return system, user
 
 
@@ -247,7 +265,7 @@ def clarifier_prompt(cr: dict, numbered_doc: str, findings: str) -> tuple[str, s
 Схема ответа:
 {"questions": [{"text": "...", "quotes": ["цитата"], "blocks": "...", "options": ["...", "..."],
   "default": "...", "addressee": "аналитик", "finding_ids": ["F-01"], "answered_in_doc": ""}]}"""
-    user = f"<document>\n{numbered_doc}\n</document>\n\nЗамечания после проверки:\n{findings}"
+    user = f"{doc_block(numbered_doc)}\n\nЗамечания после проверки:\n{findings}"
     return system, user
 
 

@@ -1,8 +1,11 @@
 import datetime as dt
+import os
 import re
 import subprocess
+import threading
 import time
 import tomllib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from . import __version__, roles
@@ -80,6 +83,16 @@ def agent_version() -> str:
         return __version__
 
 
+def default_workers() -> int:
+    try:
+        return max(1, int(os.getenv("REQCHECK_WORKERS", "3")))
+    except ValueError:
+        return 3
+
+
+ROLE_ORDER = ("Segmenter", "Auditor", "CrossChecker", "EdgeCaser", "WholeDoc", "Critic", "Clarifier")
+
+
 def all_criteria(cr: dict) -> dict:
     out = {}
     for group in ("single", "set", "srs"):
@@ -89,19 +102,59 @@ def all_criteria(cr: dict) -> dict:
 
 
 class Pipeline:
-    def __init__(self, llm: LLM, log=print, wholedoc: bool = True):
+    def __init__(self, llm: LLM, log=print, wholedoc: bool = True, workers: int | None = None):
         self.llm = llm
         self.wholedoc = wholedoc
+        self.workers = default_workers() if workers is None else max(1, int(workers))
         self.use_model = True
         self.log = log
+        self._local = threading.local()
+        self._log_lock = threading.Lock()
         self.cr = load_criteria()
         self.crit = all_criteria(self.cr)
         self.drops: list[dict] = []
         self.merged: dict[str, list[str]] = {}
         self.merge_into: dict[str, str] = {}
 
+    @property
+    def drops(self) -> list[dict]:
+        return getattr(self._local, "drops", self._drops)
+
+    @drops.setter
+    def drops(self, value: list[dict]) -> None:
+        self._drops = value
+
     def step(self, name: str, msg: str):
-        self.log(f"[{name}] {msg}")
+        with self._log_lock:
+            self.log(f"[{name}] {msg}")
+
+    def _parallel(self, tasks: list, rep: Report) -> list:
+        """Run tasks (each takes a Report) in a thread pool. Each task writes diagnostics, checks and drops into
+        its own buffers; they are merged in task order, so the result does not depend on timing."""
+        subs = [Report(passport=rep.passport) for _ in tasks]
+        drops: list[list[dict]] = [[] for _ in tasks]
+
+        def call(i):
+            self._local.drops = drops[i]
+            try:
+                return tasks[i](subs[i])
+            finally:
+                del self._local.drops
+
+        if self.workers <= 1 or len(tasks) <= 1:
+            results = [call(i) for i in range(len(tasks))]
+        else:
+            with ThreadPoolExecutor(max_workers=min(self.workers, len(tasks))) as ex:
+                results = list(ex.map(call, range(len(tasks))))
+        for sub, dr in zip(subs, drops):
+            for d in sub.diagnostics:
+                if all((d.level, d.code, d.message) != (x.level, x.code, x.message) for x in rep.diagnostics):
+                    rep.diagnostics.append(d)
+            rep.req_checks.update(sub.req_checks)
+            rep.set_summary += sub.set_summary
+            rep.checklist += sub.checklist
+            self.drops += dr
+        return results
 
     def _bad(self, role: str, item) -> None:
         self.drops.append({"role": role, "reason": "неверный формат элемента", "item": str(item)[:200]})
@@ -161,11 +214,7 @@ class Pipeline:
         if self.use_model and reqs:
             findings += self.audit(numbered, reqs, rep)
             if self.use_model:
-                findings += self.cross(numbered, reqs, findings, rep)
-            if self.use_model:
-                findings += self.edge(numbered, reqs, findings, rep)
-            if self.use_model and self.wholedoc:
-                findings += self.whole(numbered, rep)
+                findings += self.stage2(numbered, reqs, findings, rep)
         self.attach_reqs(findings, reqs)
         findings = self.dedupe(findings)
         for i, f in enumerate(findings, start=1):
@@ -202,7 +251,9 @@ class Pipeline:
 
     def _finish(self, rep: Report, t0: float) -> Report:
         rep.passport["seconds"] = round(time.time() - t0, 1)
+        rank = {r: i for i, r in enumerate(ROLE_ORDER)}
         tr = self.llm.trace
+        tr.sort(key=lambda t: rank.get(t.get("role"), len(rank)))
         rep.trace = tr
         rep.passport["llm_calls"] = sum(1 for t in tr if not t["cached"])
         rep.passport["llm_cached"] = sum(1 for t in tr if t["cached"])
@@ -324,33 +375,49 @@ class Pipeline:
                        test_hint=str(d.get("test_hint", "")).strip(), role=role)
 
     def audit(self, numbered: str, reqs: list[Requirement], rep: Report) -> list[Finding]:
-        out = []
+        batches = [reqs[b:b + AUDIT_BATCH] for b in range(0, len(reqs), AUDIT_BATCH)]
         by_id = {r.id: r for r in reqs}
-        for b in range(0, len(reqs), AUDIT_BATCH):
-            batch = reqs[b:b + AUDIT_BATCH]
-            system, user = roles.auditor_prompt(self.cr, numbered, self.req_table(batch))
-            data = self._llm("Auditor", system, user, rep)
-            if not isinstance(data, dict):
-                if not self.use_model:
-                    break
-                continue
-            for res in self._dicts(data.get("results"), "Auditor"):
-                rid = res.get("req_id")
-                if not isinstance(rid, str):
-                    self._bad("Auditor", res)
-                    continue
-                if rid not in by_id:
-                    continue
-                r = by_id[rid]
-                fail = res.get("fail")
-                r_fail = [c for c in fail if isinstance(c, str) and c in self.crit] if isinstance(fail, list) else []
-                rep.req_checks[rid] = r_fail
-                for d in self._dicts(res.get("findings"), "Auditor"):
-                    f = self._mk(d, "req", "Auditor", [rid], r.quote.start)
-                    if f:
-                        out.append(f)
+        parts = self._parallel([lambda r, b=b: self.audit_batch(numbered, b, by_id, r) for b in batches], rep)
+        out = [f for part in parts for f in part]
         self.step("Auditor", f"замечаний: {len(out)}")
         return out
+
+    def audit_batch(self, numbered: str, batch: list[Requirement], by_id: dict, rep: Report) -> list[Finding]:
+        out = []
+        if not self.use_model:
+            return out
+        system, user = roles.auditor_prompt(self.cr, numbered, self.req_table(batch))
+        data = self._llm("Auditor", system, user, rep)
+        if not isinstance(data, dict):
+            return out
+        for res in self._dicts(data.get("results"), "Auditor"):
+            rid = res.get("req_id")
+            if not isinstance(rid, str):
+                self._bad("Auditor", res)
+                continue
+            if rid not in by_id:
+                continue
+            r = by_id[rid]
+            fail = res.get("fail")
+            r_fail = [c for c in fail if isinstance(c, str) and c in self.crit] if isinstance(fail, list) else []
+            rep.req_checks[rid] = r_fail
+            for d in self._dicts(res.get("findings"), "Auditor"):
+                f = self._mk(d, "req", "Auditor", [rid], r.quote.start)
+                if f:
+                    out.append(f)
+        return out
+
+    def stage2(self, numbered: str, reqs: list[Requirement], known: list[Finding], rep: Report) -> list[Finding]:
+        """CrossChecker then EdgeCaser in one lane, WholeDoc in a parallel lane. EdgeCaser waits for CrossChecker:
+        it gets CrossChecker findings as known, and it must not be sent once the model is lost."""
+        def set_lane(r):
+            out = self.cross(numbered, reqs, known, r)
+            if self.use_model:
+                out += self.edge(numbered, reqs, known + out, r)
+            return out
+
+        lanes = [set_lane] + ([lambda r: self.whole(numbered, r)] if self.wholedoc else [])
+        return [f for part in self._parallel(lanes, rep) for f in part]
 
     def cross(self, numbered: str, reqs: list[Requirement], known: list[Finding], rep: Report) -> list[Finding]:
         has_checklist = "да / нет" in self.doc.text.lower() or "чек-лист" in self.doc.text.lower()
@@ -408,6 +475,8 @@ class Pipeline:
         return out
 
     def whole(self, numbered: str, rep: Report) -> list[Finding]:
+        if not self.use_model:
+            return []
         system, user = roles.wholedoc_prompt(self.cr, numbered)
         data = self._llm("WholeDoc", system, user, rep)
         out = []

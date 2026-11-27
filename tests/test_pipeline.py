@@ -1035,5 +1035,138 @@ class WholeDocTest(unittest.TestCase):
         self.assertNotIn("WholeDoc", [t["role"] for t in llm.trace])
 
 
+class SlowFake(FakeLLM):
+    """FakeLLM whose first Auditor batch is the slowest, so parallel calls finish out of order."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.active = self.peak = 0
+        self.gate = __import__("threading").Lock()
+
+    def json(self, role, system, user):
+        import time
+        with self.gate:
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+        try:
+            first = "R-01 [" in user.split("Требования для проверки:")[-1]
+            time.sleep({"Auditor": 0.08 if first else 0.01, "WholeDoc": 0.05, "CrossChecker": 0.02}.get(role, 0))
+            return super().json(role, system, user)
+        finally:
+            with self.gate:
+                self.active -= 1
+
+
+class ParallelTest(unittest.TestCase):
+    def _run(self, workers, llm=None):
+        from reqcheck.pipeline import Pipeline
+        llm = llm or SlowFake()
+        rep = Pipeline(llm, log=lambda m: None, workers=workers).run(str(DOC))
+        return rep, llm
+
+    @staticmethod
+    def _view(rep):
+        return {"findings": [asdict(f) for f in rep.findings], "questions": [asdict(q) for q in rep.questions],
+                "req_checks": rep.req_checks, "set_summary": rep.set_summary, "drops": rep.drops,
+                "diagnostics": [asdict(d) for d in rep.diagnostics], "verdict": rep.verdict,
+                "checklist": [asdict(c) for c in rep.checklist], "trace": [t["role"] for t in rep.trace]}
+
+    def test_serial_and_parallel_give_identical_reports(self):
+        serial, s_llm = self._run(1)
+        parallel, p_llm = self._run(3)
+        self.assertEqual(s_llm.peak, 1)
+        self.assertGreater(p_llm.peak, 1)
+        self.assertEqual(self._view(parallel), self._view(serial))
+        self.assertTrue([f for f in parallel.findings if f.role == "WholeDoc"])
+        self.assertEqual(self._view(self._run(3)[0]), self._view(serial))
+
+    def test_parallel_drops_and_diagnostics_are_ordered_by_task(self):
+        from reqcheck.llm import LLMError
+
+        class Noisy(SlowFake):
+            def auditor(self, user):
+                data = super().auditor(user)
+                rid = data["results"][0]["req_id"] if data["results"] else "?"
+                data["results"].append({"req_id": ["мусор", rid]})
+                return data
+
+            def wholedoc(self, user):
+                raise LLMError("network", "LLM недоступна (network).", "")
+
+        serial, _ = self._run(1, Noisy())
+        parallel, _ = self._run(3, Noisy())
+        self.assertEqual(self._view(parallel), self._view(serial))
+        junk = [d["item"] for d in parallel.drops if d["role"] == "Auditor" and d["reason"] == "неверный формат элемента"]
+        self.assertEqual(len(junk), 4)
+        self.assertEqual(junk, sorted(junk))
+        self.assertEqual([d.code for d in parallel.diagnostics if d.level == "error"], ["network"])
+
+    def test_auditor_batches_run_in_parallel_and_stay_in_order(self):
+        rep, llm = self._run(4)
+        self.assertGreaterEqual(llm.peak, 3)
+        auditor = [f for f in rep.findings if f.role == "Auditor"]
+        self.assertTrue(auditor)
+        self.assertEqual(list(rep.req_checks), sorted(rep.req_checks, key=lambda r: int(r[2:])))
+
+    def test_worker_setting(self):
+        from reqcheck.pipeline import Pipeline
+        for env, want in (({}, 3), ({"REQCHECK_WORKERS": "1"}, 1), ({"REQCHECK_WORKERS": "5"}, 5),
+                          ({"REQCHECK_WORKERS": "x"}, 3), ({"REQCHECK_WORKERS": "0"}, 1)):
+            with self.subTest(env=env), mock.patch.dict(os.environ, env):
+                if not env:
+                    os.environ.pop("REQCHECK_WORKERS", None)
+                self.assertEqual(Pipeline(FakeLLM(), log=lambda m: None).workers, want)
+        self.assertEqual(Pipeline(FakeLLM(), log=lambda m: None, workers=2).workers, 2)
+
+    def test_cli_workers_flag(self):
+        seen = []
+
+        class Spy(SlowFake):
+            def __init__(self, *a, **kw):
+                super().__init__(*a, **kw)
+                seen.append(self)
+
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch("reqcheck.cli.LLM", Spy):
+                main([str(DOC), "-o", str(Path(d) / "r.md"), "--quiet", "--no-cache", "--no-pdf", "--workers", "1"])
+        self.assertEqual(seen[0].peak, 1)
+
+    def test_cache_and_trace_under_threads(self):
+        import time
+        from reqcheck.llm import LLM
+        fake = FakeLLM()
+
+        def record(self, role, system, user, bad):
+            time.sleep(0.05 if role == "Auditor" and "R-01 [" in user else 0.01)
+            return json.dumps(getattr(fake, role.lower())(user), ensure_ascii=False), (len(user), 10)
+
+        def offline(self, role, system, user, bad):
+            raise AssertionError(f"network call for {role}")
+
+        clean = {k: v for k, v in os.environ.items() if k not in CachedReplayTest.CLEAR}
+        from reqcheck.pipeline import Pipeline
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.dict(os.environ, {**clean, "ANTHROPIC_API_KEY": "test"}, clear=True), \
+                    mock.patch.object(LLM, "_send_anthropic", record):
+                first = Pipeline(LLM(use_cache=True, cache_dir=d), log=lambda m: None, workers=3).run(str(DOC))
+            with mock.patch.dict(os.environ, clean, clear=True), mock.patch.object(LLM, "_send_anthropic", offline):
+                second = Pipeline(LLM(use_cache=True, cache_dir=d), log=lambda m: None, workers=3).run(str(DOC))
+            files = sorted(p.name for p in Path(d).iterdir())
+        self.assertFalse([f for f in files if f.endswith(".tmp")])
+        self.assertEqual(len(files), first.passport["llm_calls"])
+        self.assertEqual(second.passport["llm_cached"], first.passport["llm_calls"])
+        self.assertEqual([t["role"] for t in second.trace], [t["role"] for t in first.trace])
+        self.assertEqual(sorted(t["in_tokens"] for t in second.trace), sorted(t["in_tokens"] for t in first.trace))
+        self.assertEqual(self._view(second)["findings"], self._view(first)["findings"])
+
+    def test_step_log_lines_are_whole(self):
+        from reqcheck.pipeline import Pipeline
+        lines = []
+        Pipeline(SlowFake(), log=lines.append, workers=3).run(str(DOC))
+        self.assertTrue(all(l.startswith("[") and "] " in l for l in lines))
+        self.assertEqual(sum(1 for l in lines if l == "[Auditor] запрос к модели"), 4)
+        self.assertIn("[WholeDoc] запрос к модели", lines)
+
+
 if __name__ == "__main__":
     unittest.main()

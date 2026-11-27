@@ -1,4 +1,5 @@
 import re
+import threading
 
 CAND_RE = re.compile(r"^(C\d{3}) \[(\w+), строка \d+\][^:]*: (.*)$", re.M)
 REQ_RE = re.compile(r"^(R-\d+) \[[^\]]*\]: (.*)$", re.M)
@@ -18,10 +19,12 @@ class FakeLLM:
 
     def __init__(self, use_cache: bool = True, cache_dir: str = ""):
         self.trace: list[dict] = []
+        self._lock = threading.Lock()
 
     def json(self, role: str, system: str, user: str):
-        self.trace.append({"role": role, "cached": False, "seconds": 0.0, "in_tokens": len(system + user) // 4,
-                           "out_tokens": 0})
+        with self._lock:
+            self.trace.append({"role": role, "cached": False, "seconds": 0.0, "in_tokens": len(system + user) // 4,
+                               "out_tokens": 0})
         return getattr(self, role.lower())(user)
 
     def segmenter(self, user: str) -> dict:

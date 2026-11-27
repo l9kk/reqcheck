@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -109,6 +110,7 @@ class LLM:
         self.cache_dir = Path(cache_dir)
         self.trace: list[dict] = []
         self._client = None
+        self._lock = threading.Lock()
 
     def check(self) -> None:
         if not self.api_key and "localhost" not in self.base_url and "127.0.0.1" not in self.base_url:
@@ -118,14 +120,15 @@ class LLM:
                            "Укажите модель, например из .env.example.")
 
     def client(self):
-        if self._client is None:
-            if self.provider == "anthropic":
-                from anthropic import Anthropic as Client
-            else:
-                from openai import OpenAI as Client
-            self._client = Client(api_key=self.api_key or "local", base_url=self.base_url,
-                                  timeout=self.timeout, max_retries=0)
-        return self._client
+        with self._lock:
+            if self._client is None:
+                if self.provider == "anthropic":
+                    from anthropic import Anthropic as Client
+                else:
+                    from openai import OpenAI as Client
+                self._client = Client(api_key=self.api_key or "local", base_url=self.base_url,
+                                      timeout=self.timeout, max_retries=0)
+            return self._client
 
     def json(self, role: str, system: str, user: str):
         key = hashlib.sha256(f"{self.provider}|{self.model}|{system}|{user}".encode()).hexdigest()[:32]
@@ -133,17 +136,21 @@ class LLM:
         t0 = time.time()
         if self.use_cache and path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
-            self.trace.append({"role": role, "cached": True, "seconds": 0.0, "in_tokens": data.get("in_tokens", 0),
-                               "out_tokens": data.get("out_tokens", 0), "orig_seconds": data.get("seconds")})
+            with self._lock:
+                self.trace.append({"role": role, "cached": True, "seconds": 0.0, "in_tokens": data.get("in_tokens", 0),
+                                   "out_tokens": data.get("out_tokens", 0), "orig_seconds": data.get("seconds")})
             return unwrap(data["result"])
         self.check()
         result, usage = self._call(role, system, user)
         secs = round(time.time() - t0, 1)
-        self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})
+        with self._lock:
+            self.trace.append({"role": role, "cached": False, "seconds": secs, "in_tokens": usage[0], "out_tokens": usage[1]})
         if self.use_cache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1], "seconds": secs},
-                                       ensure_ascii=False), encoding="utf-8")
+            tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+            tmp.write_text(json.dumps({"result": result, "in_tokens": usage[0], "out_tokens": usage[1], "seconds": secs},
+                                      ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, path)
         return unwrap(result)
 
     def _call(self, role: str, system: str, user: str):

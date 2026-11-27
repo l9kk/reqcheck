@@ -43,13 +43,15 @@ def main(argv=None) -> int:
                     help="ответы на вопросы из TOML (Q-01 = \"a\" | \"свой текст\" | \"default\"), без терминала")
     ap.add_argument("--no-wholedoc", action="store_true",
                     help="без роли WholeDoc (ревью всего документа одним запросом), для сравнения")
+    ap.add_argument("--workers", type=int, metavar="N",
+                    help="сколько запросов к модели слать одновременно (по умолчанию REQCHECK_WORKERS или 3; 1 = по очереди)")
     args = ap.parse_args(argv)
 
     load_dotenv(Path.cwd() / ".env")
 
     llm = LLM(use_cache=not args.no_cache)
     log = (lambda m: None) if args.quiet else (lambda m: print(m, flush=True))
-    pipe = Pipeline(llm, log=log, wholedoc=not args.no_wholedoc)
+    pipe = Pipeline(llm, log=log, wholedoc=not args.no_wholedoc, workers=args.workers)
     crashed = False
     try:
         rep = pipe.run(args.input)

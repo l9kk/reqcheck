@@ -27,7 +27,7 @@
 | autotopup, автоматическая сверка | 18 из 18, критичные 4 из 4 | [`examples/autotopup/report.json`](examples/autotopup/report.json) | `python eval/score.py examples/autotopup/report.json --golden eval/golden_autotopup.toml` |
 | cashback, разметка написана до любого прогона | первый полный прогон (v1.3): 20 из 20 при строгой проверке | [`eval/manual_check.md`](eval/manual_check.md) | разметка: коммит 0fe31eb (26.11 02:10), первый полный отчёт: 80e6f66 (27.11 03:29) |
 | cashback на v1.6, автоматическая сверка | 20 из 20, критичные 4 из 5 (B04 понижен до «важно») | [`examples/cashback/report.json`](examples/cashback/report.json) | `python eval/score.py examples/cashback/report.json --golden eval/golden_cashback.toml` |
-| Ответы на вопросы агента закрывают дефекты | закрыто 8 из 21, критичных 5 → 3 (в примере отвечали мы: 6 раз приняли рекомендацию агента, 4 раза вариант (а)) | [`examples/answers/requirements.report.answers.md`](examples/answers/requirements.report.answers.md) | раздел «Дельта после ответов» |
+| Ответы на вопросы агента закрывают дефекты | закрыто 8 из 21, критичных в переписанных требованиях 5 → 3 (в примере отвечали мы: 6 раз приняли рекомендацию агента, 4 раза вариант (а)) | [`examples/answers/requirements.report.answers.md`](examples/answers/requirements.report.answers.md) | раздел «Дельта после ответов» |
 | Скан, пустой, обрезанный, зашифрованный файл | отчёт с понятной ошибкой и советом, что сделать | [`examples/broken/`](examples/broken/) | читать файлы |
 | Инструкции для ИИ внутри ТЗ («игнорируй предыдущие инструкции») | не выполняются, агент сам отмечает их как дефект (D-05) | [`examples/injection/report.md`](examples/injection/report.md) | читать отчёт |
 
@@ -35,11 +35,11 @@
 
 | Что | Число | Откуда |
 | :--- | :--- | :--- |
-| Запросов к модели на выданном ТЗ | 9 | паспорт в [`report/report.md`](report/report.md) |
 | Токены, вход / выход | 130 339 / 94 982 | то же |
 | Цена | $2.42, около 1 110 ₸ (курс НБ РК 458.85 на 27.11.2026, счёта нет) | [`docs/details.md`](docs/details.md#ценность-в-тенге) |
 | Время модели | 843.8 с, около 14 минут | паспорт |
 | Инспекция того же ТЗ командой из 3-4 ревьюеров, по нормам | 2.3-4.6 ч на всю команду, около 8 000-15 900 ₸ | [`docs/details.md`](docs/details.md#ценность-в-тенге) |
+| Экономия, если агент заменяет первый круг инспекции | 5 160-13 640 ₸ и 1.8-4.3 ч на одно ТЗ; при 20 ТЗ в месяц (допущение) 1.2-3.3 млн ₸ и 430-1 020 ч в год | [`docs/details.md`](docs/details.md#ценность-в-тенге) |
 
 ## Повторить весь прогон без ключа
 

@@ -220,8 +220,9 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
     sev_line = "".join(f'<span class="sev {SEV_CLASS[s]}">{e(s)}: {counts[s]}</span>' for s in SEVERITIES)
     stats = ('<dl class="stats">'
              f'<div><dt>Требований</dt><dd><span class="big">{num(len(rep.requirements))}</span>'
-             f'<span class="sub">, с замечаниями {num(len(req_with))}</span></dd></div>'
+             '</dd></div>'
              f'<div><dt>Замечаний</dt><dd><span class="big">{num(len(rep.findings))}</span>'
+             + (f'<span class="sub">, критичных <b class="crit-n">{num(counts["критично"])}</b></span>' if counts.get("критично") else "") +
              f'<span class="sevs vh">{sev_line}</span></dd></div>'
              f'<div><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
     head = ['<header class="top"><div class="titlebar"><div class="tt">'
@@ -354,11 +355,11 @@ def write_html(rep: Report, doc_lines: list[str], path, crit: dict | None = None
 
 CSS = """
 :root{--bg:#f7f7f5;--surface:#fff;--raise:#f3f4f6;--ink:#1c2024;--muted:#5d6670;--line:#dfe2e5;--soft:#eef0f2;
---accent:#1f5c99;--accent-soft:#e3edf7;--hl:#fff1bf;--hl-edge:#c99a06;
+--accent:#0c6a62;--accent-soft:#e2eeeb;--hl:#fff1bf;--hl-edge:#c99a06;
 --crit:#a3221b;--crit-bg:#fbe9e7;--major:#7a4d00;--major-bg:#fbf0d9;--minor:#4a5562;--minor-bg:#eceff2;
 --ok:#1e6b3a;--ok-bg:#e4f3e8;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#121417;--surface:#1a1d21;--raise:#24282e;--ink:#e4e6e8;--muted:#9aa3ad;--line:#2d3238;--soft:#22262b;
---accent:#7fb0e6;--accent-soft:#1d2d40;--hl:#3b3216;--hl-edge:#d9a92a;
+--accent:#5cb8ad;--accent-soft:#16302d;--hl:#3b3216;--hl-edge:#d9a92a;
 --crit:#ffaba3;--crit-bg:#3a1d1b;--major:#f0c46a;--major-bg:#352a14;--minor:#b6c0cb;--minor-bg:#262b31;
 --ok:#86d19e;--ok-bg:#183022;color-scheme:dark}}
 *{box-sizing:border-box}
@@ -394,7 +395,8 @@ h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 .ffmore[open]>summary{margin-bottom:2px}
 .chip{min-width:0;display:flex;align-items:baseline;gap:8px;font-size:14px;line-height:20px;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none}
 .chip:hover{background:var(--soft)}
-.chip .dot{align-self:center}
+.chip .dot{align-self:flex-start;margin-top:6px}
+.crit-n{color:var(--crit);font-weight:650}
 .chip b{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:3.2em}
 .chip .clab{color:var(--muted);font-weight:500;white-space:nowrap}
 .chip .ctl{min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-wrap:pretty}
@@ -417,8 +419,8 @@ h3{font-size:14px;margin:22px 0 8px;font-weight:650}
 .pane-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .dtog{display:none}
 .lines{overflow:auto;flex:1;min-height:0;padding:6px 0;font:14px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;position:relative}
-.ln{display:flex;gap:12px;padding:0 14px 0 0;border-left:4px solid transparent}
-.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;opacity:.75;font-size:12px;font-variant-numeric:tabular-nums;padding-top:2px}
+.ln{display:flex;align-items:baseline;gap:12px;padding:0 14px 0 0;border-left:4px solid transparent}
+.ln .no{flex:none;text-align:right;color:var(--muted);user-select:none;padding-left:8px;opacity:.75;font-size:12px;font-variant-numeric:tabular-nums}
 .ln .tx{white-space:pre-wrap;overflow-wrap:anywhere;flex:1;min-width:0}
 .ln .tx.r{white-space:normal}
 .md-h1 .tx.r{font-size:18px;font-weight:650;padding-top:4px}
@@ -489,7 +491,7 @@ tr:last-child td{border-bottom:0}
 .empty{color:var(--muted);padding:16px 14px;margin:0}
 code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .panel ul{padding-left:18px}
-@media (max-width:767px){.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
+@media (max-width:767px){.ff{display:none}.wrap{padding:14px 16px 40px}.work{grid-template-columns:minmax(0,1fr)}.work>.doc{order:0}
 .pane{position:static;height:auto}.doc .lines{max-height:60vh}.flist{overflow:visible}
 .doc:not(.open) .lines{display:none}.doc:not(.open) .pane-head{border-bottom:0}
 .dtog{display:inline-flex;margin-left:auto}

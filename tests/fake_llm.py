@@ -78,6 +78,9 @@ class FakeLLM:
     def edgecaser(self, user: str) -> dict:
         return {"findings": []}
 
+    def reconciler(self, user: str) -> dict:
+        return {"fixes": [], "conflicts": []}
+
     def rewriter(self, user: str) -> dict:
         items = []
         for qid, body in re.findall(r"^(Q-\d+)\. (.*?)(?=^Q-\d+\. |\Z)", user, re.M | re.S):

@@ -48,6 +48,7 @@ class Question:
     default: str
     addressee: str
     finding_ids: list[str] = field(default_factory=list)
+    note: str = ""
 
 
 @dataclass

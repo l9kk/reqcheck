@@ -166,6 +166,8 @@ def first_screen(rep: Report, crit: dict, asks: dict, counts: dict) -> list[str]
                 L.append("- Варианты: " + "; ".join(f"({chr(1072 + i)}) {o}" for i, o in enumerate(q.options)))
             if q.default:
                 L.append(f"- Рекомендация агента: {q.default}")
+            if q.note:
+                L.append(f"- Внимание: {q.note}")
             L.append("")
     L += ["Подробно: все замечания в разделе 2, все вопросы в разделе 3, проверка требований в разделах 5 и 6.", ""]
     return L
@@ -234,6 +236,8 @@ def render(rep: Report, crit: dict) -> str:
             L.append("- Варианты: " + "; ".join(f"({chr(1072 + i)}) {o}" for i, o in enumerate(q.options)))
         if q.default:
             L.append(f"- Рекомендация агента: {q.default}")
+        if q.note:
+            L.append(f"- Внимание: {q.note}")
         if q.finding_ids:
             L.append(f"- Закрывает замечания: {', '.join(q.finding_ids)}")
         L.append("")

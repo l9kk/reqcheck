@@ -90,7 +90,8 @@ def default_workers() -> int:
         return 3
 
 
-ROLE_ORDER = ("Segmenter", "Auditor", "CrossChecker", "EdgeCaser", "WholeDoc", "Critic", "Clarifier")
+ROLE_ORDER = ("Segmenter", "Auditor", "CrossChecker", "EdgeCaser", "WholeDoc", "Critic", "Clarifier", "Reconciler")
+MIN_FIX_WORDS = 4
 
 
 def all_criteria(cr: dict) -> dict:
@@ -246,6 +247,8 @@ class Pipeline:
             rep.questions = self.fallback_questions(findings)
         rep.questions = self.rank_questions(rep.questions, findings)
         self.add_merged_text(findings, renum)
+        if self.use_model:
+            self.reconcile(findings, rep.questions, rep)
         rep.verdict = self.verdict(findings, fix_first, reqs, model_used=self.use_model)
         if self.drops:
             passport["guard_drops"] = len(self.drops)
@@ -629,6 +632,78 @@ class Pipeline:
             out = self.fallback_questions(findings)
         self.step("Clarifier", f"вопросов: {len(out)}")
         return out[:14]
+
+    def reconcile_items(self, findings: list[Finding], questions: list[Question]) -> str:
+        closers: dict[str, list[str]] = {}
+        out = []
+        for q in questions:
+            for fid in q.finding_ids:
+                closers.setdefault(fid, []).append(q.id)
+            out.append(f"{q.id} (закрывает {', '.join(q.finding_ids) or '-'}): {q.text}")
+            out += [f"  ({chr(1072 + i)}) {o}" for i, o in enumerate(q.options)]
+            out.append(f"  Рекомендация: {q.default or '-'}")
+        out += ["", "Замечания:"]
+        for f in findings:
+            if f.id in closers:
+                quote = clean(f.quotes[0].text)[:200] if f.quotes else ""
+                out.append(f"{f.id} [закрывает {', '.join(closers[f.id])}] цитата: «{quote}» | проблема: {f.problem[:300]}"
+                           f" | fix: {f.fix or '-'}")
+        return "\n".join(out)
+
+    def reconcile(self, findings: list[Finding], questions: list[Question], rep: Report) -> None:
+        """One call after the Clarifier: rewrite fixes of findings closed by a question so they follow its
+        recommended option, and note question pairs whose recommendations conflict. Only fix texts change."""
+        by_id = {f.id: f for f in findings}
+        linked = {x for q in questions for x in q.finding_ids if x in by_id}
+        if not linked:
+            return
+        try:
+            system, user = roles.reconciler_prompt(self.reconcile_items(findings, questions))
+            data = self._llm("Reconciler", system, user, rep)
+        except Exception as e:
+            data = None
+            rep.diagnostics.append(Diagnostic("warning", "reconcile", f"Reconciler: {type(e).__name__}: {str(e)[:160]}", ""))
+        if not isinstance(data, dict):
+            rep.diagnostics.append(Diagnostic("warning", "reconcile",
+                                              "Reconciler: исправления не согласованы с рекомендациями вопросов.",
+                                              "Исправления оставлены как были, сверьте их с ответами на вопросы."))
+            return
+        changed = 0
+        for d in self._dicts(data.get("fixes"), "Reconciler"):
+            fid, text = d.get("id"), d.get("fix")
+            if not isinstance(fid, str) or not isinstance(text, str):
+                self._bad("Reconciler", d)
+                continue
+            text = " ".join(text.split())
+            if fid not in linked:
+                self.drops.append({"role": "Reconciler", "reason": "замечание не закрыто вопросом", "item": f"{fid}: {text[:150]}"})
+                continue
+            if len(re.findall(r"\w+", text)) < MIN_FIX_WORDS:
+                self.drops.append({"role": "Reconciler", "reason": "пустое или слишком короткое исправление",
+                                   "item": f"{fid}: {text[:150]}"})
+                continue
+            f = by_id[fid]
+            if text == f.fix:
+                continue
+            f.fix = text
+            tag_assumptions([f], self.doc.text)
+            changed += 1
+        qids = [q.id for q in questions]
+        notes: dict[str, list[str]] = {}
+        for c in self._dicts(data.get("conflicts"), "Reconciler"):
+            a, b, reason = c.get("a"), c.get("b"), c.get("reason")
+            if not (isinstance(a, str) and isinstance(b, str) and isinstance(reason, str)) \
+                    or a not in qids or b not in qids or a == b or not reason.strip():
+                self._bad("Reconciler", c)
+                continue
+            first, later = sorted((a, b), key=qids.index)
+            note = f"рекомендация расходится с {first}: {' '.join(reason.split())}"
+            if note not in notes.setdefault(later, []):
+                notes[later].append(note)
+        for q in questions:
+            if q.id in notes:
+                q.note = "; ".join(notes[q.id])
+        self.step("Reconciler", f"исправлений согласовано: {changed}, расхождений между вопросами: {len(notes)}")
 
     def fallback_questions(self, findings: list[Finding]) -> list[Question]:
         out = []

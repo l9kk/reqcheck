@@ -720,7 +720,7 @@ select(f);if(mobile()){f.scrollIntoView({block:'start',behavior:reduce?'auto':'s
 if(a.classList.contains('qlink')){ev.preventDefault();var q=d.getElementById(a.getAttribute('href').slice(1));if(!q)return;
 show('questions');q.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});q.focus({preventScroll:true});}});
 function pickLine(el){var n=+el.id.slice(1);line=n;clearPick();el.classList.add('pick');apply();
-var vis=fs.filter(function(f){return !f.hidden;});if(vis.length===1)select(vis[0],n);else{fs.forEach(function(x){x.classList.remove('active');});}
+var vis=fs.filter(function(f){return !f.hidden;});if(!vis.length&&sev){setSev('',true);apply();vis=fs.filter(function(f){return !f.hidden;});}if(vis.length===1)select(vis[0],n);else{fs.forEach(function(x){x.classList.remove('active');});}
 if(flist){flist.scrollTop=0;if(mobile())d.getElementById('findings').scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'});}}
 var dmap=d.querySelector('.dmap'),dview=dmap&&dmap.querySelector('.dview');
 function view(){if(!dview||!lines||!lines.scrollHeight)return;var h=dmap.clientHeight,k=h/lines.scrollHeight;

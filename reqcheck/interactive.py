@@ -13,7 +13,7 @@ def pick(q, a: str) -> str:
     a = a.strip()
     if not a or a.lower() == "default":
         return q.default
-    low = a.lower()
+    low = a.lower().translate(str.maketrans("абвг", "abcd"))
     if len(low) == 1 and "a" <= low <= "d" and ord(low) - 96 <= len(q.options):
         return q.options[ord(low) - 97]
     if a.isdigit() and 1 <= int(a) <= len(q.options):

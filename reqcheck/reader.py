@@ -74,6 +74,10 @@ def decode_text(data: bytes) -> tuple[str, str]:
         return data.decode("utf-8"), "utf-8"
     except UnicodeDecodeError:
         pass
+    text = data.decode("utf-8", errors="replace")
+    bad = text.count("\ufffd")
+    if bad <= max(3, len(text) // 1000):
+        return text, f"utf-8, повреждённых байт заменено: {bad}"
     text = data.decode("cp1251", errors="replace")
     return text, "cp1251"
 

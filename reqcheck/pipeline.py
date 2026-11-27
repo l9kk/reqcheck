@@ -191,6 +191,7 @@ class Pipeline:
 
     def run(self, path: str) -> Report:
         t0 = time.time()
+        self.drops, self.merged, self.merge_into, self.use_model = [], {}, {}, True
         passport = {"document": Path(path).name, "sha256": "", "date": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
                     "model": self.llm.model or "-", "provider": self.llm.provider, "agent_version": agent_version(),
                     "llm_calls": 0, "seconds": 0, "standards": "ISO/IEC/IEEE 29148:2018 п. 5.2.5-5.2.7; IEEE 830-1998 п. 4.3"}
@@ -210,6 +211,12 @@ class Pipeline:
         self.doc = doc
         self.g = Grounder(doc)
         numbered = doc.numbered()
+        limit = int(os.getenv("REQCHECK_MAX_CHARS", "400000"))
+        if len(numbered) > limit:
+            rep.diagnostics.append(Diagnostic("error", "too_long",
+                                              f"Документ слишком большой для одной проверки: {len(numbered)} знаков при пределе {limit}.",
+                                              "Разделите документ на части или поднимите REQCHECK_MAX_CHARS в .env."))
+            self.use_model = False
 
         markers = len(REQ_MARKERS.findall(doc.text))
         if markers < max(3, len(doc.lines) // 40):

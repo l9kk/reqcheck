@@ -86,6 +86,8 @@ def main(argv=None) -> int:
         else:
             print(f"Модель не использовалась: отчёт модели {kept} не перезаписан, отчёт по правилам: {out.with_suffix('.md')}")
     md_path = out.with_suffix(".md")
+    for old in (out.with_suffix(".html"), out.with_suffix(".pdf")):
+        old.unlink(missing_ok=True)
     md_path.write_text(render(rep, all_criteria(load_criteria())), encoding="utf-8")
     out.with_suffix(".json").write_text(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     written = [md_path, out.with_suffix(".json")]

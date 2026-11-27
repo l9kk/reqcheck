@@ -129,7 +129,7 @@ def finding_html(f: Finding, crit: dict, asks: dict, qnum: dict, fnum: dict, n_l
         more.append(f'<p class="prest">{e(rest)}</p>')
     extra = distinct_parts(main, extra)
     if extra:
-        more.append('<p class="also-h">Из объединённых замечаний</p><ul class="also">'
+        more.append('<ul class="also">'
                     + "".join(f"<li>{e(p)}</li>" for p in extra) + "</ul>")
     dl = []
     if f.impact:
@@ -176,7 +176,7 @@ def question_html(q, i: int, fnum: dict, n_lines: int) -> str:
                         for j, o in enumerate(q.options))
         dl.append(("Варианты", f'<ul class="opts">{items}</ul>'))
     if q.default:
-        dl.append(("Рекомендация агента", e(q.default)))
+        dl.append(("Рекомендация агента", e(re.sub(r"^Вариант\s*\([а-яa-z]\)\.?\s*", "", q.default) or q.default)))
     if q.finding_ids:
         links = ", ".join(f'<a class="flink" href="#{fnum[x]}">{e(x)}</a>' if x in fnum else e(x) for x in q.finding_ids)
         dl.append(("Закрывает замечания", links))
@@ -190,11 +190,6 @@ def table(head: list[str], rows: list[list[str]], cls: str = "") -> str:
     return (f'<div class="tw{" " + cls if cls else ""}"><table><thead><tr>' + "".join(f"<th>{h}</th>" for h in head) + "</tr></thead><tbody>"
             + "".join("<tr>" + "".join(f'<td data-label="{e(h)}">{c}</td>' for h, c in zip(head, r)) + "</tr>" for r in rows)
             + "</tbody></table></div>")
-
-
-def fmt_date(s) -> str:
-    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})(.*)$", str(s or "").strip())
-    return f"{m.group(3)}.{m.group(2)}.{m.group(1)}{m.group(4)}" if m else str(s or "")
 
 
 def defect_map(line_sev: dict[int, int], n_lines: int) -> str:
@@ -265,26 +260,21 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
              f'<div class="stat"><dt>Вопросов к автору</dt><dd><span class="big">{num(len(rep.questions))}</span></dd></div></dl>')
 
     tabs = [("main", "Документ и замечания", len(rep.findings)), ("questions", "Вопросы к автору", len(rep.questions)),
-            ("set", "Проверка набора", len(rep.set_summary)), ("passport", "Паспорт прогона", None)]
+            ("set", "Проверка набора", None), ("passport", "Паспорт прогона", None)]
     nav = ['<nav class="tabs" role="tablist" aria-label="Разделы отчёта">']
     for k, (key, label, n) in enumerate(tabs):
         nav.append(f'<button type="button" role="tab" id="tab-{key}" aria-controls="panel-{key}" aria-selected="{"true" if k == 0 else "false"}"'
                    f' data-tab="{key}">{label}' + (f' <span class="cnt">{n}</span>' if n is not None else "") + "</button>")
     nav.append("</nav>")
 
-    when = fmt_date(p.get("date"))
-    meta = [f'<span class="bdoc">{e(p.get("document"))}</span>'] if p.get("document") else []
-    if when or p.get("model"):
-        meta.append('<span class="bwhen">' + (f"проверено {e(when)}" if when else "") + (", " if when and p.get("model") else "")
-                    + e(p.get("model") or "") + "</span>")
     head = ['<header class="bar"><div class="bar-in"><div class="brand">'
             '<svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="6"/><path d="M7.5 12.5l3 3 6-7"/></svg>'
-            '<span class="bname">reqcheck</span>' + (f'<span class="bmeta">{"".join(meta)}</span>' if meta else "") + "</div>"
+            '<span class="bname">reqcheck</span></div>'
             + "".join(nav) + '<div class="bact">'
             '<button type="button" class="tbtn" id="print" title="Печать или сохранение в PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg><span>PDF</span></button>'
             f"<button type=\"button\" class=\"theme\" id=\"theme\" aria-label=\"Сменить тему: светлая или тёмная\" title=\"Светлая или тёмная тема\"><svg class=\"i-moon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z\"/></svg><svg class=\"i-sun\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4\"/></svg></button></div></div></header>",
             '<section class="hero" aria-labelledby="h-title"><div class="hero-top">'
-            f'<h1 id="h-title">{e(title)}</h1><p class="sub">Отчёт о проверке требований · ISO/IEC/IEEE 29148, IEEE 830</p>'
+            f'<h1 id="h-title">{e(title)}</h1><p class="sub">ISO/IEC/IEEE 29148, IEEE 830</p>'
             f'<div class="verdict {VERDICT_CLASS.get(status, "v-none")}"><p class="vline"><span class="vq">Начинать разработку и тестирование:</span> '
             f'<span class="pill"><span class="pg" aria-hidden="true">{glyph}</span><strong>{e(status)}</strong></span></p>'
             + (f'<p class="vtext">{e(vshort)}</p>' if vshort else "") + "</div>" + stats + "</div>"]
@@ -304,7 +294,7 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
                     + "".join(f'<li class="sl-{e(s.get("status"))}"><i class="sdot" aria-hidden="true"></i>'
                               f'<span class="sn">{e(short_crit(crit, s.get("criterion", "")))}</span>'
                               f'<span class="ss">{e(STATUS.get(s.get("status"), s.get("status")))}</span></li>' for s in rep.set_summary)
-                    + '</ul><button type="button" class="golink" data-go="set">Подробнее</button></aside>')
+                    + '</ul></aside>')
     if side:
         head.append('<div class="hero-sub">' + "".join(side) + "</div>")
     head.append("</section>")
@@ -316,8 +306,7 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
     nav = []
 
     doc = ['<section class="pane doc" id="doc" aria-label="Исходный документ"><div class="pane-head"><h2>Документ</h2>'
-           f'<span class="muted">{e(p.get("document"))}' + (", строки с замечаниями отмечены слева" if line_f else "")
-           + '</span><button type="button" class="dtog" id="dtog" aria-expanded="false" aria-controls="docbody">Показать документ</button></div>']
+           '<button type="button" class="dtog" id="dtog" aria-expanded="false" aria-controls="docbody">Показать документ</button></div>']
     if doc_lines:
         doc.append('<div class="docbody" id="docbody">')
         if line_f:
@@ -359,7 +348,6 @@ def render_html(rep: Report, doc_lines: list[str], crit: dict | None = None) -> 
 
     qp = ['<section class="panel" id="panel-questions" role="tabpanel" aria-labelledby="tab-questions"><h2>Вопросы к автору</h2>']
     if rep.questions:
-        qp.append('<p class="muted">Без ответов на эти вопросы нельзя однозначно реализовать или протестировать требования. Порядок: по важности.</p>')
         qp += [question_html(q, i, fnum, n_lines) for i, q in enumerate(rep.questions)]
     else:
         qp.append('<p class="empty">Вопросов нет.</p>')
@@ -446,9 +434,6 @@ h3{font-size:14.5px;margin:28px 0 10px;font-weight:600}
 .brand{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px}
 .logo{flex:none;width:24px;height:24px}.logo rect{fill:var(--ink)}.logo path{fill:none;stroke:var(--surface);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .bname{font-weight:650;font-size:15px;letter-spacing:-.01em}
-.bmeta{min-width:0;display:flex;flex-direction:column;line-height:1.3;padding-left:12px;margin-left:2px;border-left:1px solid var(--line)}
-.bdoc{font-size:13px;font-weight:500;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bwhen{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bact{flex:1 1 0;display:flex;justify-content:flex-end;align-items:center;gap:8px}
 .tabs{flex:none;display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--sunk);overflow-x:auto;scrollbar-width:none;max-width:100%}
 .tabs::-webkit-scrollbar{display:none}

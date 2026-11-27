@@ -159,7 +159,7 @@ def rule_version_date(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
     what = "номера версии и даты" if not has_date and not has_ver else ("даты" if not has_date else "номера версии")
     pat = r"дата|date" if has_ver else r"верси|version"
     vl = next((l.no for l in doc.lines if re.search(pat, l.text, re.I)), doc.lines[0].no)
-    return [_f("set", "srs_modifiable", "важно", [g.quote_lines(vl, vl)],
+    return [_f("set", "conforming", "важно", [g.quote_lines(vl, vl)],
                f"У документа нет {what}.",
                "Нельзя понять, какую редакцию согласовали и по какой писать тесты.",
                "Добавить версию, дату и историю изменений.")]

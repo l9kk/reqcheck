@@ -361,7 +361,7 @@ class GeneralizedRulesTest(unittest.TestCase):
                      "Центральный банк задаёт курс, комиссия в процентах от суммы в долларах."):
             with self.subTest(line=line):
                 self.assertFalse([f for f in self._lint(base.format(line)) if "разных единицах" in f.problem])
-        for line in ("Комиссия 50 центов, тариф $5.", "Лимит в центах, сумма в евро."):
+        for line in ("Комиссия 50 центов, тариф $5.", "Лимит в центах, сумма в евро.", "Остаток в центе, лимит в долларах."):
             with self.subTest(line=line):
                 fs = [f for f in self._lint(base.format(line)) if "разных единицах" in f.problem]
                 self.assertEqual(len(fs), 1)

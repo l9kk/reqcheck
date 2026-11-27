@@ -168,7 +168,7 @@ def rule_version_date(doc: Document, lang: dict, g: Grounder) -> list[Finding]:
 MONEY_UNITS = [
     (r"тиын", "тиыны", "тиынах", r"тенге|₸|\bkzt\b", "тенге"),
     (r"копе[йе]к", "копейки", "копейках", r"рубл|₽|\brub\b", "рубли"),
-    (r"\bцент(?:а|ов|ы|ах|ам|ами)?\b|\bcents?\b", "центы", "центах",
+    (r"\bцент(?:а|е|у|ов|ы|ах|ам|ами)?\b|\bcents?\b", "центы", "центах",
      r"доллар\w*|\bевро\b|€|\busd\b|\beur\b|\bdollars?\b|\beuros?\b|\$\s?\d|\d\s?\$", "доллары или евро"),
 ]
 
